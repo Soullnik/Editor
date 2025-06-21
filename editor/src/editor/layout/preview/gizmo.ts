@@ -158,11 +158,18 @@ export class EditorPreviewGizmo {
         });
 
         gizmo.onDragObservable.add(() => {
-            if (isLight(temporaryNode)) {
-                updateLightShadowMapRefreshRate(temporaryNode);
-                updatePointLightShadowMapRenderListPredicate(temporaryNode);
-            } else if (isAbstractMesh(temporaryNode)) {
-                this._updateShadowMapsForMesh(temporaryNode);
+            const currentNode = this._attachedNode;
+            if (!currentNode) return;
+            if (isLight(currentNode)) {
+                updateLightShadowMapRefreshRate(currentNode);
+                updatePointLightShadowMapRenderListPredicate(currentNode);
+            } else if (isAbstractMesh(currentNode)) {
+                this._updateShadowMapsForMesh(currentNode);
+            } else if (isCamera(currentNode)) {
+                console.log("_attachVector3UndoRedoEvents onDragObservablecamera", JSON.stringify(currentNode));
+                currentNode.computeWorldMatrix();
+                currentNode.getViewMatrix();
+                currentNode.getScene().markAllMaterialsAsDirty(0);
             }
         });
 
@@ -236,12 +243,19 @@ export class EditorPreviewGizmo {
         });
 
         gizmo.onDragObservable.add(() => {
-            if (isLight(temporaryNode)) {
-                updateLightShadowMapRefreshRate(temporaryNode);
-                updatePointLightShadowMapRenderListPredicate(temporaryNode);
-            } else if (isAbstractMesh(temporaryNode)) {
-                this._updateShadowMapsForMesh(temporaryNode);
-            }
+            const currentNode = this._attachedNode;
+            if (!currentNode) return;
+            if (isLight(currentNode)) {
+                updateLightShadowMapRefreshRate(currentNode);
+                updatePointLightShadowMapRenderListPredicate(currentNode);
+            } else if (isAbstractMesh(currentNode)) {
+                this._updateShadowMapsForMesh(currentNode);
+            } else if (isCamera(currentNode)) {
+                console.log(" _attachRotationUndoRedoEvents onDragObservable camera", JSON.stringify(currentNode));
+                currentNode.computeWorldMatrix();
+                currentNode.getViewMatrix();
+                currentNode.getScene().markAllMaterialsAsDirty(0);
+            } 
         });
 
         gizmo.onDragEndObservable.add(() => {
