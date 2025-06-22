@@ -165,11 +165,6 @@ export class EditorPreviewGizmo {
                 updatePointLightShadowMapRenderListPredicate(currentNode);
             } else if (isAbstractMesh(currentNode)) {
                 this._updateShadowMapsForMesh(currentNode);
-            } else if (isCamera(currentNode)) {
-                console.log("_attachVector3UndoRedoEvents onDragObservablecamera", JSON.stringify(currentNode));
-                currentNode.computeWorldMatrix();
-                currentNode.getViewMatrix();
-                currentNode.getScene().markAllMaterialsAsDirty(0);
             }
         });
 
@@ -250,12 +245,7 @@ export class EditorPreviewGizmo {
                 updatePointLightShadowMapRenderListPredicate(currentNode);
             } else if (isAbstractMesh(currentNode)) {
                 this._updateShadowMapsForMesh(currentNode);
-            } else if (isCamera(currentNode)) {
-                console.log(" _attachRotationUndoRedoEvents onDragObservable camera", JSON.stringify(currentNode));
-                currentNode.computeWorldMatrix();
-                currentNode.getViewMatrix();
-                currentNode.getScene().markAllMaterialsAsDirty(0);
-            } 
+            }
         });
 
         gizmo.onDragEndObservable.add(() => {
