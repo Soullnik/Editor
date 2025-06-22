@@ -12,7 +12,7 @@
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "files.insertFinalNewline": true,
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "javascript.format.semicolons": "insert",
     "typescript.format.semicolons": "insert",
     "typescript.preferences.quoteStyle": "double",
