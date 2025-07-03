@@ -8,14 +8,14 @@ import { SiDotenv } from "react-icons/si";
 import { IoIosColorPalette } from "react-icons/io";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 import { MdOutlineQuestionMark } from "react-icons/md";
-
-import { CubeTexture, Scene, Texture, ColorGradingTexture } from "babylonjs";
+import { CubeTexture, Scene, Texture, ColorGradingTexture, ISpriteJSONAtlas, SpriteMap, Vector2 } from "babylonjs";
 
 import { isScene } from "../../../../tools/guards/scene";
 import { registerUndoRedo } from "../../../../tools/undoredo";
 import { updateIblShadowsRenderPipeline } from "../../../../tools/light/ibl";
 import { onSelectedAssetChanged, onTextureAddedObservable } from "../../../../tools/observables";
 import { isColorGradingTexture, isCubeTexture, isTexture } from "../../../../tools/guards/texture";
+import { isValidSpriteAtlas } from "../../../../tools/guards/sprite";
 
 import { projectConfiguration } from "../../../../project/configuration";
 
@@ -28,6 +28,11 @@ import { EditorInspectorListField } from "./list";
 import { EditorInspectorNumberField } from "./number";
 import { EditorInspectorSwitchField } from "./switch";
 import { EditorInspectorSectionField } from "./section";
+import { EditorInspectorSpriteMapField } from "./sprite-map";
+import { readJSON } from "fs-extra";
+import { toast } from "sonner";
+
+
 
 export interface IEditorInspectorTextureFieldProps extends PropsWithChildren {
 	title: string;
@@ -175,7 +180,7 @@ export class EditorInspectorTextureField extends Component<IEditorInspectorTextu
 								}
 							</>
 						</PopoverTrigger>
-						<PopoverContent side="left">
+						<PopoverContent side="left" className="overflow-y-auto max-h-[80vh] w-96">
 							<>
 								{isCubeTexture(this.props.object[this.props.property])
 									? this._getCubeTextureInspector()
@@ -277,7 +282,6 @@ export class EditorInspectorTextureField extends Component<IEditorInspectorTextu
 		const o = {
 			samplingMode: texture.samplingMode,
 		};
-
 		return (
 			<div className="flex flex-col gap-2 h-full">
 				<EditorInspectorSectionField title="Common">
@@ -368,6 +372,16 @@ export class EditorInspectorTextureField extends Component<IEditorInspectorTextu
 						{ text: "Mirror", value: Texture.MIRROR_ADDRESSMODE },
 					]} />
 				</EditorInspectorSectionField>
+				{this.props.object?.metadata?.spriteMapInstance && (
+					<EditorInspectorSectionField title="Sprite Map">
+						<EditorInspectorSpriteMapField
+							object={this.props.object}
+							onChange={() => {
+								this.forceUpdate();
+							}}
+						/>
+					</EditorInspectorSectionField>
+				)}
 			</div>
 		);
 	}
@@ -399,7 +413,7 @@ export class EditorInspectorTextureField extends Component<IEditorInspectorTextu
 		this.setState({ dragOver: false });
 	}
 
-	private _handleDrop(ev: DragEvent<HTMLDivElement>): void {
+	private async _handleDrop(ev: DragEvent<HTMLDivElement>): Promise<void> {
 		ev.preventDefault();
 		this.setState({ dragOver: false });
 
@@ -430,6 +444,15 @@ export class EditorInspectorTextureField extends Component<IEditorInspectorTextu
 				}
 
 				this._computeTemporaryPreview();
+				break;
+
+			case ".json":
+				const json = await readJSON(absolutePath, { encoding: "utf8" });
+				if (isValidSpriteAtlas(json)) {
+					this._handleSpriteAtlasDrop(json, absolutePath);
+				} else {
+					toast.error("Not supported file type");
+				}
 				break;
 
 			case ".3dl":
@@ -488,5 +511,75 @@ export class EditorInspectorTextureField extends Component<IEditorInspectorTextu
 		}
 
 		this.forceUpdate();
+	}
+
+	/**
+ * Handles a dropped, already validated Sprite Atlas (ISpriteJSONAtlas).
+ * Creates a SpriteMap instance, attaches it to the material (this.props.object), and updates the texture.
+ * @param spriteAtlas - Validated ISpriteJSONAtlas object
+ */
+	private async _handleSpriteAtlasDrop(spriteAtlas: ISpriteJSONAtlas, absolutePath: string): Promise<void> {
+		if(!projectConfiguration.path) {
+			toast.error("Project path is not set");
+			return;
+		}
+		const meta = spriteAtlas.meta;
+		if (!meta || typeof meta !== "object" || typeof (meta as any).image !== "string") {
+			toast.error("Sprite Atlas JSON missing required meta.image field");
+			return;
+		}
+		const image = (meta as any).image as string;
+
+		try {
+			const imagePath = join(dirname(absolutePath), image);
+
+			const oldTexture = this.props.object[this.props.property];
+			const newTexture = configureImportedTexture(
+				new Texture(imagePath, this.props.scene ?? (isScene(this.props.object) ? this.props.object : this.props.object.getScene())),
+			);
+			const material = this.props.object;
+			const scene = this.props.scene ?? (isScene(material) ? material : material.getScene());
+			const oldSpriteMap = material.metadata?.spriteMapInstance;
+			const newSpriteMap = new SpriteMap(
+				"SpriteMap",
+				spriteAtlas,
+				newTexture,
+				{
+					stageSize: new Vector2(1, 1),
+					flipU: false,
+				},
+				scene
+			);
+			const id = newSpriteMap.getTileIdxByName('head.png');
+			newSpriteMap.changeTiles(0, new BABYLON.Vector2(0, 0), id);
+			material.metadata ??= {};
+			material.metadata.spriteMapInstance = newSpriteMap;
+
+			this.props.onChange?.(this.props.object[this.props.property]);
+
+			registerUndoRedo({
+				executeRedo: true,
+				undo: () => {
+					material[this.props.property] = oldTexture;
+					if (material.metadata?.spriteMapInstance && material.metadata.spriteMapInstance !== oldSpriteMap) {
+						material.metadata.spriteMapInstance.dispose?.();
+					}
+					material.metadata.spriteMapInstance = oldSpriteMap;
+				},
+				redo: () => {
+					material[this.props.property] = newTexture;
+					if (material.metadata?.spriteMapInstance && material.metadata.spriteMapInstance !== newSpriteMap) {
+						material.metadata.spriteMapInstance.dispose?.();
+					}
+					material.metadata.spriteMapInstance = newSpriteMap;
+				},
+				onLost: () => newTexture?.dispose(),
+			});
+
+			this._computeTemporaryPreview();
+			toast.success("Sprite Atlas loaded and SpriteMap initialized successfully");
+		} catch (error) {
+			toast.error("Failed to load Sprite Atlas");
+		}
 	}
 }
