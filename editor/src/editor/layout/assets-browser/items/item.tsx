@@ -309,9 +309,7 @@ export class AssetsBrowserItem extends Component<IAssetsBrowserItemProps, IAsset
 			}
 		} catch (e) {
 			console.error(e);
-			toast("Failed to rename the file or folder.", {
-				important: true,
-			});
+			toast("Failed to rename the file or folder.");
 		}
 
 		this.setState({
@@ -390,9 +388,7 @@ export class AssetsBrowserItem extends Component<IAssetsBrowserItemProps, IAsset
 			);
 
 			if (!result) {
-				toast("Failed to trash some assets", {
-					important: true,
-				});
+				toast("Failed to trash some assets");
 			}
 
 			this.props.onRefresh();

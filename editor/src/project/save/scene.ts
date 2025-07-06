@@ -12,7 +12,7 @@ import { isFromSceneLink } from "../../tools/scene/scene-link";
 import { getBufferSceneScreenshot } from "../../tools/scene/screenshot";
 import { createDirectoryIfNotExist, normalizedGlob } from "../../tools/fs";
 import { isMeshMetadataNotVisibleInGraph } from "../../tools/mesh/metadata";
-import { isCollisionMesh, isEditorCamera, isMesh } from "../../tools/guards/nodes";
+import { isCollisionMesh, isEditorCamera, isMesh, isSpriteMapOutputMesh } from "../../tools/guards/nodes";
 import { isGPUParticleSystem, isParticleSystem } from "../../tools/guards/particles";
 import { serializePhysicsAggregate } from "../../tools/physics/serialization/aggregate";
 
@@ -61,20 +61,7 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 
 	// Write geometries and meshes
 	await Promise.all(scene.meshes.map(async (mesh) => {
-		if (mesh.metadata?.spriteMapRef) {;
-			const fileName = `${mesh.name}.spriteMap.json`;
-			const spriteMapPath = join(scenePath, "spriteMaps", fileName);
-		
-			try {
-				const data = serializeSpriteMap(mesh);
-				await writeJSON(spriteMapPath, data, { spaces: 4 });
-				savedFiles.push(spriteMapPath);
-			} catch (e) {
-				editor.layout.console.error(`Failed to write sprite map for mesh ${mesh.name}`);
-			}
-			return;
-		}
-		if ((!isMesh(mesh) && !isCollisionMesh(mesh)) || mesh._masterMesh || isFromSceneLink(mesh) || isMeshMetadataNotVisibleInGraph(mesh)) {
+		if ((isSpriteMapOutputMesh(mesh) || !isMesh(mesh) && !isCollisionMesh(mesh)) || mesh._masterMesh || isFromSceneLink(mesh) || isMeshMetadataNotVisibleInGraph(mesh)) {
 			return;
 		}
 
@@ -206,6 +193,24 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 				savedFiles.push(meshPath);
 			}
 		}));
+	}));
+
+	// Write sprite maps
+	await Promise.all(scene.meshes.map(async (mesh) => {
+		if (!isSpriteMapOutputMesh(mesh)) {
+			return;
+		}
+
+		const spriteMapPath = join(scenePath, "spriteMaps", `${mesh.id}.json`);
+
+		try {
+			const data = serializeSpriteMap(mesh);
+			await writeJSON(spriteMapPath, data, { spaces: 4 });
+		} catch (e) {
+			editor.layout.console.error(`Failed to write sprite map for mesh ${mesh.name}`);
+		} finally {
+			savedFiles.push(spriteMapPath);
+		}
 	}));
 
 	// Write skeletons

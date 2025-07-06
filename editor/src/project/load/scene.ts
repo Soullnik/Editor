@@ -33,6 +33,7 @@ import { updateIblShadowsRenderPipeline } from "../../tools/light/ibl";
 import { forceCompileAllSceneMaterials } from "../../tools/scene/materials";
 import { checkProjectCachedCompressedTextures } from "../../tools/ktx/check";
 import { configureSimultaneousLightsForMaterial } from "../../tools/mesh/material";
+import { parseSpriteMap } from "../../tools/sprite/serialization/sprite-map";
 import { parsePhysicsAggregate } from "../../tools/physics/serialization/aggregate";
 import { isAbstractMesh, isCollisionMesh, isEditorCamera, isMesh } from "../../tools/guards/nodes";
 import { updateAllLights, updatePointLightShadowMapRenderListPredicate } from "../../tools/light/shadows";
@@ -40,7 +41,6 @@ import { updateAllLights, updatePointLightShadowMapRenderListPredicate } from ".
 import { showLoadSceneProgressDialog } from "./progress";
 
 import "./texture";
-import { applyImportedSpriteMapFile, deserializeSpriteMaps } from "../../tools/sprite/serialization/sprite-map";
 
 /**
  * Defines the list of all loaded scenes. This is used to detect cycle references
@@ -623,10 +623,12 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 	}));
 
 	await Promise.all(spriteMapFiles.map(async (file) => {
-		if (!file.endsWith(".spriteMap.json")) {return;}
+		if (file.startsWith(".")) {
+			return;
+		}
 	
 		const data = await readJSON(join(scenePath, "spriteMaps", file));
-		await applyImportedSpriteMapFile(scene, data);
+		await parseSpriteMap(scene, data);
 	}));
 
 	// Configure textures urls
