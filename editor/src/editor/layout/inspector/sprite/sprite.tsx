@@ -16,7 +16,7 @@ import { Label } from "../../../../ui/shadcn/ui/label";
 import { cn } from "../../../../ui/utils";
 
 export class EditorSpriteMapInspector extends Component<IEditorInspectorImplementationProps<Mesh>, {
-  selectedTile: any;
+  selectedTileIdx: number;
   searchFilter: string;
 }> {
 	public static IsSupported(obj: unknown): boolean {
@@ -26,9 +26,8 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 	public constructor(props: IEditorInspectorImplementationProps<Mesh>) {
 		super(props);
 		const spriteMap = props.object.metadata.spriteMapRef as SpriteMap;
-		console.log(spriteMap)
 		this.state = {
-			selectedTile: null,
+			selectedTileIdx: spriteMap.options.baseTile ?? 0,
 			searchFilter: "",
 		};
 	}
@@ -111,10 +110,10 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 						{filteredTiles.map((tile, index) => (
 							<div
 								key={index}
-								onClick={() => this._applySelectedTile(spriteMap, tile)}
+								onClick={() => this._applySelectedTile(spriteMap, index)}
 								className={cn(
 									"flex flex-col items-center p-2 rounded-md cursor-pointer transition-colors",
-									this.state.selectedTile?.filename === tile.filename ? "bg-accent border border-accent-foreground/20" : "bg-muted hover:bg-accent/50"
+									this.state.selectedTileIdx === index ? "bg-accent border border-accent-foreground/20" : "bg-muted hover:bg-accent/50"
 								)}
 							>
 								<div className="text-xs text-center truncate w-full">{tile.filename}</div>
@@ -128,9 +127,8 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 		);
 	}
 
-	private _applySelectedTile(spriteMap: SpriteMap, frame: any): void {
-		const idx = spriteMap.getTileIdxByName(frame.filename);
-		spriteMap.changeTiles(0, new Vector2(0, 0), idx);
-		this.setState({ selectedTile: frame });
+	private _applySelectedTile(spriteMap: SpriteMap, index: number): void {
+		spriteMap.changeTiles(0, new Vector2(0, 0), index);
+		this.setState({ selectedTileIdx: index });
 	}
 }
