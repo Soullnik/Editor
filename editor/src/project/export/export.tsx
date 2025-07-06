@@ -9,6 +9,7 @@ import { isTexture } from "../../tools/guards/texture";
 import { getCollisionMeshFor } from "../../tools/mesh/collision";
 import { createDirectoryIfNotExist, normalizedGlob } from "../../tools/fs";
 import { isCollisionMesh, isEditorCamera, isMesh } from "../../tools/guards/nodes";
+import { serializeSpriteMaps } from "../../tools/sprite/serialization/sprite-map";
 
 import { saveRenderingConfigurationForCamera } from "../../editor/rendering/tools";
 import { serializeVLSPostProcess, vlsPostProcessCameraConfigurations } from "../../editor/rendering/vls";
@@ -225,6 +226,8 @@ async function _exportProject(editor: Editor, options: IExportProjectOptions): P
 			sound.uniqueId = instantiatedSound.uniqueId;
 		}
 	});
+
+	data.metadata.spriteMaps =  serializeSpriteMaps(scene);
 
 	// Write final scene file.
 	await writeJSON(join(scenePath, `${sceneName}.babylon`), data);
