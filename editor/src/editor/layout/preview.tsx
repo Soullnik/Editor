@@ -12,7 +12,7 @@ import { IoIosOptions, IoIosStats } from "react-icons/io";
 
 import {
 	AbstractEngine, AbstractMesh, Animation, Camera, Color3, CubicEase, EasingFunction, Engine, GizmoCoordinatesMode,
-	ISceneLoaderAsyncResult, Node, Scene, Vector2, Vector3, Viewport, WebGPUEngine, HavokPlugin, PickingInfo,
+	ISceneLoaderAsyncResult, Node, Scene, Vector2, Vector3, Viewport, WebGPUEngine, HavokPlugin, PickingInfo, Nullable
 } from "babylonjs";
 
 import { Input } from "../../ui/shadcn/ui/input";
@@ -29,7 +29,7 @@ import { onTextureAddedObservable } from "../../tools/observables";
 import { waitNextAnimationFrame, waitUntil } from "../../tools/tools";
 import { checkProjectCachedCompressedTextures } from "../../tools/ktx/check";
 import { createSceneLink, getRootSceneLink } from "../../tools/scene/scene-link";
-import { isAbstractMesh, isCollisionInstancedMesh, isCollisionMesh, isInstancedMesh, isMesh, isTransformNode } from "../../tools/guards/nodes";
+import { isAbstractMesh, isCollisionInstancedMesh, isCollisionMesh, isInstancedMesh, isMesh, isTransformNode, isValidSpriteAtlas } from "../../tools/guards/nodes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../../ui/shadcn/ui/dropdown-menu";
 
 import { EditorCamera } from "../nodes/camera";
@@ -64,7 +64,9 @@ import { applyImportedGuiFile } from "./preview/import/gui";
 import { applyTextureAssetToObject } from "./preview/import/texture";
 import { applyMaterialAssetToObject } from "./preview/import/material";
 import { EditorPreviewConvertProgress } from "./preview/import/progress";
-import { loadImportedSceneFile, tryConvertSceneFile } from "./preview/import/import";
+import { loadImportedSceneFile, loadImportedSpriteAtlas, tryConvertSceneFile } from "./preview/import/import";
+
+import { readJSON } from "fs-extra";
 
 export interface IEditorPreviewProps {
 	/**
@@ -911,6 +913,18 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		this.setState({ activeGizmo: gizmo });
 	}
 
+	public async importJsonFile(absolutePath: string, pickedPoint: Nullable<Vector3>): Promise<void> {
+		const json = await readJSON(absolutePath);
+		if(isValidSpriteAtlas(json)) {
+			const spriteMap = await loadImportedSpriteAtlas(this.scene, absolutePath, json, pickedPoint);
+			if(spriteMap && pickedPoint) {
+				spriteMap.position.addInPlace(pickedPoint);
+			}
+		} else {
+			toast.error("Unsupported file type");
+		}
+	}
+
 	public async importSceneFile(absolutePath: string, useCloudConverter: boolean): Promise<ISceneLoaderAsyncResult | null> {
 		if (useCloudConverter) {
 			const extension = extname(absolutePath).toLowerCase();
@@ -1068,6 +1082,9 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 							this.props.editor.layout.graph.refresh();
 						});
 					}
+					break;
+				case ".json":
+					this.importJsonFile(absolutePath, pick.pickedPoint);
 					break;
 			}
 		});

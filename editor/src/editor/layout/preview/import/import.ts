@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import {
 	CubeTexture, ISceneLoaderAsyncResult, Material, Node, Scene, SceneLoader, Texture, Tools,
-	ColorGradingTexture,
+	ColorGradingTexture, SpriteMap, Vector3, ISpriteJSONAtlas, Vector2, Nullable
 } from "babylonjs";
 
 import { UniqueNumber } from "../../../../tools/tools";
@@ -243,4 +243,39 @@ export async function loadImportedMaterial(scene: Scene, absolutePath: string): 
 	material.uniqueId = uniqueId;
 
 	return material;
+}
+
+
+export async function loadImportedSpriteAtlas(scene: Scene, absolutePath: string, data: ISpriteJSONAtlas, pickedPoint: Nullable<Vector3>): Promise<SpriteMap | null> {
+	const textureImage = (data.meta as any).image as string;
+	if (!textureImage) {
+		toast.error("Sprite Atlas JSON missing required meta.image field");
+		return null;
+	}
+
+	const imagePath = join(dirname(absolutePath), textureImage);
+	const texture = configureImportedTexture(new Texture(imagePath, scene));
+  
+	const spriteMap = new SpriteMap("NewSpriteMap", data, texture, {
+		stageSize: new Vector2(1, 1),
+		flipU: false,
+		baseTile: 0,
+		outputSize: new Vector2(100, 100),
+		outputPosition: pickedPoint ?? new Vector3(0, 0, 0),
+	}, scene);
+
+	const outputMesh = (spriteMap as any)._output;
+	outputMesh.name = "NewSpriteMap";
+	outputMesh.id = undefined;
+	outputMesh.metadata ??= {};
+	outputMesh.metadata.editorType = "SpriteMapMesh";
+	outputMesh.metadata.spriteMapRef = spriteMap;
+	outputMesh.metadata.spriteMapConfig = {
+		atlasPath: absolutePath,
+		texturePath: imagePath,
+		options: spriteMap.options,
+	};
+
+	onNodesAddedObservable.notifyObservers();
+	return spriteMap;
 }

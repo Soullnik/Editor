@@ -24,7 +24,7 @@ import { ICommandPaletteType } from "../../../dialogs/command-palette/command-pa
 import { registerUndoRedo } from "../../../../tools/undoredo";
 import { onNodeModifiedObservable } from "../../../../tools/observables";
 import { updateIblShadowsRenderPipeline } from "../../../../tools/light/ibl";
-import { isAbstractMesh, isInstancedMesh, isMesh } from "../../../../tools/guards/nodes";
+import { isAbstractMesh, isInstancedMesh, isMesh, isSpriteMapOutputMesh } from "../../../../tools/guards/nodes";
 import { updateAllLights, updateLightShadowMapRefreshRate, updatePointLightShadowMapRenderListPredicate } from "../../../../tools/light/shadows";
 
 import { EditorInspectorStringField } from "../fields/string";
@@ -58,7 +58,7 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 	 * @returns true if the object is supported by this inspector.
 	 */
 	public static IsSupported(object: unknown): boolean {
-		return isAbstractMesh(object);
+		return isAbstractMesh(object) && !isSpriteMapOutputMesh(object);
 	}
 
 	private _castShadows: boolean;
