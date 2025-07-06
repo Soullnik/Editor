@@ -1,8 +1,9 @@
-import { Scene, SpriteMap, Texture } from "babylonjs";
+import { Vector3, Vector2, Scene, SpriteMap, Texture, AbstractMesh } from "babylonjs";
 import { readJSON } from "fs-extra";
 
 export async function deserializeSpriteMaps(scene: Scene): Promise<void> {
 	const spriteMaps = scene.metadata?.spriteMaps;
+	console.log(spriteMaps);
 	if (!spriteMaps?.length) {return;}
 
 	for (const spriteMapData of spriteMaps) {
@@ -32,26 +33,68 @@ export async function deserializeSpriteMaps(scene: Scene): Promise<void> {
 	}
 }
 
-export interface SerializedSpriteMapData {
-  meshId: string;
-  name: string;
-  atlasPath: string;
-  texturePath: string;
-  options: SpriteMap["options"];
+export interface ISerializedSpriteMapData {
+	meshId: string;
+	name: string;
+	atlasPath: string;
+	texturePath: string;
+	options: {
+	  stageSize: [number, number];
+	  flipU: boolean;
+	  baseTile: number;
+	  outputSize: [number, number];
+	  outputPosition: [number, number, number];
+	};
+  }
+
+export function serializeSpriteMap(mesh: AbstractMesh): ISerializedSpriteMapData {
+	const spriteMap = mesh.metadata.spriteMapRef as SpriteMap;
+	const options = spriteMap.options;
+  
+	return {
+		  meshId: mesh.id,
+		  name: spriteMap.name,
+		  atlasPath: mesh.metadata.spriteMapConfig?.atlasPath,
+		  texturePath: mesh.metadata.spriteMapConfig?.texturePath,
+		  options: {
+			stageSize: options.stageSize?.asArray() ?? [1, 1],
+			flipU: options.flipU ?? false,
+			baseTile: options.baseTile ?? 0,
+			outputSize: options.outputSize?.asArray() ?? [1, 1],
+			outputPosition: options.outputPosition?.asArray() ?? [0, 0, 0],
+		  }
+	};
 }
 
-export function serializeSpriteMaps(scene: Scene): SerializedSpriteMapData[] {
-	return scene.meshes
-		.filter((mesh) => mesh.metadata?.spriteMapRef)
-		.map((mesh) => {
-			const spriteMap = mesh.metadata.spriteMapRef as SpriteMap;
+export async function applyImportedSpriteMapFile(scene: Scene, data: any): Promise<SpriteMap> {
+	console.log(data);
+	const atlasJson = await fetch(data.atlasPath).then(res => res.json());
+	const texture = new Texture(data.texturePath, scene);
 
-			return {
-				meshId: mesh.id,
-				name: spriteMap.name,
-				atlasPath: mesh.metadata.spriteMapConfig?.atlasPath,
-				texturePath: mesh.metadata.spriteMapConfig?.texturePath,
-				options: spriteMap.options,
-			};
-		});
+	const spriteMap = new SpriteMap(
+		data.name,
+		atlasJson,
+		texture,
+		{
+			stageSize: Vector2.FromArray(data.options.stageSize),
+			outputSize: Vector2.FromArray(data.options.outputSize),
+			outputPosition: Vector3.FromArray(data.options.outputPosition),
+			baseTile: data.options.baseTile,
+			flipU: data.options.flipU,
+		},
+		scene,
+	);
+
+	const outputMesh = (spriteMap as any)._output;
+	outputMesh.name = data.name;
+	outputMesh.metadata ??= {};
+	outputMesh.metadata.editorType = "SpriteMapMesh";
+	outputMesh.metadata.spriteMapRef = spriteMap;
+	outputMesh.metadata.spriteMapConfig = {
+		atlasPath: data.atlasPath,
+		texturePath: data.texturePath,
+		options: spriteMap.options,
+	};
+
+	return spriteMap;
 }

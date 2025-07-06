@@ -1,14 +1,12 @@
 import { Component, ReactNode } from "react";
-import { SpriteMap } from "babylonjs";
-import { Mesh } from "babylonjs/Meshes/mesh";
-import { FileJson } from "lucide-react";
-import { Vector2 } from "babylonjs/Maths/math.vector";
+import { SpriteMap,Vector2,Mesh } from "babylonjs";
+
+import { FaFileAlt } from "react-icons/fa";
 
 import { EditorInspectorSectionField } from "../fields/section";
 import { EditorInspectorStringField } from "../fields/string";
 import { EditorInspectorSwitchField } from "../fields/switch";
 import { EditorInspectorVectorField } from "../fields/vector";
-import { EditorInspectorNumberField } from "../fields/number";
 
 import { IEditorInspectorImplementationProps } from "../inspector";
 import { isSpriteMapOutputMesh } from "../../../../tools/guards/nodes";
@@ -52,7 +50,7 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 			<>
 				<EditorInspectorSectionField title="Atlas Info">
 					<div className="flex items-center gap-3">
-						<FileJson className="w-5 h-5 text-primary" />
+						<FaFileAlt className="w-5 h-5 text-primary" />
 						<div>
 							<div className="text-sm font-medium">{atlasMeta?.image}</div>
 							<div className="text-xs text-muted-foreground">
@@ -60,6 +58,29 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 							</div>
 						</div>
 					</div>
+				</EditorInspectorSectionField>
+
+				<EditorInspectorSectionField title="Transform">
+					<EditorInspectorVectorField
+						label={<div className="w-14">Position</div>}
+						object={mesh}
+						property="position"
+					/>
+
+					<EditorInspectorVectorField
+						label={<div className="w-14">Rotation</div>}
+						object={mesh}
+						property="rotation"
+					/>
+
+					<EditorInspectorVectorField
+						label={<div className="w-14">Scaling</div>}
+						object={mesh}
+						property="scaling"
+					/>
+
+					<EditorInspectorSwitchField label="Visible" object={mesh} property="isVisible" />
+					<EditorInspectorSwitchField label="Pickable" object={mesh} property="isPickable" />
 				</EditorInspectorSectionField>
 
 				<EditorInspectorSectionField title="SpriteMap Settings">
@@ -70,30 +91,6 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 						object={spriteMap.options}
 						property="stageSize"
 						step={1}
-						// onFinishChange={(v) => spriteMap.changeStageSize(v)}
-					/>
-
-					<EditorInspectorNumberField
-						label="Tile Index"
-						object={spriteMap}
-						property="baseTile"
-						step={1}
-						// onFinishChange={(v) => spriteMap.changeTiles([v])}
-					/>
-
-
-					<EditorInspectorVectorField
-						label={<div className="w-28">Output Size</div>}
-						object={spriteMap.options}
-						property="outputSize"
-						step={10}
-						// onFinishChange={(v) => spriteMap.changeOutputSize(v)}
-					/>
-
-					<EditorInspectorSwitchField
-						label="Flip U"
-						object={spriteMap.options}
-						property="flipU"
 					/>
 				</EditorInspectorSectionField>
 
@@ -124,28 +121,7 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 					</div>
 				</EditorInspectorSectionField>
 
-				<EditorInspectorSectionField title="Transform (Mesh)">
-					<EditorInspectorVectorField
-						label={<div className="w-14">Position</div>}
-						object={mesh}
-						property="position"
-					/>
-
-					<EditorInspectorVectorField
-						label={<div className="w-14">Rotation</div>}
-						object={mesh}
-						property="rotation"
-					/>
-
-					<EditorInspectorVectorField
-						label={<div className="w-14">Scaling</div>}
-						object={mesh}
-						property="scaling"
-					/>
-
-					<EditorInspectorSwitchField label="Visible" object={mesh} property="isVisible" />
-					<EditorInspectorSwitchField label="Pickable" object={mesh} property="isPickable" />
-				</EditorInspectorSectionField>
+				
 			</>
 		);
 	}

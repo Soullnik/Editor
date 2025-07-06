@@ -9,7 +9,6 @@ import { isTexture } from "../../tools/guards/texture";
 import { getCollisionMeshFor } from "../../tools/mesh/collision";
 import { createDirectoryIfNotExist, normalizedGlob } from "../../tools/fs";
 import { isCollisionMesh, isEditorCamera, isMesh } from "../../tools/guards/nodes";
-import { serializeSpriteMaps } from "../../tools/sprite/serialization/sprite-map";
 
 import { saveRenderingConfigurationForCamera } from "../../editor/rendering/tools";
 import { serializeVLSPostProcess, vlsPostProcessCameraConfigurations } from "../../editor/rendering/vls";
@@ -84,7 +83,10 @@ async function _exportProject(editor: Editor, options: IExportProjectOptions): P
 		}
 	});
 
-	scene.meshes.forEach((mesh) => mesh.doNotSerialize = mesh.metadata?.doNotSerialize ?? false);
+	scene.meshes.forEach((mesh) => {
+		const forceSkip = mesh.metadata?.editorType === "SpriteMapMesh" || mesh.metadata?.doNotSerialize;
+		mesh.doNotSerialize = forceSkip ?? false;
+	});
 	scene.lights.forEach((light) => light.doNotSerialize = light.metadata?.doNotSerialize ?? false);
 	scene.cameras.forEach((camera) => camera.doNotSerialize = camera.metadata?.doNotSerialize ?? false);
 	scene.transformNodes.forEach((transformNode) => transformNode.doNotSerialize = transformNode.metadata?.doNotSerialize ?? false);
@@ -226,8 +228,6 @@ async function _exportProject(editor: Editor, options: IExportProjectOptions): P
 			sound.uniqueId = instantiatedSound.uniqueId;
 		}
 	});
-
-	data.metadata.spriteMaps =  serializeSpriteMaps(scene);
 
 	// Write final scene file.
 	await writeJSON(join(scenePath, `${sceneName}.babylon`), data);

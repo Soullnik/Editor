@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { Editor } from "../../editor/main";
 
 import { execNodePty } from "../../tools/node-pty";
-import { deserializeSpriteMaps } from "../../tools/sprite/serialization/sprite-map";
 
 import { IEditorProject } from "../typings";
 import { projectConfiguration } from "../configuration";
@@ -72,7 +71,6 @@ export async function loadProject(editor: Editor, path: string): Promise<void> {
 		}
 
 		await loadScene(editor, directory, absolutePath);
-		await deserializeSpriteMaps(editor.layout.preview.scene);
 
 		editor.layout.graph.refresh();
 		editor.layout.inspector.setEditedObject(editor.layout.preview.scene);

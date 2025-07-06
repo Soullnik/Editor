@@ -26,6 +26,7 @@ import { iblShadowsRenderingPipelineCameraConfigurations } from "../../editor/re
 
 import { writeBinaryGeometry } from "../geometry";
 import { writeBinaryMorphTarget } from "../morph-target";
+import { serializeSpriteMap } from "../../tools/sprite/serialization/sprite-map";
 
 export async function saveScene(editor: Editor, projectPath: string, scenePath: string): Promise<void> {
 	const fStat = await stat(scenePath);
@@ -51,6 +52,7 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 		createDirectoryIfNotExist(join(scenePath, "morphTargetManagers")),
 		createDirectoryIfNotExist(join(scenePath, "morphTargets")),
 		createDirectoryIfNotExist(join(scenePath, "animationGroups")),
+		createDirectoryIfNotExist(join(scenePath, "spriteMaps")),
 	]);
 
 	const scene = editor.layout.preview.scene;
@@ -59,6 +61,19 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 
 	// Write geometries and meshes
 	await Promise.all(scene.meshes.map(async (mesh) => {
+		if (mesh.metadata?.spriteMapRef) {;
+			const fileName = `${mesh.name}.spriteMap.json`;
+			const spriteMapPath = join(scenePath, "spriteMaps", fileName);
+		
+			try {
+				const data = serializeSpriteMap(mesh);
+				await writeJSON(spriteMapPath, data, { spaces: 4 });
+				savedFiles.push(spriteMapPath);
+			} catch (e) {
+				editor.layout.console.error(`Failed to write sprite map for mesh ${mesh.name}`);
+			}
+			return;
+		}
 		if ((!isMesh(mesh) && !isCollisionMesh(mesh)) || mesh._masterMesh || isFromSceneLink(mesh) || isMeshMetadataNotVisibleInGraph(mesh)) {
 			return;
 		}

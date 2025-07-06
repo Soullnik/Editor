@@ -4,7 +4,7 @@ import { readFile, readJSON, readdir } from "fs-extra";
 import {
 	AbstractMesh, AnimationGroup, Camera, CascadedShadowGenerator, Color3, Constants, Light, Matrix, Mesh, MorphTargetManager,
 	RenderTargetTexture, SceneLoader, SceneLoaderFlags, ShadowGenerator, Skeleton, Texture, TransformNode, MultiMaterial, Animation,
-	Sound, Color4, IParticleSystem, ParticleSystem, GPUParticleSystem, Vector3,
+	Sound, Color4, IParticleSystem, ParticleSystem, GPUParticleSystem, Vector3, SpriteMap,
 } from "babylonjs";
 
 import { Editor } from "../../editor/main";
@@ -40,6 +40,7 @@ import { updateAllLights, updatePointLightShadowMapRenderListPredicate } from ".
 import { showLoadSceneProgressDialog } from "./progress";
 
 import "./texture";
+import { applyImportedSpriteMapFile, deserializeSpriteMaps } from "../../tools/sprite/serialization/sprite-map";
 
 /**
  * Defines the list of all loaded scenes. This is used to detect cycle references
@@ -62,6 +63,7 @@ export type SceneLoadResult = {
 	transformNodes: TransformNode[];
 	animationGroups: AnimationGroup[];
 	particleSystems: IParticleSystem[];
+	spriteMaps: SpriteMap[];
 };
 
 export async function loadScene(editor: Editor, projectPath: string, scenePath: string, options?: SceneLoaderOptions): Promise<SceneLoadResult> {
@@ -76,6 +78,7 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 		transformNodes: [],
 		animationGroups: [],
 		particleSystems: [],
+		spriteMaps: [],
 	} as SceneLoadResult;
 
 	options ??= {};
@@ -100,12 +103,13 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 		createDirectoryIfNotExist(join(scenePath, "morphTargetManagers")),
 		createDirectoryIfNotExist(join(scenePath, "morphTargets")),
 		createDirectoryIfNotExist(join(scenePath, "animationGroups")),
+		createDirectoryIfNotExist(join(scenePath, "spriteMaps")),
 	]);
 
 	const [
 		nodesFiles, meshesFiles, lodsFiles, lightsFiles, cameraFiles, skeletonFiles,
 		shadowGeneratorFiles, sceneLinkFiles, guiFiles, soundFiles, particleSystemFiles,
-		morphTargetManagers, animationGroups,
+		morphTargetManagers, animationGroups, spriteMapFiles,
 	] = await Promise.all([
 		readdir(join(scenePath, "nodes")),
 		readdir(join(scenePath, "meshes")),
@@ -120,8 +124,9 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 		readdir(join(scenePath, "particleSystems")),
 		readdir(join(scenePath, "morphTargetManagers")),
 		readdir(join(scenePath, "animationGroups")),
+		readdir(join(scenePath, "spriteMaps")),
 	]);
-
+	console.log(meshesFiles);
 	const progress = await showLoadSceneProgressDialog(`Loading ${basename(scenePath)}...`);
 	const progressStep = 100 / (
 		nodesFiles.length +
@@ -136,7 +141,8 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 		soundFiles.length +
 		particleSystemFiles.length +
 		morphTargetManagers.length +
-		animationGroups.length
+		animationGroups.length +
+		spriteMapFiles.length
 	);
 
 	SceneLoaderFlags.ForceFullSceneLoadingForIncremental = true;
@@ -616,6 +622,13 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 		progress.step(progressStep);
 	}));
 
+	await Promise.all(spriteMapFiles.map(async (file) => {
+		if (!file.endsWith(".spriteMap.json")) {return;}
+	
+		const data = await readJSON(join(scenePath, "spriteMaps", file));
+		await applyImportedSpriteMapFile(scene, data);
+	}));
+
 	// Configure textures urls
 	scene.textures.forEach((texture) => {
 		if (isTexture(texture) || isCubeTexture(texture)) {
@@ -697,6 +710,7 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 		...scene.lights,
 		...scene.cameras,
 	];
+	console.log(allNodes);
 
 	allNodes.forEach((n) => {
 		if ((n.metadata?._waitingParentId ?? null) === null) {
