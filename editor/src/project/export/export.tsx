@@ -84,7 +84,7 @@ async function _exportProject(editor: Editor, options: IExportProjectOptions): P
 	});
 
 	scene.meshes.forEach((mesh) => {
-		const forceSkip = mesh.metadata?.editorType === "SpriteMapMesh" || mesh.metadata?.doNotSerialize;
+		const forceSkip = mesh.metadata?.type === "SpriteMapMesh" || mesh.metadata?.doNotSerialize;
 		mesh.doNotSerialize = forceSkip ?? false;
 	});
 	scene.lights.forEach((light) => light.doNotSerialize = light.metadata?.doNotSerialize ?? false);

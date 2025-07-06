@@ -26,6 +26,7 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 	public constructor(props: IEditorInspectorImplementationProps<Mesh>) {
 		super(props);
 		const spriteMap = props.object.metadata.spriteMapRef as SpriteMap;
+		console.log(spriteMap);
 		this.state = {
 			selectedTileIdx: spriteMap.options.baseTile ?? 0,
 			searchFilter: "",

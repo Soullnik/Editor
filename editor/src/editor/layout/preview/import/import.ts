@@ -268,7 +268,7 @@ export async function loadImportedSpriteAtlas(scene: Scene, absolutePath: string
 	outputMesh.name = "NewSpriteMap";
 	outputMesh.id = undefined;
 	outputMesh.metadata ??= {};
-	outputMesh.metadata.editorType = "SpriteMapMesh";
+	outputMesh.metadata.type = "SpriteMapMesh";
 	outputMesh.metadata.spriteMapRef = spriteMap;
 	outputMesh.metadata.spriteMapConfig = {
 		atlasPath: absolutePath,

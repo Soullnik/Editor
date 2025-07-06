@@ -1,13 +1,25 @@
 import {
 	Bone, Camera, GroundMesh, Light, Mesh, Node, PointLight, TransformNode,
 	DirectionalLight, InstancedMesh, FreeCamera, ArcRotateCamera, SpotLight, HemisphericLight,
-	ISpriteJSONAtlas, ISpriteJSONSprite, ISpriteJSONSpriteFrameData, ISpriteJSONSpriteSourceSize
+	ISpriteJSONAtlas, ISpriteJSONSprite, ISpriteJSONSpriteFrameData, ISpriteJSONSpriteSourceSize, SpriteMap,ISpriteMapOptions
 } from "babylonjs";
 
 import { EditorCamera } from "../../editor/nodes/camera";
 import { CollisionMesh } from "../../editor/nodes/collision";
 
 import { isSceneLinkNode } from "./scene";
+
+export class SpriteMapOutputMesh extends Mesh {
+	declare metadata: {
+		type: "SpriteMapMesh";
+		spriteMapRef: SpriteMap;
+		spriteMapConfig: {
+			atlasPath: string;
+			texturePath: string;
+			options: ISpriteMapOptions;
+		};
+	};
+}
 
 /**
  * Returns wether or not the given object is an AbstractMesh.
@@ -43,8 +55,8 @@ export function isMesh(object: any): object is Mesh {
  * Returns wether or not the given object is a SpriteMapOutputMesh.
  * @param object defines the reference to the object to test its class name.
  */
-export function isSpriteMapOutputMesh(object: any): object is Mesh {
-	return object.getClassName?.() === "Mesh" && object.metadata?.editorType === "SpriteMapMesh";
+export function isSpriteMapOutputMesh(object: any): object is SpriteMapOutputMesh {
+	return object.getClassName?.() === "Mesh" && object.metadata?.type === "SpriteMapMesh";
 }
 
 /**
