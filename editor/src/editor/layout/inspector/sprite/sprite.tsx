@@ -16,7 +16,6 @@ import { Label } from "../../../../ui/shadcn/ui/label";
 import { cn } from "../../../../ui/utils";
 
 export class EditorSpriteMapInspector extends Component<IEditorInspectorImplementationProps<Mesh>, {
-  selectedTileIdx: number;
   searchFilter: string;
 }> {
 	public static IsSupported(obj: unknown): boolean {
@@ -25,10 +24,7 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 
 	public constructor(props: IEditorInspectorImplementationProps<Mesh>) {
 		super(props);
-		const spriteMap = props.object.metadata.spriteMapRef as SpriteMap;
-		console.log(spriteMap);
 		this.state = {
-			selectedTileIdx: spriteMap.options.baseTile ?? 0,
 			searchFilter: "",
 		};
 	}
@@ -111,10 +107,10 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 						{filteredTiles.map((tile, index) => (
 							<div
 								key={index}
-								onClick={() => this._applySelectedTile(spriteMap, index)}
+								onClick={() => this._selectTile(index)}
 								className={cn(
 									"flex flex-col items-center p-2 rounded-md cursor-pointer transition-colors",
-									this.state.selectedTileIdx === index ? "bg-accent border border-accent-foreground/20" : "bg-muted hover:bg-accent/50"
+									this.props.object.metadata.selectedTileIdx === index ? "bg-accent border border-accent-foreground/20" : "bg-muted hover:bg-accent/50"
 								)}
 							>
 								<div className="text-xs text-center truncate w-full">{tile.filename}</div>
@@ -128,8 +124,8 @@ export class EditorSpriteMapInspector extends Component<IEditorInspectorImplemen
 		);
 	}
 
-	private _applySelectedTile(spriteMap: SpriteMap, index: number): void {
-		spriteMap.changeTiles(0, new Vector2(0, 0), index);
-		this.setState({ selectedTileIdx: index });
+	private _selectTile(index: number): void {
+		this.props.object.metadata.selectedTileIdx = index;
+		this.forceUpdate();
 	}
 }

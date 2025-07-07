@@ -12,6 +12,7 @@ import { isSceneLinkNode } from "./scene";
 export class SpriteMapOutputMesh extends Mesh {
 	declare metadata: {
 		type: "SpriteMapMesh";
+		selectedTileIdx: number | null;
 		spriteMapRef: SpriteMap;
 		spriteMapConfig: {
 			atlasPath: string;

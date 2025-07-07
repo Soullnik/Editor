@@ -8,11 +8,12 @@ import { Grid } from "react-loader-spinner";
 
 import { FaCheck } from "react-icons/fa6";
 import { GiWireframeGlobe } from "react-icons/gi";
-import { IoIosOptions, IoIosStats } from "react-icons/io";
+import { IoIosOptions, IoIosStats, IoMdGrid } from "react-icons/io";
 
 import {
 	AbstractEngine, AbstractMesh, Animation, Camera, Color3, CubicEase, EasingFunction, Engine, GizmoCoordinatesMode,
-	ISceneLoaderAsyncResult, Node, Scene, Vector2, Vector3, Viewport, WebGPUEngine, HavokPlugin, PickingInfo, Nullable
+	ISceneLoaderAsyncResult, Node, Scene, Vector2, Vector3, Viewport, WebGPUEngine, HavokPlugin, PickingInfo, Nullable,
+	MeshBuilder, StandardMaterial
 } from "babylonjs";
 
 import { Input } from "../../ui/shadcn/ui/input";
@@ -29,7 +30,7 @@ import { onTextureAddedObservable } from "../../tools/observables";
 import { waitNextAnimationFrame, waitUntil } from "../../tools/tools";
 import { checkProjectCachedCompressedTextures } from "../../tools/ktx/check";
 import { createSceneLink, getRootSceneLink } from "../../tools/scene/scene-link";
-import { isAbstractMesh, isCollisionInstancedMesh, isCollisionMesh, isInstancedMesh, isMesh, isTransformNode, isValidSpriteAtlas } from "../../tools/guards/nodes";
+import { isAbstractMesh, isCollisionInstancedMesh, isCollisionMesh, isInstancedMesh, isMesh, isTransformNode, isValidSpriteAtlas, isSpriteMapOutputMesh } from "../../tools/guards/nodes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../../ui/shadcn/ui/dropdown-menu";
 
 import { EditorCamera } from "../nodes/camera";
@@ -99,6 +100,11 @@ export interface IEditorPreviewState {
 
 	showStatsValues: boolean;
 	statsValues?: StatsValuesType;
+
+	/**
+	 * Defines whether to show grid on selected sprite map.
+	 */
+	showSpriteMapGrid: boolean;
 }
 
 export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreviewState> {
@@ -142,6 +148,10 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 
 	private _playIframeRef: HTMLIFrameElement | null = null;
 
+	private _spriteMapGridMesh: AbstractMesh | null = null;
+
+	private _highlightedCellLines: AbstractMesh | null = null;
+
 	public constructor(props: IEditorPreviewProps) {
 		super(props);
 
@@ -155,6 +165,7 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 			fixedDimensions: "fit",
 
 			showStatsValues: false,
+			showSpriteMapGrid: false,
 		};
 
 		ipcRenderer.on("gizmo:position", () => this.setActiveGizmo("position"));
@@ -261,6 +272,7 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		}
 
 		this.icons?.stop();
+		this._hideSpriteMapGrid();
 
 		this.scene?.dispose();
 		this.engine?.dispose();
@@ -468,7 +480,24 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		const pickingInfo = this._getPickingInfo(x, y);
 		const mesh = pickingInfo.pickedMesh?._masterMesh ?? pickingInfo.pickedMesh;
 
-		if (mesh && this._meshUnderPointer !== mesh) {
+		if(!mesh) {
+			return;
+		}
+
+		// if (this._spriteMapGridMesh && isSpriteMapOutputMesh(mesh)) {
+		// 	this._highlightSpriteMapCellLines(mesh, pickingInfo);
+		// 	this._meshUnderPointer = mesh;
+		// 	if (this._mouseMoveTimeoutId) {
+		// 		clearTimeout(this._mouseMoveTimeoutId);
+		// 	}
+
+		// 	this._mouseMoveTimeoutId = window.setTimeout(() => {
+		// 		this.forceUpdate();
+		// 	}, 200);
+		// 	return;
+		// }
+
+		if (this._meshUnderPointer !== mesh) {
 			this._restoreCurrentMeshUnderPointer();
 			this._highlightCurrentMeshUnderPointer(mesh);
 
@@ -535,6 +564,41 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 			this.props.editor.layout.graph.setSelectedNode(mesh);
 			this.props.editor.layout.inspector.setEditedObject(mesh);
 			this.props.editor.layout.animations.setEditedObject(mesh);
+
+			// Show grid for sprite map meshes
+			if (isSpriteMapOutputMesh(mesh)) {
+				if (!this._spriteMapGridMesh || this._spriteMapGridMesh.parent !== mesh) {
+					this._showSpriteMapGrid(mesh);
+				}
+
+				const selectedTileIdx = mesh.metadata.selectedTileIdx;
+				const spriteMap = mesh.metadata.spriteMapRef;
+				const stageSize = spriteMap.options.stageSize;
+
+				if (typeof selectedTileIdx === "number" && stageSize) {
+					if (pickingInfo.hit && pickingInfo.pickedPoint) {
+						const invWorld = mesh.getWorldMatrix().clone().invert();
+						const local = Vector3.TransformCoordinates(
+							pickingInfo.pickedPoint,
+							invWorld
+						);
+						const xNorm = local.x + 0.5;
+						const yNorm = local.y + 0.5;
+						const xIdx = Math.floor(xNorm * stageSize.x);
+						const yIdx = Math.floor(yNorm * stageSize.y);
+			
+						if (
+							xIdx >= 0 && xIdx < stageSize.x &&
+							yIdx >= 0 && yIdx < stageSize.y
+						) {
+							console.log("changeTiles", xIdx, yIdx, selectedTileIdx);
+							spriteMap.changeTiles(0, new Vector2(xIdx, yIdx), selectedTileIdx);
+						}
+					}
+				}
+			} else {
+				this._hideSpriteMapGrid();
+			}
 		}
 	}
 
@@ -626,6 +690,119 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		}
 	}
 
+	/**
+	 * Shows grid on the selected sprite map mesh.
+	 * @param mash defines the sprite map mesh to show grid on.
+	 */
+	private _showSpriteMapGrid(mash: AbstractMesh): void {
+		console.log("showSpriteMapGrid", mash);
+		this._hideSpriteMapGrid();
+
+		if (!isSpriteMapOutputMesh(mash)) {
+			return;
+		}
+	
+		const spriteMap = mash.metadata.spriteMapRef;
+		if (!spriteMap || !spriteMap.options.stageSize) {
+			return;
+		}
+	
+		const stageSize = spriteMap.options.stageSize;
+		const gridMaterial = new StandardMaterial("gridMaterial", this.scene);
+		gridMaterial.emissiveColor = new Color3(0, 1, 0);
+		gridMaterial.alpha = 0.5;
+	
+		const gridLines: Vector3[][] = [];
+	
+		for (let i = 0; i <= stageSize.x; i++) {
+			const x = -0.5 + (i / stageSize.x);
+			gridLines.push([
+				new Vector3(x, -0.5, 0),
+				new Vector3(x, 0.5, 0)
+			]);
+		}
+	
+		for (let i = 0; i <= stageSize.y; i++) {
+			const y = -0.5 + (i / stageSize.y);
+			gridLines.push([
+				new Vector3(-0.5, y, 0),
+				new Vector3(0.5, y, 0)
+			]);
+		}
+	
+		this._spriteMapGridMesh = MeshBuilder.CreateLineSystem("spriteMapGrid", { lines: gridLines }, this.scene);
+		if (this._spriteMapGridMesh) {
+			this._spriteMapGridMesh.material = gridMaterial;
+			this._spriteMapGridMesh.parent = mash;
+			this._spriteMapGridMesh.position = Vector3.Zero();
+		}
+		this.setState({ showSpriteMapGrid: true });
+	}
+
+	private _highlightSpriteMapCellLines(mesh: AbstractMesh, pickingInfo: PickingInfo): void {
+		if (this._highlightedCellLines) {
+			this._highlightedCellLines.dispose();
+			this._highlightedCellLines = null;
+		}
+	
+		if (!pickingInfo.hit || !pickingInfo.pickedPoint) {
+			return;
+		}
+	
+		const spriteMap = mesh.metadata.spriteMapRef;
+		const stageSize = spriteMap.options.stageSize;
+	
+		const local = Vector3.TransformCoordinates(
+			pickingInfo.pickedPoint,
+			mesh.getWorldMatrix().invert()
+		);
+	
+		const xNorm = local.x + 0.5;
+		const yNorm = local.y + 0.5;
+	
+		const xIdx = Math.floor(xNorm * stageSize.x);
+		const yIdx = Math.floor(yNorm * stageSize.y);
+	
+		if (
+			xIdx < 0 || xIdx >= stageSize.x ||
+			yIdx < 0 || yIdx >= stageSize.y
+		) {
+			return;
+		}
+	
+		const x0 = -0.5 + xIdx / stageSize.x;
+		const x1 = -0.5 + (xIdx + 1) / stageSize.x;
+		const y0 = -0.5 + yIdx / stageSize.y;
+		const y1 = -0.5 + (yIdx + 1) / stageSize.y;
+	
+		const cellLines = [
+			[new Vector3(x0, y0, 0.02), new Vector3(x1, y0, 0.02)],
+			[new Vector3(x1, y0, 0.02), new Vector3(x1, y1, 0.02)], 
+			[new Vector3(x1, y1, 0.02), new Vector3(x0, y1, 0.02)],
+			[new Vector3(x0, y1, 0.02), new Vector3(x0, y0, 0.02)], 
+		];
+	
+		this._highlightedCellLines = MeshBuilder.CreateLineSystem("highlightCellLines", { lines: cellLines }, this.scene);
+		this._highlightedCellLines.parent = mesh;
+
+		const mat = new StandardMaterial("highlightCellLineMat", this.scene);
+		mat.emissiveColor = new Color3(1, 1, 0);
+		mat.alpha = 1;
+		this._highlightedCellLines.material = mat;
+	}
+
+	/**
+	 * Hides the sprite map grid.
+	 */
+	private _hideSpriteMapGrid(): void {
+		if (this._spriteMapGridMesh) {
+			this._spriteMapGridMesh.dispose();
+			this._spriteMapGridMesh = null;
+		}
+
+		this.setState({ showSpriteMapGrid: false });
+	}
+
 	private _getToolbar(): ReactNode {
 		return (
 			<div className="absolute top-0 left-0 w-full h-12 z-10">
@@ -665,6 +842,38 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 				/>
 			</div>
 		);
+	}
+
+	private _getSpriteMapGridToggle(): ReactNode {
+		if(!this.scene) {
+			return null;
+		}
+		const selectedNode = this.props.editor.layout.graph.getSelectedNodes()[0]?.nodeData;
+		if (!selectedNode || !isSpriteMapOutputMesh(selectedNode)) {
+			return null;
+		}
+
+		return (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Toggle
+						className="!px-2 !py-2"
+						pressed={this.state.showSpriteMapGrid}
+						onPressedChange={() => {
+							if (this.state.showSpriteMapGrid) {
+								this._hideSpriteMapGrid();
+							} else {
+								this._showSpriteMapGrid(selectedNode);
+							}
+						}}
+					>
+						<IoMdGrid className="w-6 h-6 scale-125" strokeWidth={1} color="white" />
+					</Toggle>
+				</TooltipTrigger>
+				<TooltipContent>
+				Toggle sprite map grid
+				</TooltipContent>
+			</Tooltip>);
 	}
 
 	private _getEditToolbar(): ReactNode {
@@ -754,6 +963,8 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 						</TooltipContent>
 					</Tooltip>
 
+					{ this._getSpriteMapGridToggle() }
+
 					<Separator orientation="vertical" className="mx-2 h-[24px]" />
 
 					<DropdownMenu>
@@ -836,7 +1047,7 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 								<StatRow label="Total Lights" value={this.state.statsValues?.totalLights} />
 							</DropdownMenuLabel>
 						</DropdownMenuContent>
-					</DropdownMenu>
+					</DropdownMenu>					
 				</TooltipProvider>
 			</div>
 		);
