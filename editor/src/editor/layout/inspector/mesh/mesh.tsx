@@ -45,6 +45,14 @@ import { EditorSkyMaterialInspector } from "../material/sky";
 import { EditorNodeMaterialInspector } from "../material/node";
 import { EditorMultiMaterialInspector } from "../material/multi";
 import { EditorStandardMaterialInspector } from "../material/standard";
+import { EditorCellMaterialInspector } from "../material/cell";
+import { EditorFireMaterialInspector } from "../material/fire";
+import { EditorFurMaterialInspector } from "../material/fur";
+import { EditorGridMaterialInspector } from "../material/grid";
+import { EditorWaterMaterialInspector } from "../material/water";
+import { EditorLavaMaterialInspector } from "../material/lava";
+import { EditorTerrainMaterialInspector } from "../material/terrain";
+import { EditorTriPlanarMaterialInspector } from "../material/triplanar";
 
 import { MeshDecalInspector } from "./decal";
 import { MeshGeometryInspector } from "./geometry";
@@ -293,6 +301,54 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 				return <EditorSkyMaterialInspector
 					mesh={this.props.object}
 					material={this.props.object.material as SkyMaterial}
+				/>;
+
+			case "CellMaterial":
+				return <EditorCellMaterialInspector
+					mesh={this.props.object}
+					material={this.props.object.material as any}
+				/>;
+
+			case "FireMaterial":
+				return <EditorFireMaterialInspector
+					mesh={this.props.object}
+					material={this.props.object.material as any}
+				/>;
+
+			case "FurMaterial":
+				return <EditorFurMaterialInspector
+					mesh={this.props.object}
+					material={this.props.object.material as any}
+				/>;
+
+			case "GridMaterial":
+				return <EditorGridMaterialInspector
+					mesh={this.props.object}
+					material={this.props.object.material as any}
+				/>;
+
+			case "WaterMaterial":
+				return <EditorWaterMaterialInspector
+					mesh={this.props.object}
+					material={this.props.object.material as any}
+				/>;
+
+			case "LavaMaterial":
+				return <EditorLavaMaterialInspector
+					mesh={this.props.object}
+					material={this.props.object.material as any}
+				/>;
+
+			case "TerrainMaterial":
+				return <EditorTerrainMaterialInspector
+					mesh={this.props.object}
+					material={this.props.object.material as any}
+				/>;
+
+			case "TriPlanarMaterial":
+				return <EditorTriPlanarMaterialInspector
+					mesh={this.props.object}
+					material={this.props.object.material as any}
 				/>;
 		}
 	}

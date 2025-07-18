@@ -1,5 +1,5 @@
-import { SkyMaterial } from "babylonjs-materials";
 import { Scene, Tools, PBRMaterial, StandardMaterial, NodeMaterial } from "babylonjs";
+import { SkyMaterial, TriPlanarMaterial, CellMaterial, FireMaterial, FurMaterial, GridMaterial, WaterMaterial, LavaMaterial, TerrainMaterial } from "babylonjs-materials";
 
 import { UniqueNumber } from "../../tools/tools";
 
@@ -33,5 +33,61 @@ export function addSkyMaterial(scene: Scene) {
 	material.id = Tools.RandomId();
 	material.uniqueId = UniqueNumber.Get();
 
+	return material;
+}
+
+export function addCellMaterial(scene: Scene) {
+	const material = new CellMaterial("New Cell Material", scene);
+	material.id = Tools.RandomId();
+	material.uniqueId = UniqueNumber.Get();
+	return material;
+}
+
+export function addFireMaterial(scene: Scene) {
+	const material = new FireMaterial("New Fire Material", scene);
+	material.id = Tools.RandomId();
+	material.uniqueId = UniqueNumber.Get();
+	return material;
+}
+
+export function addFurMaterial(scene: Scene) {
+	const material = new FurMaterial("New Fur Material", scene);
+	material.id = Tools.RandomId();
+	material.uniqueId = UniqueNumber.Get();
+	return material;
+}
+
+export function addGridMaterial(scene: Scene) {
+	const material = new GridMaterial("New Grid Material", scene);
+	material.id = Tools.RandomId();
+	material.uniqueId = UniqueNumber.Get();
+	return material;
+}
+
+export function addWaterMaterial(scene: Scene) {
+	const material = new WaterMaterial("New Water Material", scene);
+	material.id = Tools.RandomId();
+	material.uniqueId = UniqueNumber.Get();
+	return material;
+}
+
+export function addLavaMaterial(scene: Scene) {
+	const material = new LavaMaterial("New Lava Material", scene);
+	material.id = Tools.RandomId();
+	material.uniqueId = UniqueNumber.Get();
+	return material;
+}
+
+export function addTerrainMaterial(scene: Scene) {
+	const material = new TerrainMaterial("New Terrain Material", scene);
+	material.id = Tools.RandomId();
+	material.uniqueId = UniqueNumber.Get();
+	return material;
+}
+
+export function addTriPlanarMaterial(scene: Scene) {
+	const material = new TriPlanarMaterial("New TriPlanar Material", scene);
+	material.id = Tools.RandomId();
+	material.uniqueId = UniqueNumber.Get();
 	return material;
 }
