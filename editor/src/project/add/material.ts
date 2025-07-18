@@ -54,6 +54,7 @@ export function addFurMaterial(scene: Scene) {
 	const material = new FurMaterial("New Fur Material", scene);
 	material.id = Tools.RandomId();
 	material.uniqueId = UniqueNumber.Get();
+	material.furTexture = FurMaterial.GenerateTexture("furTexture", scene);
 	return material;
 }
 

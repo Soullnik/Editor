@@ -16,37 +16,72 @@ export interface IEditorFurMaterialInspectorProps {
     material: FurMaterial;
 }
 
-export class EditorFurMaterialInspector extends Component<IEditorFurMaterialInspectorProps> {
-	public render(): ReactNode {
-		const { material } = this.props;
-		return (
-			<>
-				<EditorInspectorSectionField title="Material" label={material.getClassName()}>
-					<EditorInspectorStringField label="Name" object={material} property="name" />
-					<EditorInspectorSwitchField label="Back Face Culling" object={material} property="backFaceCulling" />
-					<EditorMaterialInspectorUtilsComponent
-						mesh={this.props.mesh}
-						material={this.props.material}
-					/>
-				</EditorInspectorSectionField>
+interface IEditorFurMaterialInspectorState {
+    quality: number;
+}
 
-				<EditorInspectorSectionField title="Fur">
-					<EditorInspectorColorField label="Diffuse Color" object={material} property="diffuseColor" />
-					<EditorInspectorTextureField object={material} title="Diffuse Texture" property="diffuseTexture" onChange={() => this.forceUpdate()} />
-					<EditorInspectorTextureField object={material} title="Height Texture" property="heightTexture" onChange={() => this.forceUpdate()} />
-					<EditorInspectorNumberField label="Fur Length" object={material} property="furLength" min={0} step={0.01} />
-					<EditorInspectorNumberField label="Fur Angle" object={material} property="furAngle" min={-3.14} max={3.14} step={0.01} />
-					<EditorInspectorColorField label="Fur Color" object={material} property="furColor" />
-					<EditorInspectorVectorField label="Fur Gravity" object={material} property="furGravity" />
-					<EditorInspectorNumberField label="Fur Spacing" object={material} property="furSpacing" min={0} step={1} />
-					<EditorInspectorNumberField label="Fur Speed" object={material} property="furSpeed" min={0} step={1} />
-					<EditorInspectorNumberField label="Fur Density" object={material} property="furDensity" min={0} step={1} />
-					<EditorInspectorNumberField label="Fur Occlusion" object={material} property="furOcclusion" min={0} max={1} step={0.01} />
-					<EditorInspectorSwitchField label="Disable Lighting" object={material} property="disableLighting" />
-					<EditorInspectorNumberField label="Max Simultaneous Lights" object={material} property="maxSimultaneousLights" min={1} max={16} step={1} />
-					<EditorInspectorSwitchField label="High Level Fur" object={material} property="highLevelFur" />
-				</EditorInspectorSectionField>
-			</>
-		);
+export class EditorFurMaterialInspector extends Component<IEditorFurMaterialInspectorProps, IEditorFurMaterialInspectorState> {
+    public constructor(props: IEditorFurMaterialInspectorProps) {
+        super(props);
+        this.state = { quality: 10 };
+    }
+
+	public componentDidMount(): void {
+		if (this.props.mesh && this.props.material) {
+			console.log(this.props.mesh);
+			// @ts-ignore: static method
+			// FurMaterial.FurifyMesh(this.props.mesh, this.state.quality);
+		}
 	}
+
+    public render(): ReactNode {
+        const { material } = this.props;
+        return (
+            <>
+                <EditorInspectorSectionField title="Material" label={material.getClassName()}>
+                    <EditorInspectorStringField label="Name" object={material} property="name" />
+                    <EditorInspectorSwitchField label="Back Face Culling" object={material} property="backFaceCulling" />
+                    <EditorMaterialInspectorUtilsComponent
+                        mesh={this.props.mesh}
+                        material={this.props.material}
+                    />
+                </EditorInspectorSectionField>
+
+                <EditorInspectorSectionField title="Fur">
+                    <EditorInspectorNumberField
+                        label="Quality"
+                        object={this.state}
+                        property="quality"
+                        min={1}
+                        max={100}
+                        step={1}
+                        onChange={v => this._handleFurQualityChanged(v)}
+                    />
+                    <EditorInspectorColorField label="Diffuse Color" object={material} property="diffuseColor" />
+                    <EditorInspectorTextureField object={material} title="Diffuse Texture" property="diffuseTexture" onChange={() => this.forceUpdate()} />
+                    <EditorInspectorTextureField object={material} title="Height Texture" property="heightTexture" onChange={() => this.forceUpdate()} />
+                    <EditorInspectorNumberField label="Fur Length" object={material} property="furLength" min={0} step={0.01} />
+                    <EditorInspectorNumberField label="Fur Angle" object={material} property="furAngle" min={-3.14} max={3.14} step={0.01} />
+                    <EditorInspectorColorField label="Fur Color" object={material} property="furColor" />
+                    <EditorInspectorVectorField label="Fur Gravity" object={material} property="furGravity" />
+                    <EditorInspectorNumberField label="Fur Spacing" object={material} property="furSpacing" min={0} step={1} />
+                    <EditorInspectorNumberField label="Fur Speed" object={material} property="furSpeed" min={0} step={1} />
+                    <EditorInspectorNumberField label="Fur Density" object={material} property="furDensity" min={0} step={1} />
+                    <EditorInspectorNumberField label="Fur Occlusion" object={material} property="furOcclusion" min={0} max={1} step={0.01} />
+                    <EditorInspectorSwitchField label="Disable Lighting" object={material} property="disableLighting" />
+                    <EditorInspectorNumberField label="Max Simultaneous Lights" object={material} property="maxSimultaneousLights" min={1} max={16} step={1} />
+                    <EditorInspectorSwitchField label="High Level Fur" object={material} property="highLevelFur" />
+                </EditorInspectorSectionField>
+            </>
+        );
+    }
+
+    private _handleFurQualityChanged = (quality: number) => {
+        this.setState({ quality });
+        if (this.props.mesh && this.props.material) {
+            // @ts-ignore: static method
+            // FurMaterial.FurifyMesh(this.props.mesh, quality);
+            // this.forceUpdate();
+        }
+    };
 } 
