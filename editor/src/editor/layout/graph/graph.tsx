@@ -21,13 +21,14 @@ import { reloadSound } from "../../../tools/sound/tools";
 import { registerUndoRedo } from "../../../tools/undoredo";
 import { isScene, isSceneLinkNode } from "../../../tools/guards/scene";
 import { UniqueNumber, waitNextAnimationFrame } from "../../../tools/tools";
-import { isAbstractMesh, isMesh, isNode } from "../../../tools/guards/nodes";
+import { isAbstractMesh, isBone, isMesh, isNode, isSkeleton } from "../../../tools/guards/nodes";
 
 import { addGPUParticleSystem, addParticleSystem } from "../../../project/add/particles";
 
 import { Editor } from "../../main";
 
 import { removeNodes } from "./remove";
+import { addBone } from "../../../project/add/skeleton";
 
 export interface IEditorGraphContextMenuProps extends PropsWithChildren {
 	editor: Editor;
@@ -78,6 +79,13 @@ export class EditorGraphContextMenu extends Component<IEditorGraphContextMenuPro
 								<ContextMenuItem onClick={() => this._reloadSound()}>
 									Reload
 								</ContextMenuItem>
+							}
+
+							{(isBone(this.props.object) || isSkeleton(this.props.object)) &&
+								<>
+									<ContextMenuSeparator />
+									<ContextMenuItem onClick={() => addBone(this.props.editor, this.props.object)}>Bone</ContextMenuItem>
+								</>
 							}
 
 							{((isNode(this.props.object) || isScene(this.props.object)) && !isSceneLinkNode(this.props.object)) &&

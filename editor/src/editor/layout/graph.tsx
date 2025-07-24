@@ -14,7 +14,7 @@ import { IoCheckmark, IoSparklesSharp } from "react-icons/io5";
 import { SiAdobeindesign, SiBabylondotjs } from "react-icons/si";
 
 import { AdvancedDynamicTexture } from "babylonjs-gui";
-import { BaseTexture, Node, Scene, Sound, Tools, IParticleSystem, ParticleSystem } from "babylonjs";
+import { BaseTexture, Node, Scene, Sound, Tools, IParticleSystem, ParticleSystem, Skeleton } from "babylonjs";
 
 import { Editor } from "../main";
 
@@ -40,6 +40,8 @@ import { EditorGraphContextMenu } from "./graph/graph";
 import { getMeshCommands } from "../dialogs/command-palette/mesh";
 import { getLightCommands } from "../dialogs/command-palette/light";
 import { getCameraCommands } from "../dialogs/command-palette/camera";
+import { getSkeletonCommands } from "../dialogs/command-palette/skeleton";
+import { Bone } from "babylonjs";
 
 export interface IEditorGraphProps {
 	/**
@@ -195,6 +197,14 @@ export class EditorGraph extends Component<IEditorGraphProps, IEditorGraphState>
 											</ContextMenuItem>
 										);
 									})}
+									<ContextMenuSeparator />
+									{getSkeletonCommands(this.props.editor).map((command) => {
+										return (
+											<ContextMenuItem key={command.key} onClick={command.action}>
+												{command.text}
+											</ContextMenuItem>
+										);
+									})}
 								</ContextMenuSubContent>
 							</ContextMenuSub>
 						</ContextMenuContent>
@@ -247,6 +257,11 @@ export class EditorGraph extends Component<IEditorGraphProps, IEditorGraphState>
 			nodes.splice(0, 0, soundNode);
 		}
 
+		const skeletonNode = this._parseSkeletonNode(scene);
+		if (skeletonNode) {
+			nodes.splice(0, 0, skeletonNode);
+		}
+
 		nodes.splice(0, 0, {
 			id: "__editor__scene__",
 			nodeData: scene,
@@ -261,12 +276,86 @@ export class EditorGraph extends Component<IEditorGraphProps, IEditorGraphState>
 		return waitNextAnimationFrame();
 	}
 
+	private _parseSkeletonNode(scene: Scene): TreeNodeInfo | null {
+		if (!scene.skeletons?.length) {
+			return null;
+		}
+
+		// Рекурсивно строим дерево костей
+		const buildBoneTree = (bone: Bone): TreeNodeInfo => {
+			const info = {
+				nodeData: bone,
+				id: bone.uniqueId,
+				icon: <GiSparkles className="w-4 h-4" />, // Можно заменить на другую иконку для bone
+				label: this._getNodeLabelComponent(bone, bone.name, false),
+			} as TreeNodeInfo;
+
+			if (bone.children && bone.children.length > 0) {
+				info.childNodes = bone.children.map(buildBoneTree);
+				info.hasCaret = true;
+			}
+
+			this._forEachNode(this.state.nodes, (n) => {
+				if (n.id === info.id) {
+					info.isSelected = n.isSelected;
+					info.isExpanded = n.isExpanded;
+				}
+			});
+
+			return info;
+		};
+
+		// Для каждого скелета строим дерево
+		const childNodes: TreeNodeInfo[] = scene.skeletons.map((skeleton) => {
+			// Корневые кости (без parent)
+			const rootBones = skeleton.bones.filter((b) => !b.getParent());
+			const boneNodes = rootBones.map(buildBoneTree);
+
+			const info = {
+				nodeData: skeleton,
+				id: skeleton.uniqueId,
+				icon: <GiSparkles className="w-4 h-4" />, // Можно заменить на иконку скелета
+				label: this._getNodeLabelComponent(skeleton, skeleton.name, false),
+				childNodes: boneNodes,
+				hasCaret: !!boneNodes.length,
+			} as TreeNodeInfo;
+
+			this._forEachNode(this.state.nodes, (n) => {
+				if (n.id === info.id) {
+					info.isSelected = n.isSelected;
+					info.isExpanded = n.isExpanded;
+				}
+			});
+
+			return info;
+		});
+
+		// Корневая нода "Skeletons"
+		const rootSkeletonNode = {
+			childNodes,
+			nodeData: scene,
+			id: "__editor__skeletons__",
+			icon: <GiSparkles className="w-4 h-4" />,
+			label: this._getNodeLabelComponent(scene, "Skeletons", false),
+			hasCaret: !!childNodes.length,
+		} as TreeNodeInfo;
+
+		this._forEachNode(this.state.nodes, (n) => {
+			if (n.id === rootSkeletonNode.id) {
+				rootSkeletonNode.isSelected = n.isSelected;
+				rootSkeletonNode.isExpanded = n.isExpanded;
+			}
+		});
+
+		return rootSkeletonNode;
+	}
+
 	/**
 	 * Sets the given node selected in the graph. All other selected nodes
 	 * become unselected to have only the given node selected. All parents are expanded.
 	 * @param node defines the reference tot the node to select in the graph.
 	 */
-	public setSelectedNode(node: Node | Sound | IParticleSystem): void {
+	public setSelectedNode(node: Node | Sound | IParticleSystem | Skeleton): void {
 		let source =
 			isSound(node)
 				? node["_connectedTransformNode"]

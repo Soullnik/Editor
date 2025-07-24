@@ -37,6 +37,9 @@ import { EditorDecalsInspector } from "./inspector/decals/decals";
 import { EditorParticleSystemInspector } from "./inspector/particles/particle-system";
 import { EditorGPUParticleSystemInspector } from "./inspector/particles/gpu-particle-system";
 
+import { EditorSkeletonInspector } from "./inspector/skeleton/skeleton";
+import { EditorBoneInspector } from "./inspector/skeleton/bone";
+
 export interface IEditorInspectorProps {
 	/**
 	 * The editor reference.
@@ -53,7 +56,8 @@ export class EditorInspector extends Component<IEditorInspectorProps, IEditorIns
 	private static _inspectors: ((new (props: IEditorInspectorImplementationProps<any>) => Component<IEditorInspectorImplementationProps<any>>) & { IsSupported(object: any): boolean; })[] = [
 		EditorTransformNodeInspector,
 		EditorMeshInspector,
-
+		EditorSkeletonInspector,
+		EditorBoneInspector,
 		EditorFileInspector,
 
 		EditorPointLightInspector,

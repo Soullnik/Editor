@@ -88,3 +88,13 @@ export const meshCommandItems = {
 		ipcRendererChannelKey: "empty-mesh",
 	} as CommandItem,
 };
+
+
+export const skeletonCommandItems = {
+	skeleton: {
+		text: "Skeleton",
+		label: "Add a new skeleton to the scene",
+		key: "add-skeleton",
+		ipcRendererChannelKey: "skeleton",
+	} as CommandItem,
+};

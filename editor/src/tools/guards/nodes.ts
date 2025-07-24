@@ -1,6 +1,6 @@
 import {
 	Bone, Camera, GroundMesh, Light, Mesh, Node, PointLight, TransformNode,
-	DirectionalLight, InstancedMesh, FreeCamera, ArcRotateCamera, SpotLight, HemisphericLight,
+	DirectionalLight, InstancedMesh, FreeCamera, ArcRotateCamera, SpotLight, HemisphericLight, Skeleton
 } from "babylonjs";
 
 import { EditorCamera } from "../../editor/nodes/camera";
@@ -52,6 +52,14 @@ export function isInstancedMesh(object: any): object is InstancedMesh {
  */
 export function isBone(object: any): object is Bone {
 	return object.getClassName?.() === "Bone";
+}
+
+/**
+ * Returns wether or not the given object is a Skeleton.
+ * @param object defines the reference to the object to test its class name.
+ */
+export function isSkeleton(object: any): object is Skeleton {
+	return object.getClassName?.() === "Skeleton";
 }
 
 /**
