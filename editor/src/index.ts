@@ -49,7 +49,7 @@ app.addListener("ready", async () => {
 		await openDashboard();
 	}
 
-	autoUpdater.checkForUpdatesAndNotify();
+	// autoUpdater.checkForUpdatesAndNotify();
 });
 
 app.on("window-all-closed", () => {

@@ -510,7 +510,7 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		const pickingInfo = this._getPickingInfo(x, y);
 		const mesh = pickingInfo.pickedMesh?._masterMesh ?? pickingInfo.pickedMesh;
 
-		if (mesh && this._meshUnderPointer !== mesh) {
+		if (mesh && this._meshUnderPointer !== mesh && mesh.isPickable) {
 			this._restoreCurrentMeshUnderPointer();
 			this._highlightCurrentMeshUnderPointer(mesh);
 
@@ -564,8 +564,8 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 
 		const pickingInfo = this._getPickingInfo(this.scene.pointerX, this.scene.pointerY);
 
-		let mesh = (pickingInfo.pickedMesh?._masterMesh ?? pickingInfo.pickedMesh) as Node;
-		if (mesh) {
+		let mesh = pickingInfo.pickedMesh?._masterMesh ?? pickingInfo.pickedMesh as any;
+		if (mesh && mesh?.isPickable) {
 			const sceneLink = getRootSceneLink(mesh);
 			if (sceneLink) {
 				mesh = sceneLink;
