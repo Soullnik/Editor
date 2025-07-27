@@ -8,7 +8,7 @@ import { AiOutlinePlus } from "react-icons/ai";
 import { SkyMaterial } from "babylonjs-materials";
 import {
 	AbstractMesh, InstancedMesh, Material, Mesh, MorphTarget, MultiMaterial, Node, Observer, PBRMaterial,
-	StandardMaterial, NodeMaterial,
+	StandardMaterial, NodeMaterial, BackgroundMaterial
 } from "babylonjs";
 
 import { CollisionMesh } from "../../../nodes/collision";
@@ -45,6 +45,7 @@ import { EditorSkyMaterialInspector } from "../material/sky";
 import { EditorNodeMaterialInspector } from "../material/node";
 import { EditorMultiMaterialInspector } from "../material/multi";
 import { EditorStandardMaterialInspector } from "../material/standard";
+import { EditorBackgroundMaterialInspector } from "../material/background";
 
 import { MeshDecalInspector } from "./decal";
 import { MeshGeometryInspector } from "./geometry";
@@ -293,6 +294,12 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 				return <EditorSkyMaterialInspector
 					mesh={this.props.object}
 					material={this.props.object.material as SkyMaterial}
+				/>;
+
+			case "BackgroundMaterial":
+				return <EditorBackgroundMaterialInspector
+					mesh={this.props.object}
+					material={this.props.object.material as BackgroundMaterial}
 				/>;
 		}
 	}

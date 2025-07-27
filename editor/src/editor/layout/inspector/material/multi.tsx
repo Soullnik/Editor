@@ -3,7 +3,7 @@ import { extname } from "path/posix";
 import { Component, DragEvent, ReactNode } from "react";
 
 import { SkyMaterial } from "babylonjs-materials";
-import { Material, MultiMaterial, PBRMaterial, StandardMaterial } from "babylonjs";
+import { Material, MultiMaterial, PBRMaterial, StandardMaterial, BackgroundMaterial } from "babylonjs";
 
 import { Table, TableBody, TableCaption, TableCell, TableRow } from "../../../../ui/shadcn/ui/table";
 
@@ -16,13 +16,14 @@ import { EditorInspectorSectionField } from "../fields/section";
 import { EditorSkyMaterialInspector } from "./sky";
 import { EditorPBRMaterialInspector } from "./pbr";
 import { EditorStandardMaterialInspector } from "./standard";
+import { EditorBackgroundMaterialInspector } from "./background";
 
 export interface IEditorPBRMaterialInspectorProps {
-    material: MultiMaterial;
+	material: MultiMaterial;
 }
 
 export interface IEditorMultiMaterialInspectorState {
-    material: Material | null;
+	material: Material | null;
 }
 
 export class EditorMultiMaterialInspector extends Component<IEditorPBRMaterialInspectorProps, IEditorMultiMaterialInspectorState> {
@@ -109,7 +110,7 @@ export class EditorMultiMaterialInspector extends Component<IEditorPBRMaterialIn
 			return (
 				<div className="flex flex-col gap-2 px-2">
 					<div className="text-center text-xl">
-                        No material
+						No material
 					</div>
 				</div>
 			);
@@ -119,6 +120,7 @@ export class EditorMultiMaterialInspector extends Component<IEditorPBRMaterialIn
 			case "PBRMaterial": return <EditorPBRMaterialInspector key={this.state.material.id} material={this.state.material as PBRMaterial} />;
 			case "StandardMaterial": return <EditorStandardMaterialInspector key={this.state.material.id} material={this.state.material as StandardMaterial} />;
 			case "SkyMaterial": return <EditorSkyMaterialInspector key={this.state.material.id} material={this.state.material as SkyMaterial} />;
+			case "BackgroundMaterial": return <EditorBackgroundMaterialInspector key={this.state.material.id} material={this.state.material as BackgroundMaterial} />;
 		}
 	}
 }
