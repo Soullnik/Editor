@@ -1,5 +1,5 @@
 import { platform } from "os";
-import { autoUpdater } from "electron-updater";
+// import { autoUpdater } from "electron-updater";
 import { basename, dirname, join } from "path/posix";
 import { BrowserWindow, app, globalShortcut, ipcMain, nativeTheme } from "electron";
 

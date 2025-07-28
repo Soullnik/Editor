@@ -12,7 +12,7 @@ import { IoIosOptions, IoIosStats } from "react-icons/io";
 
 import {
 	AbstractEngine, AbstractMesh, Animation, Camera, Color3, CubicEase, EasingFunction, Engine, GizmoCoordinatesMode,
-	ISceneLoaderAsyncResult, Node, Scene, Vector2, Vector3, WebGPUEngine, HavokPlugin, PickingInfo, SceneLoaderFlags,
+	ISceneLoaderAsyncResult, Scene, Vector2, Vector3, WebGPUEngine, HavokPlugin, PickingInfo, SceneLoaderFlags,
 } from "babylonjs";
 
 import { Toggle } from "../../ui/shadcn/ui/toggle";
