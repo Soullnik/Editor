@@ -47,6 +47,7 @@ import { MeshDecalInspector } from "./decal";
 import { MeshGeometryInspector } from "./geometry";
 import { EditorMeshPhysicsInspector } from "./physics";
 import { EditorMeshCollisionInspector } from "./collision";
+import { EditorGrassInspector } from "./grass";
 
 export class EditorMeshInspector extends Component<IEditorInspectorImplementationProps<AbstractMesh>> {
 	/**
@@ -152,6 +153,11 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 				)}
 
 				<EditorMeshPhysicsInspector mesh={this.props.object} />
+
+				{/* Grass Inspector */}
+				{EditorGrassInspector.IsSupported(this.props.object) && (
+					<EditorGrassInspector {...this.props} />
+				)}
 
 				{this._getMaterialComponent()}
 				{this._getSkeletonComponent()}

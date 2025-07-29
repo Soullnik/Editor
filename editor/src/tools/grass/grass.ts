@@ -22,6 +22,7 @@ export interface IGrassOptions {
 	bladeWidth?: number;
 	bladeHeight?: number;
 	bladeHeightVariation?: number;
+	tipBendStrength?: number; // Сила изгиба верхушки (0 = прямой, 1 = максимальный изгиб)
 	windStrength?: number;
 	windSpeed?: number;
 	materialOptions?: IGrassMaterialOptions;
@@ -40,6 +41,7 @@ export class Grass {
 	private readonly BLADE_WIDTH: number;
 	private readonly BLADE_HEIGHT: number;
 	private readonly BLADE_HEIGHT_VARIATION: number;
+	private readonly TIP_BEND_STRENGTH: number;
 	private readonly LOD_DISTANCE: number;
 	private time: number = 0;
 	private activeCamera: Camera | null = null;
@@ -57,6 +59,7 @@ export class Grass {
 		this.BLADE_WIDTH = options.bladeWidth ?? 0.1;
 		this.BLADE_HEIGHT = options.bladeHeight ?? 0.8;
 		this.BLADE_HEIGHT_VARIATION = options.bladeHeightVariation ?? 0.6;
+		this.TIP_BEND_STRENGTH = options.tipBendStrength ?? 0.2;
 		this.LOD_DISTANCE = options.lodDistance ?? 50;
 
 		// Setup LOD levels
@@ -149,7 +152,7 @@ export class Grass {
 				uvs.push(...vert.uv);
 				colors.push(...vert.color);
 			});
-			blade.indices.forEach((index) => indices.push(index + bladeIndex * 5));
+			blade.indices.forEach((index) => indices.push(index + bladeIndex * 7));
 			bladeIndex++;
 			actualBladeCount++;
 		}
@@ -179,7 +182,7 @@ export class Grass {
 		verts: BladeVertex[];
 		indices: number[];
 	} {
-		const VERTEX_COUNT = 5;
+		const VERTEX_COUNT = 7; // Увеличили с 5 до 7 вершин
 		const MID_WIDTH = this.BLADE_WIDTH * 0.5;
 		const TIP_OFFSET = 0.1;
 		const height = this.BLADE_HEIGHT + Math.random() * this.BLADE_HEIGHT_VARIATION;
@@ -225,21 +228,34 @@ export class Grass {
 
 		const yaw = Math.random() * Math.PI * 2;
 		const yawUnitVec = new Vector3(Math.sin(yaw), 0, -Math.cos(yaw));
+		
+		// Сделаем изгиб верхушки более естественным и случайным
 		const tipBend = Math.random() * Math.PI * 2;
+		const tipBendStrength = (Math.random() - 0.5) * this.TIP_BEND_STRENGTH; // Случайная сила изгиба от -0.1 до 0.1
 		const tipBendUnitVec = new Vector3(
-			Math.sin(tipBend),
+			Math.sin(tipBend) * tipBendStrength,
 			0,
-			-Math.cos(tipBend)
+			-Math.cos(tipBend) * tipBendStrength
 		);
 
+		// Base vertices (bottom)
 		const bl = center.add(yawUnitVec.scale(this.BLADE_WIDTH / 2));
 		const br = center.add(yawUnitVec.scale(-(this.BLADE_WIDTH / 2)));
-		const tl = center.add(yawUnitVec.scale(MID_WIDTH / 2));
-		const tr = center.add(yawUnitVec.scale(-(MID_WIDTH / 2)));
-		const tc = center.add(tipBendUnitVec.scale(TIP_OFFSET));
-
-		tl.y += height / 2;
-		tr.y += height / 2;
+		
+		// Lower middle vertices (25% height)
+		const ml1 = center.add(yawUnitVec.scale(this.BLADE_WIDTH * 0.4));
+		const mr1 = center.add(yawUnitVec.scale(-(this.BLADE_WIDTH * 0.4)));
+		ml1.y += height * 0.25;
+		mr1.y += height * 0.25;
+		
+		// Upper middle vertices (75% height)
+		const ml2 = center.add(yawUnitVec.scale(this.BLADE_WIDTH * 0.2));
+		const mr2 = center.add(yawUnitVec.scale(-(this.BLADE_WIDTH * 0.2)));
+		ml2.y += height * 0.75;
+		mr2.y += height * 0.75;
+		
+		// Tip vertex - более естественный изгиб
+		const tc = center.add(tipBendUnitVec);
 		tc.y += height;
 
 		// Convert UV coordinates based on shape
@@ -266,23 +282,36 @@ export class Grass {
 		}
 
 		const verts = [
-			{ pos: bl.asArray(), uv: uv, color: [0, 0, 0] },
-			{ pos: br.asArray(), uv: uv, color: [0, 0, 0] },
-			{ pos: tr.asArray(), uv: uv, color: [0.5, 0.5, 0.5] },
-			{ pos: tl.asArray(), uv: uv, color: [0.5, 0.5, 0.5] },
-			{ pos: tc.asArray(), uv: uv, color: [1, 1, 1] },
+			{ pos: bl.asArray(), uv: uv, color: [0.0, 0.0, 0.0] },     // Основание - 0% высоты
+			{ pos: br.asArray(), uv: uv, color: [0.0, 0.0, 0.0] },     // Основание - 0% высоты
+			{ pos: ml1.asArray(), uv: uv, color: [0.25, 0.25, 0.25] }, // Нижняя середина - 25% высоты
+			{ pos: mr1.asArray(), uv: uv, color: [0.25, 0.25, 0.25] }, // Нижняя середина - 25% высоты
+			{ pos: ml2.asArray(), uv: uv, color: [0.75, 0.75, 0.75] }, // Верхняя середина - 75% высоты
+			{ pos: mr2.asArray(), uv: uv, color: [0.75, 0.75, 0.75] }, // Верхняя середина - 75% высоты
+			{ pos: tc.asArray(), uv: uv, color: [1.0, 1.0, 1.0] },     // Кончик - 100% высоты
 		];
 
 		const indices = [
-			index * VERTEX_COUNT,
-			index * VERTEX_COUNT + 1,
-			index * VERTEX_COUNT + 2,
-			index * VERTEX_COUNT + 2,
-			index * VERTEX_COUNT + 4,
-			index * VERTEX_COUNT + 3,
-			index * VERTEX_COUNT + 3,
-			index * VERTEX_COUNT,
-			index * VERTEX_COUNT + 2,
+			// Нижняя часть травинки
+			index * VERTEX_COUNT,     // bl
+			index * VERTEX_COUNT + 1, // br
+			index * VERTEX_COUNT + 2, // ml1
+			index * VERTEX_COUNT + 2, // ml1
+			index * VERTEX_COUNT + 1, // br
+			index * VERTEX_COUNT + 3, // mr1
+			
+			// Средняя часть травинки
+			index * VERTEX_COUNT + 2, // ml1
+			index * VERTEX_COUNT + 3, // mr1
+			index * VERTEX_COUNT + 4, // ml2
+			index * VERTEX_COUNT + 4, // ml2
+			index * VERTEX_COUNT + 3, // mr1
+			index * VERTEX_COUNT + 5, // mr2
+			
+			// Верхняя часть травинки
+			index * VERTEX_COUNT + 4, // ml2
+			index * VERTEX_COUNT + 5, // mr2
+			index * VERTEX_COUNT + 6, // tc
 		];
 
 		return { verts, indices };
@@ -323,24 +352,45 @@ export class Grass {
 	}
 
 	/**
-	 * Updates the grass texture by URL
-	 */
-	public setTextureUrl(url: string): void {
-		this.grassMaterial.setTextureUrl(url);
-	}
-
-	/**
-	 * Updates wind parameters
+	 * Sets wind parameters
 	 */
 	public setWindParameters(strength: number, speed: number): void {
 		this.grassMaterial.setWindParameters(strength, speed);
 	}
 
 	/**
-	 * Updates visual parameters
+	 * Sets visual parameters
 	 */
 	public setVisualParameters(contrast: number, brightness: number, opacity: number): void {
 		this.grassMaterial.setVisualParameters(contrast, brightness, opacity);
+	}
+
+	/**
+	 * Sets texture URL
+	 */
+	public setTextureUrl(url: string): void {
+		this.grassMaterial.setTextureUrl(url);
+	}
+
+	/**
+	 * Enables wind animation
+	 */
+	public enableWindAnimation(): void {
+		this.grassMaterial.enableWindAnimation();
+	}
+
+	/**
+	 * Disables wind animation
+	 */
+	public disableWindAnimation(): void {
+		this.grassMaterial.disableWindAnimation();
+	}
+
+	/**
+	 * Gets wind animation status
+	 */
+	public isWindAnimationEnabled(): boolean {
+		return this.grassMaterial.isWindAnimationEnabled();
 	}
 
 	/**
@@ -380,14 +430,69 @@ export class Grass {
 	}
 
 	/**
+	 * Updates blade geometry parameters (requires regeneration)
+	 */
+	public updateBladeGeometry(width: number, height: number, heightVariation: number, tipBendStrength: number): void {
+		// Store new values
+		(this as any).BLADE_WIDTH = width;
+		(this as any).BLADE_HEIGHT = height;
+		(this as any).BLADE_HEIGHT_VARIATION = heightVariation;
+		(this as any).TIP_BEND_STRENGTH = tipBendStrength;
+		
+		// Regenerate grass
+		this.recreateGrass();
+	}
+
+	/**
+	 * Updates blade count (requires regeneration)
+	 */
+	public updateBladeCount(count: number): void {
+		(this as any).BLADE_COUNT = count;
+		this.setupLODLevels();
+		this.recreateGrass();
+	}
+
+	/**
+	 * Recreates grass geometry with current parameters
+	 */
+	private recreateGrass(): void {
+		// Dispose old mesh
+		if (this.grassMesh) {
+			this.grassMesh.dispose();
+		}
+		
+		// Create new grass
+		this.createGrass();
+	}
+
+	/**
+	 * Gets current blade geometry parameters
+	 */
+	public getBladeGeometry(): { width: number; height: number; heightVariation: number; tipBendStrength: number } {
+		return {
+			width: this.BLADE_WIDTH,
+			height: this.BLADE_HEIGHT,
+			heightVariation: this.BLADE_HEIGHT_VARIATION,
+			tipBendStrength: this.TIP_BEND_STRENGTH
+		};
+	}
+
+	/**
+	 * Gets current blade count
+	 */
+	public getBladeCount(): number {
+		return this.BLADE_COUNT;
+	}
+
+	/**
 	 * Disposes the grass system
 	 */
 	public dispose(): void {
-		if (this.grassMaterial) {
-			this.grassMaterial.dispose();
-		}
 		if (this.grassMesh) {
 			this.grassMesh.dispose();
+		}
+		if (this.grassMaterial) {
+			this.grassMaterial.dispose();
 		}
 	}
 }

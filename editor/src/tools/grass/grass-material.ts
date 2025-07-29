@@ -8,6 +8,7 @@ export interface IGrassMaterialOptions {
 	brightness?: number;
 	opacity?: number;
 	textureUrl?: string;
+	windAnimationEnabled?: boolean;
 }
 
 export class GrassMaterial {
@@ -17,6 +18,7 @@ export class GrassMaterial {
 	private contrast: number;
 	private brightness: number;
 	private opacity: number;
+	private windAnimationEnabled: boolean;
 
 	constructor(scene: Scene, options: IGrassMaterialOptions = {}) {
 		this.windStrength = options.windStrength ?? 0.3;
@@ -24,6 +26,7 @@ export class GrassMaterial {
 		this.contrast = options.contrast ?? 1.0;
 		this.brightness = options.brightness ?? 0.0;
 		this.opacity = options.opacity ?? 1.0;
+		this.windAnimationEnabled = false; // По умолчанию анимация отключена
 
 		this.initializeShaders();
 		this.createMaterial(scene, options);
@@ -55,10 +58,22 @@ export class GrassMaterial {
 				vColor = color;
 				vec3 cpos = position;
 				
-				// Optimized wind calculation - only for tip vertices (color.x > 0.6)
-				if (color.x > 0.6) {
-					float windOffset = sin(iTime * ${(1.0 / this.windSpeed).toFixed(6)} + uv.x * 10.0) * ${this.windStrength.toFixed(3)};
+				// Natural wind animation for the entire grass blade
+				// color.x represents the height of the vertex (0 = base, 1 = tip)
+				float heightFactor = color.x; // 0.0 = base, 0.5 = middle, 1.0 = tip
+				
+				// Wind effect increases with height - more movement at the tip
+				float windIntensity = heightFactor * ${this.windStrength.toFixed(3)};
+				
+				// Only apply wind animation if enabled
+				if (${this.windAnimationEnabled ? 'true' : 'false'}) {
+					// Add wind movement based on height and time
+					float windOffset = sin(iTime * ${(1.0 / this.windSpeed).toFixed(6)} + uv.x * 10.0) * windIntensity;
 					cpos.x += windOffset;
+					
+					// Add slight vertical movement for more natural effect
+					float verticalMovement = sin(iTime * ${(1.0 / this.windSpeed).toFixed(6)} * 0.5 + uv.x * 5.0) * windIntensity * 0.3;
+					cpos.y += verticalMovement;
 				}
 				
 				gl_Position = viewProjection * world * vec4(cpos, 1.0);
@@ -105,12 +120,12 @@ export class GrassMaterial {
 				],
 			}
 		);
-		
-		// Set default texture if none provided
+
 		if (!options.textureUrl) {
 			this.setDefaultTexture();
 		} else {
-			this.setTextureUrl(options.textureUrl);
+			const texture = new Texture(options.textureUrl, scene);
+			this.setTextureUrl(texture);
 		}
 	}
 
@@ -149,15 +164,7 @@ export class GrassMaterial {
 	}
 
 	/**
-	 * Updates the grass texture by URL
-	 */
-	public setTextureUrl(url: string): void {
-		const texture = new Texture(url, this.material.getScene());
-		this.material.setTexture("grassTexture", texture);
-	}
-
-	/**
-	 * Updates wind parameters
+	 * Sets wind parameters
 	 */
 	public setWindParameters(strength: number, speed: number): void {
 		this.windStrength = strength;
@@ -166,13 +173,45 @@ export class GrassMaterial {
 	}
 
 	/**
-	 * Updates visual parameters
+	 * Sets visual parameters
 	 */
 	public setVisualParameters(contrast: number, brightness: number, opacity: number): void {
 		this.contrast = contrast;
 		this.brightness = brightness;
 		this.opacity = opacity;
 		this.initializeShaders();
+	}
+
+	/**
+	 * Sets texture
+	 */
+	public setTextureUrl(texture: Texture | null): void {
+		if (texture) {
+			this.material.setTexture("grassTexture", texture);
+		}
+	}
+
+	/**
+	 * Enables wind animation
+	 */
+	public enableWindAnimation(): void {
+		this.windAnimationEnabled = true;
+		this.initializeShaders();
+	}
+
+	/**
+	 * Disables wind animation
+	 */
+	public disableWindAnimation(): void {
+		this.windAnimationEnabled = false;
+		this.initializeShaders();
+	}
+
+	/**
+	 * Gets wind animation status
+	 */
+	public isWindAnimationEnabled(): boolean {
+		return this.windAnimationEnabled;
 	}
 
 	/**

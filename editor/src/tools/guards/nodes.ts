@@ -51,6 +51,30 @@ export function isMesh(object: any): object is Mesh {
 }
 
 /**
+ * Returns whether or not the given object is a Plane mesh.
+ * @param object defines the reference to the object to test.
+ */
+export function isPlane(object: any): object is Mesh {
+	if (!isMesh(object)) return false;
+	
+	const mesh = object as Mesh;
+	return mesh.name.toLowerCase().includes('plane') || 
+		   mesh.name.toLowerCase().includes('ground') ||
+		   mesh.name.toLowerCase().includes('floor');
+}
+
+/**
+ * Returns whether or not the given object is a Grass mesh.
+ * @param object defines the reference to the object to test.
+ */
+export function isGrass(object: any): object is Mesh {
+	if (!isMesh(object)) return false;
+	
+	const mesh = object as Mesh;
+	return mesh.metadata?.type === "Grass";
+}
+
+/**
  * Returns wether or not the given object is a InstancedMesh.
  * @param object defines the reference to the object to test its class name.
  */
