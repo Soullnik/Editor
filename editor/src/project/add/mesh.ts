@@ -1,8 +1,9 @@
-import { MeshBuilder, Mesh, Node, Tools, TransformNode } from "babylonjs";
+import { MeshBuilder, Mesh, Node, Tools, TransformNode, Vector3, Texture, ShaderMaterial, Effect, VertexData } from "babylonjs";
 
 import { UniqueNumber } from "../../tools/tools";
 
 import { Editor } from "../../editor/main";
+import { Grass } from "../../tools/grass";
 
 export function addTransformNode(editor: Editor, parent?: Node) {
 	const transformNode = new TransformNode("New Transform Node", editor.layout.preview.scene);
@@ -184,4 +185,46 @@ export function addEmptyMesh(editor: Editor, parent?: Node) {
 
 	editor.layout.inspector.setEditedObject(emptyMesh);
 	editor.layout.preview.gizmo.setAttachedNode(emptyMesh);
+}
+
+export function addGrassMesh(editor: Editor, parent?: Node) {
+	const grass = new Grass(editor.layout.preview.scene, {
+		planeSize: 30,
+		planeWidth: 30,
+		planeHeight: 30,
+		shape: 'square', // По умолчанию квадрат
+		bladeCount: 1000, // Более безопасное количество по умолчанию
+		bladeWidth: 0.1,
+		bladeHeight: 0.8,
+		bladeHeightVariation: 0.6,
+		windStrength: 0.3,
+		windSpeed: 500.0,
+		lodDistance: 50,
+		materialOptions: {
+			contrast: 1.0,
+			brightness: 0.0,
+			opacity: 1.0,
+			textureUrl: undefined
+		}
+	});
+
+	const grassMesh = grass.getMesh();
+
+	grassMesh.id = Tools.RandomId();
+	grassMesh.uniqueId = UniqueNumber.Get();
+	grassMesh.parent = parent ?? null;
+	grassMesh.metadata = {
+		type: "Grass",
+		bladeCount: 1000000,
+		planeSize: 30,
+		planeWidth: 30,
+		planeHeight: 30,
+		shape: 'square',
+	};
+
+	editor.layout.graph.refresh().then(() => {
+		editor.layout.graph.setSelectedNode(grassMesh);
+	});
+	editor.layout.inspector.setEditedObject(grassMesh);
+	editor.layout.preview.gizmo.setAttachedNode(grassMesh);
 }

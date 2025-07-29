@@ -87,4 +87,10 @@ export const meshCommandItems = {
 		key: "add-empty-mesh",
 		ipcRendererChannelKey: "empty-mesh",
 	} as CommandItem,
+	grass: {
+		text: "Grass Mesh",
+		label: "Add a new grass mesh to the scene",
+		key: "add-grass-mesh",
+		ipcRendererChannelKey: "grass-mesh",
+	} as CommandItem,
 };
