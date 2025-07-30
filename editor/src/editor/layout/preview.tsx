@@ -577,6 +577,15 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 			false
 		);
 
+		const grassPick = this.scene.pick(
+			x,
+			y,
+			(m) => {
+				return m.metadata?.grass && m.isVisible && m.isEnabled();
+			},
+			false
+		);
+
 		const meshPick = this.scene.pick(
 			x,
 			y,
@@ -587,8 +596,15 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		);
 
 		let pickingInfo = meshPick;
-		if (decalPick?.pickedPoint && meshPick?.pickedPoint) {
-			const distance = Vector3.Distance(decalPick.pickedPoint, meshPick.pickedPoint);
+		
+		// Prioritize grass over regular meshes
+		if (grassPick?.pickedPoint) {
+			pickingInfo = grassPick;
+		}
+		
+		// Prioritize decals over grass and regular meshes
+		if (decalPick?.pickedPoint && pickingInfo?.pickedPoint) {
+			const distance = Vector3.Distance(decalPick.pickedPoint, pickingInfo.pickedPoint);
 			const zOffset = decalPick.pickedMesh?.material?.zOffset ?? 0;
 
 			if (distance <= zOffset + 0.01) {

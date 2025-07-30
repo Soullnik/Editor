@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react";
 import { Icon, NonIdealState } from "@blueprintjs/core";
 
-import { FaCube, FaSprayCanSparkles } from "react-icons/fa6";
+import { FaCube, FaSprayCanSparkles, FaLeaf } from "react-icons/fa6";
 
 import { Tools } from "babylonjs";
 
@@ -36,6 +36,7 @@ import { EditorDecalsInspector } from "./inspector/decals/decals";
 
 import { EditorParticleSystemInspector } from "./inspector/particles/particle-system";
 import { EditorGPUParticleSystemInspector } from "./inspector/particles/gpu-particle-system";
+import { EditorGrassInspector } from "./inspector/grass/grass";
 
 export interface IEditorInspectorProps {
 	/**
@@ -97,6 +98,10 @@ export class EditorInspector extends Component<IEditorInspectorProps, IEditorIns
 						<TabsTrigger value="decals" className="flex gap-2 items-center w-full">
 							<FaSprayCanSparkles className="w-4 h-4" /> Decal
 						</TabsTrigger>
+
+						<TabsTrigger value="grass" className="flex gap-2 items-center w-full">
+							<FaLeaf className="w-4 h-4" /> Grass
+						</TabsTrigger>
 					</TabsList>
 
 					<input
@@ -113,6 +118,10 @@ export class EditorInspector extends Component<IEditorInspectorProps, IEditorIns
 
 					<TabsContent value="decals" className="w-full h-full overflow-auto">
 						<EditorDecalsInspector editor={this.props.editor} />
+					</TabsContent>
+
+					<TabsContent value="grass" className="w-full h-full overflow-auto">
+						<EditorGrassInspector editor={this.props.editor} />
 					</TabsContent>
 				</Tabs>
 			</div>
