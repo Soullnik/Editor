@@ -1,5 +1,6 @@
-import { Mesh, VertexData, Vector3 } from "babylonjs";
+import { Mesh, VertexData, Vector3, Tools } from "babylonjs";
 import { grassConfiguration } from "./configuration";
+import { UniqueNumber } from "../../../../tools/tools";
 
 /**
  * Creates a single mesh containing all grass blades
@@ -9,7 +10,7 @@ import { grassConfiguration } from "./configuration";
  */
 export function createSingleMeshGrass(scene: any, material: any): Mesh | null {
     const { bladeCount, bladeWidth, bladeHeight, heightVariation, brushRadius, tipBendStrength } = grassConfiguration;
-    const actualBladeCount = Math.min(bladeCount, 1000);
+    const actualBladeCount = bladeCount; // No limit - use exact bladeCount value
     
     const positions: number[] = [];
     const uvs: number[] = [];
@@ -41,6 +42,12 @@ export function createSingleMeshGrass(scene: any, material: any): Mesh | null {
     vertexData.colors = colors;
     vertexData.indices = indices;
     vertexData.applyToMesh(grassMesh);
+    
+    // Setup geometry IDs like standard meshes
+    if (grassMesh.geometry) {
+        grassMesh.geometry.id = Tools.RandomId();
+        grassMesh.geometry.uniqueId = UniqueNumber.Get();
+    }
     
     if (material) {
         grassMesh.material = material;

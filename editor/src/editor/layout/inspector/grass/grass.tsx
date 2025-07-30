@@ -8,7 +8,7 @@ import { AbstractMesh, Mesh, Material, Vector2, Vector3, Tools } from "babylonjs
 import { Editor } from "../../../main";
 
 import { registerUndoRedo } from "../../../../tools/undoredo";
-import { UniqueNumber, waitNextAnimationFrame } from "../../../../tools/tools";
+import { UniqueNumber } from "../../../../tools/tools";
 import { setMeshMetadataNotSerializable, setMeshMetadataNotVisibleInGraph } from "../../../../tools/mesh/metadata";
 
 import { EditorInspectorNumberField } from "../fields/number";
@@ -34,7 +34,6 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 	private _mouseDownListener: ((event: MouseEvent) => void) | null = null;
 	private _mouseUpListener: ((event: MouseEvent) => void) | null = null;
 
-	private _grassMesh: Mesh | null = null;
 	private _previewManager: PreviewManager | null = null;
 	private _mouseDownPosition: Vector2 = Vector2.Zero();
 
@@ -61,9 +60,11 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 						<EditorInspectorNumberField
 							object={grassConfiguration}
 							property="bladeCount"
-							step={10}
+							min={1}
+							max={100000}
+							step={100}
 							label="Blade Count"
-							tooltip="Number of grass blades to generate. Higher values create denser grass but may impact performance."
+							tooltip="Number of grass blades to generate. Higher values create denser grass but may impact performance. No limit applied."
 							noUndoRedo
 						/>
 
@@ -150,12 +151,6 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 			const material = createDefaultGrassMaterial(scene);
 			this.setState({ material });
 		}
-
-		await waitNextAnimationFrame();
-
-		if (EditorGrassInspector._lastPickedMesh?.isDisposed() === false) {
-			this._updatePreviewIndicator();
-		}
 	}
 
 	public componentWillUnmount(): void {
@@ -167,17 +162,7 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 
 		this.props.editor.layout.preview.setState({ pickingEnabled: true });
 
-		this._disposeTemporaryGrassMesh();
 		this._disposePreviewIndicator();
-
-		// Dispose default material if it exists and no custom material was loaded
-		if (this.state.material && !grassConfiguration.materialPath) {
-			this.state.material.dispose();
-		}
-	}
-
-	public componentDidUpdate(): void {
-		// Preview updates are now handled only for brushRadius changes
 	}
 
 	private _getMaterialDragAndDropComponent(): ReactNode {
@@ -257,11 +242,6 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 			return;
 		}
 
-		// Dispose default material if it exists and no custom material was loaded
-		if (this.state.material && !grassConfiguration.materialPath) {
-			this.state.material.dispose();
-		}
-
 		const scene = this.props.editor.layout.preview.scene;
 		const material = await loadMaterialFromPath(assetAbsolutePath, scene);
 		this.setState({ material });
@@ -269,11 +249,6 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 	}
 
 	private _resetToDefaultMaterial(): void {
-		// Dispose current material if it exists
-		if (this.state.material) {
-			this.state.material.dispose();
-		}
-
 		// Clear the material path
 		grassConfiguration.materialPath = "";
 
@@ -281,11 +256,6 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 		const scene = this.props.editor.layout.preview.scene;
 		const material = createDefaultGrassMaterial(scene);
 		this.setState({ material });
-	}
-
-	private _disposeTemporaryGrassMesh(): void {
-		this._grassMesh?.dispose(true, false);
-		this._grassMesh = null;
 	}
 
 	private _disposePreviewIndicator(): void {
@@ -303,7 +273,7 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 			offsetX,
 			offsetY,
 			(m) => {
-				return m !== this._grassMesh && m !== this._previewManager?.getIndicator() && !m.metadata?.grass && m.isVisible && m.isEnabled();
+				return m !== this._previewManager?.getIndicator() && !m.metadata?.grass && m.isVisible && m.isEnabled();
 			},
 			false
 		);
@@ -375,7 +345,15 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 		if (indicatorData) {
 			// Create actual grass when placing, using data from indicator
 			const scene = this.props.editor.layout.preview.scene;
-			const grassMesh = createSingleMeshGrass(scene, this.state.material);
+			
+			// Clone material for this grass mesh to avoid disposal issues
+			const clonedMaterial = this.state.material?.clone("grass_material_" + Tools.RandomId());
+			if (!clonedMaterial) {
+				console.warn("Failed to clone material for grass");
+				return;
+			}
+			
+			const grassMesh = createSingleMeshGrass(scene, clonedMaterial);
 			if (grassMesh) {
 				grassMesh.name = "Grass";
 				grassMesh.id = Tools.RandomId();
@@ -386,9 +364,17 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 				grassMesh.scaling = indicatorData.scaling;
 				
 				// Compensate indicator rotation for vertical grass
-				grassMesh.rotation.x = indicatorData.rotation.x + Math.PI / 2; // Compensate -Math.PI/2 indicator rotation
+				grassMesh.rotation.x = indicatorData.rotation.x + Math.PI / 2;
 				grassMesh.rotation.y = indicatorData.rotation.y;
 				grassMesh.rotation.z = indicatorData.rotation.z;
+
+				// Setup shadows like standard meshes
+				grassMesh.receiveShadows = true;
+				
+				// Add to shadow maps for all lights
+				scene.lights.forEach((light) => {
+					light.getShadowGenerator()?.getShadowMap()?.renderList?.push(grassMesh);
+				});
 
 				grassMesh.metadata = {
 					grass: {
@@ -413,10 +399,14 @@ export class EditorGrassInspector extends Component<IEditorGrassInspectorProps, 
 					redo: () => scene.addMesh(grassMesh),
 				});
 
-				this.props.editor.layout.graph.refresh();
-				waitNextAnimationFrame().then(() => {
+				// Follow standard mesh creation pattern
+				this.props.editor.layout.graph.refresh().then(() => {
 					this.props.editor.layout.graph.setSelectedNode(grassMesh);
 				});
+
+				// Set in inspector and gizmo like standard meshes
+				this.props.editor.layout.inspector.setEditedObject(grassMesh);
+				this.props.editor.layout.preview.gizmo.setAttachedNode(grassMesh);
 			}
 		}
 	}
