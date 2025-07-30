@@ -6,7 +6,7 @@ import { IoAddSharp, IoCloseOutline } from "react-icons/io5";
 import { AiOutlinePlus } from "react-icons/ai";
 
 import { SkyMaterial } from "babylonjs-materials";
-import { AbstractMesh, InstancedMesh, Material, Mesh, MorphTarget, MultiMaterial, Node, Observer, PBRMaterial, StandardMaterial, NodeMaterial } from "babylonjs";
+import { AbstractMesh, InstancedMesh, Material, Mesh, MorphTarget, MultiMaterial, Node, Observer, PBRMaterial, StandardMaterial, NodeMaterial, BackgroundMaterial } from "babylonjs";
 
 import { CollisionMesh } from "../../../nodes/collision";
 
@@ -40,6 +40,7 @@ import { IEditorInspectorImplementationProps } from "../inspector";
 import { EditorPBRMaterialInspector } from "../material/pbr";
 import { EditorSkyMaterialInspector } from "../material/sky";
 import { EditorNodeMaterialInspector } from "../material/node";
+import { EditorBackgroundMaterialInspector } from "../material/background";
 import { EditorMultiMaterialInspector } from "../material/multi";
 import { EditorStandardMaterialInspector } from "../material/standard";
 
@@ -303,6 +304,9 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 
 			case "SkyMaterial":
 				return <EditorSkyMaterialInspector mesh={this.props.object} material={this.props.object.material as SkyMaterial} />;
+
+			case "BackgroundMaterial":
+				return <EditorBackgroundMaterialInspector mesh={this.props.object} material={this.props.object.material as BackgroundMaterial} />;
 		}
 	}
 

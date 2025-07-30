@@ -1,6 +1,6 @@
 import { Editor } from "../../main";
 
-import { addPBRMaterial, addStandardMaterial, addNodeMaterial, addSkyMaterial } from "../../../project/add/material";
+import { addPBRMaterial, addStandardMaterial, addNodeMaterial, addSkyMaterial, addBackgroundMaterial } from "../../../project/add/material";
 
 import { ICommandPaletteType } from "./command-palette";
 
@@ -29,6 +29,12 @@ export function getMaterialCommands(editor?: Editor): ICommandPaletteType[] {
 			label: "Add a new sky material to the scene",
 			key: "add-sky-material",
 			action: () => editor && addSkyMaterial(editor.layout.preview.scene),
+		},
+		{
+			text: "Background Material",
+			label: "Add a new background material to the scene",
+			key: "add-background-material",
+			action: () => editor && addBackgroundMaterial(editor.layout.preview.scene),
 		},
 	];
 }

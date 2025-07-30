@@ -2,6 +2,7 @@ import { SkyMaterial } from "babylonjs-materials";
 import { Scene, Tools, PBRMaterial, StandardMaterial, NodeMaterial } from "babylonjs";
 
 import { UniqueNumber } from "../../tools/tools";
+import { BackgroundMaterial } from "babylonjs";
 
 export function addPBRMaterial(scene: Scene) {
 	const material = new PBRMaterial("New PBR Material", scene);
@@ -30,6 +31,14 @@ export function addNodeMaterial(scene: Scene) {
 
 export function addSkyMaterial(scene: Scene) {
 	const material = new SkyMaterial("New Sky Material", scene);
+	material.id = Tools.RandomId();
+	material.uniqueId = UniqueNumber.Get();
+
+	return material;
+}
+
+export function addBackgroundMaterial(scene: Scene) {
+	const material = new BackgroundMaterial("New Background Material", scene);
 	material.id = Tools.RandomId();
 	material.uniqueId = UniqueNumber.Get();
 
