@@ -36,7 +36,7 @@ import { EditorDecalsInspector } from "./inspector/decals/decals";
 
 import { EditorParticleSystemInspector } from "./inspector/particles/particle-system";
 import { EditorGPUParticleSystemInspector } from "./inspector/particles/gpu-particle-system";
-import { EditorGrassInspector } from "./inspector/grass/grass";
+import { EditorFoliageInspector } from "./inspector/foliage/foliage";
 
 export interface IEditorInspectorProps {
 	/**
@@ -99,8 +99,8 @@ export class EditorInspector extends Component<IEditorInspectorProps, IEditorIns
 							<FaSprayCanSparkles className="w-4 h-4" /> Decal
 						</TabsTrigger>
 
-						<TabsTrigger value="grass" className="flex gap-2 items-center w-full">
-							<FaLeaf className="w-4 h-4" /> Grass
+						<TabsTrigger value="foliage" className="flex gap-2 items-center w-full">
+							<FaLeaf className="w-4 h-4" /> Foliage
 						</TabsTrigger>
 					</TabsList>
 
@@ -120,8 +120,8 @@ export class EditorInspector extends Component<IEditorInspectorProps, IEditorIns
 						<EditorDecalsInspector editor={this.props.editor} />
 					</TabsContent>
 
-					<TabsContent value="grass" className="w-full h-full overflow-auto">
-						<EditorGrassInspector editor={this.props.editor} />
+					<TabsContent value="foliage" className="w-full h-full overflow-auto">
+						<EditorFoliageInspector editor={this.props.editor} />
 					</TabsContent>
 				</Tabs>
 			</div>
