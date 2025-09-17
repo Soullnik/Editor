@@ -27,6 +27,7 @@ import {
 	ParticleSystem,
 	GPUParticleSystem,
 	Vector3,
+	Geometry,
 } from "babylonjs";
 
 import { Editor } from "../../editor/main";
@@ -49,13 +50,14 @@ import { createDirectoryIfNotExist } from "../../tools/fs";
 
 import { isMultiMaterial } from "../../tools/guards/material";
 import { createSceneLink } from "../../tools/scene/scene-link";
+import { loadSavedAssetsCache } from "../../tools/assets/cache";
 import { isGPUParticleSystem } from "../../tools/guards/particles";
 import { isCubeTexture, isTexture } from "../../tools/guards/texture";
 import { updateIblShadowsRenderPipeline } from "../../tools/light/ibl";
 import { forceCompileAllSceneMaterials } from "../../tools/scene/materials";
-import { checkProjectCachedCompressedTextures } from "../../tools/ktx/check";
-import { configureSimultaneousLightsForMaterial } from "../../tools/mesh/material";
+import { checkProjectCachedCompressedTextures } from "../../tools/assets/ktx";
 import { parsePhysicsAggregate } from "../../tools/physics/serialization/aggregate";
+import { configureSimultaneousLightsForMaterial } from "../../tools/material/material";
 import { isAbstractMesh, isCollisionMesh, isEditorCamera, isMesh } from "../../tools/guards/nodes";
 import { updateAllLights, updatePointLightShadowMapRenderListPredicate } from "../../tools/light/shadows";
 
@@ -173,6 +175,7 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 
 	SceneLoaderFlags.ForceFullSceneLoadingForIncremental = true;
 
+	const assetsCache = loadSavedAssetsCache();
 	const config = await readJSON(join(scenePath, "config.json"), "utf-8");
 
 	if (!options?.asLink) {
@@ -193,8 +196,17 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 		// Load environment
 		scene.environmentIntensity = config.environment.environmentIntensity;
 
-		if (config.environment.environmentTexture) {
-			scene.environmentTexture = Texture.Parse(config.environment.environmentTexture, scene, join(projectPath, "/"));
+		const environmentTexture = config.environment.environmentTexture;
+		if (environmentTexture) {
+			if (environmentTexture.name && assetsCache[environmentTexture.name]) {
+				environmentTexture.name = assetsCache[environmentTexture.name].newRelativePath;
+			}
+
+			if (environmentTexture.url && assetsCache[environmentTexture.url]) {
+				environmentTexture.url = assetsCache[environmentTexture.url].newRelativePath;
+			}
+
+			scene.environmentTexture = Texture.Parse(environmentTexture, scene, join(projectPath, "/"));
 
 			if (isCubeTexture(scene.environmentTexture)) {
 				scene.environmentTexture.url = join(projectPath, scene.environmentTexture.name);
@@ -424,6 +436,36 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 		})
 	);
 
+	// Make geometries unique for those one that are shared
+	const mappedGeometries = new Map<string, Geometry[]>();
+	scene.geometries.forEach((geometry) => {
+		if (!mappedGeometries.has(geometry.id)) {
+			mappedGeometries.set(geometry.id, [geometry]);
+		} else {
+			mappedGeometries.get(geometry.id)!.push(geometry);
+		}
+	});
+
+	mappedGeometries.forEach((geometries) => {
+		if (geometries.length <= 1) {
+			return;
+		}
+
+		for (let i = 1, len = geometries.length; i < len; ++i) {
+			const geometry = geometries[i];
+			const meshes = scene.meshes.filter((mesh) => isMesh(mesh) && mesh.geometry === geometry) as Mesh[];
+
+			meshes.forEach((mesh) => {
+				geometry.releaseForMesh(mesh, true);
+				if (geometry.isDisposed()) {
+					scene.removeGeometry(geometry);
+				}
+
+				geometries[0].applyToMesh(mesh);
+			});
+		}
+	});
+
 	// Load morph target managers
 	await Promise.all(
 		morphTargetManagers.map(async (file) => {
@@ -638,6 +680,7 @@ export async function loadScene(editor: Editor, projectPath: string, scenePath: 
 			}
 
 			particleSystem!.uniqueId = data.uniqueId;
+			particleSystem!.sourceParticleSystemSetId = data.sourceParticleSystemSetId;
 
 			progress.step(progressStep);
 

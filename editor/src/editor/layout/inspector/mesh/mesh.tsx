@@ -5,18 +5,27 @@ import { FaCopy, FaLink } from "react-icons/fa6";
 import { IoAddSharp, IoCloseOutline } from "react-icons/io5";
 import { AiOutlinePlus } from "react-icons/ai";
 
-import { SkyMaterial } from "babylonjs-materials";
 import { AbstractMesh, InstancedMesh, Material, Mesh, MorphTarget, MultiMaterial, Node, Observer, PBRMaterial, StandardMaterial, NodeMaterial } from "babylonjs";
+import { SkyMaterial, GridMaterial, NormalMaterial, WaterMaterial, LavaMaterial, TriPlanarMaterial, CellMaterial, FireMaterial, GradientMaterial } from "babylonjs-materials";
 
 import { CollisionMesh } from "../../../nodes/collision";
 
 import { showPrompt } from "../../../../ui/dialog";
 import { Button } from "../../../../ui/shadcn/ui/button";
 import { Separator } from "../../../../ui/shadcn/ui/separator";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../../../ui/shadcn/ui/dropdown-menu";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+	DropdownMenuTrigger,
+} from "../../../../ui/shadcn/ui/dropdown-menu";
 
-import { getMaterialCommands } from "../../../dialogs/command-palette/material";
 import { ICommandPaletteType } from "../../../dialogs/command-palette/command-palette";
+import { getMaterialCommands, getMaterialsLibraryCommands } from "../../../dialogs/command-palette/material";
 
 import { registerUndoRedo } from "../../../../tools/undoredo";
 import { onNodeModifiedObservable } from "../../../../tools/observables";
@@ -39,9 +48,17 @@ import { IEditorInspectorImplementationProps } from "../inspector";
 
 import { EditorPBRMaterialInspector } from "../material/pbr";
 import { EditorSkyMaterialInspector } from "../material/sky";
+import { EditorGridMaterialInspector } from "../material/grid";
 import { EditorNodeMaterialInspector } from "../material/node";
+import { EditorLavaMaterialInspector } from "../material/lava";
+import { EditorCellMaterialInspector } from "../material/cell";
+import { EditorFireMaterialInspector } from "../material/fire";
 import { EditorMultiMaterialInspector } from "../material/multi";
+import { EditorWaterMaterialInspector } from "../material/water";
+import { EditorNormalMaterialInspector } from "../material/normal";
+import { EditorGradientMaterialInspector } from "../material/gradient";
 import { EditorStandardMaterialInspector } from "../material/standard";
+import { EditorTriPlanarMaterialInspector } from "../material/tri-planar";
 
 import { MeshDecalInspector } from "./decal";
 import { MeshGeometryInspector } from "./geometry";
@@ -127,6 +144,7 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 				</EditorInspectorSectionField>
 
 				<EditorMeshCollisionInspector {...this.props} />
+				<EditorMeshPhysicsInspector mesh={this.props.object} />
 
 				{this.props.editor.layout.preview.scene.lights.length > 0 && (
 					<EditorInspectorSectionField title="Shadows">
@@ -145,13 +163,11 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 
 				{isMesh(this.props.object) && (
 					<>
-						<MeshGeometryInspector object={this.props.object} />
+						<MeshGeometryInspector object={this.props.object} editor={this.props.editor} />
 						<MeshDecalInspector object={this.props.object} />
 						{this._getLODsComponent()}
 					</>
 				)}
-
-				<EditorMeshPhysicsInspector mesh={this.props.object} />
 
 				{this._getMaterialComponent()}
 				{this._getSkeletonComponent()}
@@ -251,6 +267,19 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 										{command.text}
 									</DropdownMenuItem>
 								))}
+
+								<DropdownMenuSeparator />
+
+								<DropdownMenuSub>
+									<DropdownMenuSubTrigger>Materials Library</DropdownMenuSubTrigger>
+									<DropdownMenuSubContent>
+										{getMaterialsLibraryCommands(this.props.editor).map((command) => (
+											<DropdownMenuItem key={command.key} onClick={() => this._handleAddMaterial(command)}>
+												{command.text}
+											</DropdownMenuItem>
+										))}
+									</DropdownMenuSubContent>
+								</DropdownMenuSub>
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</div>
@@ -303,6 +332,30 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 
 			case "SkyMaterial":
 				return <EditorSkyMaterialInspector mesh={this.props.object} material={this.props.object.material as SkyMaterial} />;
+
+			case "GridMaterial":
+				return <EditorGridMaterialInspector mesh={this.props.object} material={this.props.object.material as GridMaterial} />;
+
+			case "NormalMaterial":
+				return <EditorNormalMaterialInspector mesh={this.props.object} material={this.props.object.material as NormalMaterial} />;
+
+			case "WaterMaterial":
+				return <EditorWaterMaterialInspector mesh={this.props.object} material={this.props.object.material as WaterMaterial} />;
+
+			case "LavaMaterial":
+				return <EditorLavaMaterialInspector mesh={this.props.object} material={this.props.object.material as LavaMaterial} />;
+
+			case "TriPlanarMaterial":
+				return <EditorTriPlanarMaterialInspector mesh={this.props.object} material={this.props.object.material as TriPlanarMaterial} />;
+
+			case "CellMaterial":
+				return <EditorCellMaterialInspector mesh={this.props.object} material={this.props.object.material as CellMaterial} />;
+
+			case "FireMaterial":
+				return <EditorFireMaterialInspector mesh={this.props.object} material={this.props.object.material as FireMaterial} />;
+
+			case "GradientMaterial":
+				return <EditorGradientMaterialInspector mesh={this.props.object} material={this.props.object.material as GradientMaterial} />;
 		}
 	}
 

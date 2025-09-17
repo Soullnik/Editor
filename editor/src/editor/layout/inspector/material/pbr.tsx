@@ -1,10 +1,9 @@
 import { Component, ReactNode } from "react";
 
-import { Constants, PBRMaterial, AbstractMesh } from "babylonjs";
+import { PBRMaterial, AbstractMesh } from "babylonjs";
 
 import { registerSimpleUndoRedo } from "../../../../tools/undoredo";
 
-import { EditorInspectorListField } from "../fields/list";
 import { EditorInspectorColorField } from "../fields/color";
 import { EditorInspectorStringField } from "../fields/string";
 import { EditorInspectorNumberField } from "../fields/number";
@@ -12,7 +11,9 @@ import { EditorInspectorSwitchField } from "../fields/switch";
 import { EditorInspectorTextureField } from "../fields/texture";
 import { EditorInspectorSectionField } from "../fields/section";
 
-import { EditorMaterialInspectorUtilsComponent } from "./utils";
+import { EditorAlphaModeField } from "./components/alpha";
+import { EditorTransparencyModeField } from "./components/transparency";
+import { EditorMaterialInspectorUtilsComponent } from "./components/utils";
 
 export interface IEditorPBRMaterialInspectorProps {
 	mesh?: AbstractMesh;
@@ -30,39 +31,10 @@ export class EditorPBRMaterialInspector extends Component<IEditorPBRMaterialInsp
 				<EditorInspectorSectionField title="Material" label={this.props.material.getClassName()}>
 					<EditorInspectorStringField label="Name" object={this.props.material} property="name" />
 					<EditorInspectorSwitchField label="Back Face Culling" object={this.props.material} property="backFaceCulling" />
+
 					<EditorInspectorNumberField label="Alpha" object={this.props.material} property="alpha" min={0} max={1} />
-
-					<EditorInspectorListField
-						label="Alpha Mode"
-						object={this.props.material}
-						property="alphaMode"
-						onChange={() => this.forceUpdate()}
-						items={[
-							{ text: "Disable", value: Constants.ALPHA_DISABLE },
-							{ text: "Add", value: Constants.ALPHA_ADD },
-							{ text: "Combine", value: Constants.ALPHA_COMBINE },
-							{ text: "Subtract", value: Constants.ALPHA_SUBTRACT },
-							{ text: "Multiply", value: Constants.ALPHA_MULTIPLY },
-							{ text: "Maximized", value: Constants.ALPHA_MAXIMIZED },
-							{ text: "One-one", value: Constants.ALPHA_ONEONE },
-							{ text: "Premultiplied", value: Constants.ALPHA_PREMULTIPLIED },
-							{ text: "Premultiplied Porterduff", value: Constants.ALPHA_PREMULTIPLIED_PORTERDUFF },
-							{ text: "Interpolate", value: Constants.ALPHA_INTERPOLATE },
-							{ text: "Screen Mode", value: Constants.ALPHA_SCREENMODE },
-						]}
-					/>
-
-					<EditorInspectorListField
-						label="Transparency Mode"
-						object={this.props.material}
-						property="transparencyMode"
-						items={[
-							{ text: "Opaque", value: PBRMaterial.MATERIAL_OPAQUE },
-							{ text: "Alpha Test", value: PBRMaterial.MATERIAL_ALPHATEST },
-							{ text: "Alpha Blend", value: PBRMaterial.MATERIAL_ALPHABLEND },
-							{ text: "Alpha Test and Blend", value: PBRMaterial.MATERIAL_ALPHATESTANDBLEND },
-						]}
-					/>
+					<EditorAlphaModeField object={this.props.material} />
+					<EditorTransparencyModeField object={this.props.material} />
 
 					<EditorMaterialInspectorUtilsComponent mesh={this.props.mesh} material={this.props.material} />
 				</EditorInspectorSectionField>
@@ -82,6 +54,7 @@ export class EditorPBRMaterialInspector extends Component<IEditorPBRMaterialInsp
 							<>
 								<EditorInspectorSwitchField label="Inverse X" object={this.props.material} property="invertNormalMapX" />
 								<EditorInspectorSwitchField label="Inverse Y" object={this.props.material} property="invertNormalMapY" />
+								<EditorInspectorSwitchField label="Use Object Space Normal Map" object={this.props.material} property="useObjectSpaceNormalMap" />
 								<EditorInspectorSwitchField label="Use Parallax" object={this.props.material} property="useParallax" onChange={() => this.forceUpdate()} />
 
 								{this.props.material.useParallax && (
@@ -90,6 +63,7 @@ export class EditorPBRMaterialInspector extends Component<IEditorPBRMaterialInsp
 										<EditorInspectorNumberField label="Parallax Scale Bias" object={this.props.material} property="parallaxScaleBias" />
 									</>
 								)}
+								<EditorInspectorSwitchField label="Disable Bump Map" object={this.props.material} property="disableBumpMap" onChange={() => this.forceUpdate()} />
 							</>
 						)}
 					</EditorInspectorTextureField>
@@ -116,6 +90,13 @@ export class EditorPBRMaterialInspector extends Component<IEditorPBRMaterialInsp
 							<>
 								<EditorInspectorSwitchField label="Use Gray Scale" object={this.props.material} property="useAmbientInGrayScale" />
 								<EditorInspectorNumberField label="Strength" object={this.props.material} property="ambientTextureStrength" min={0} />
+								<EditorInspectorNumberField
+									label="Impact On Analytical Lights"
+									object={this.props.material}
+									property="ambientTextureImpactOnAnalyticalLights"
+									min={0}
+									max={1}
+								/>
 							</>
 						)}
 					</EditorInspectorTextureField>
@@ -149,7 +130,32 @@ export class EditorPBRMaterialInspector extends Component<IEditorPBRMaterialInsp
 						)}
 					</EditorInspectorTextureField>
 
+					<EditorInspectorTextureField
+						object={this.props.material}
+						title="Metallic Reflectance Texture"
+						property="metallicReflectanceTexture"
+						onChange={() => this.forceUpdate()}
+					>
+						{this.props.material.metallicReflectanceTexture && (
+							<>
+								<EditorInspectorSwitchField
+									label="Use Only Metallic From Metallic Reflectance Texture"
+									object={this.props.material}
+									property="useOnlyMetallicFromMetallicReflectanceTexture"
+									onChange={() => this.forceUpdate()}
+								/>
+							</>
+						)}
+					</EditorInspectorTextureField>
+
 					<EditorInspectorTextureField object={this.props.material} title="Emissive Texture" property="emissiveTexture" />
+					<EditorInspectorTextureField object={this.props.material} title="Lightmap Texture" property="lightmapTexture">
+						{this.props.material.lightmapTexture && (
+							<>
+								<EditorInspectorSwitchField label="Use Lightmap As Shadowmap" object={this.props.material} property="useLightmapAsShadowmap" />
+							</>
+						)}
+					</EditorInspectorTextureField>
 				</EditorInspectorSectionField>
 
 				<EditorInspectorSectionField title="Material Colors">
@@ -158,10 +164,14 @@ export class EditorPBRMaterialInspector extends Component<IEditorPBRMaterialInsp
 					<EditorInspectorColorField label={<div className="w-14">Reflection</div>} object={this.props.material} property="reflectionColor" />
 					<EditorInspectorColorField label={<div className="w-14">Ambient</div>} object={this.props.material} property="ambientColor" />
 					<EditorInspectorColorField label={<div className="w-14">Emissive</div>} object={this.props.material} property="emissiveColor" />
+					{this.props.material.metallic !== null && (
+						<EditorInspectorColorField label={<div className="w-14">Metallic Reflectance</div>} object={this.props.material} property="metallicReflectanceColor" />
+					)}
 				</EditorInspectorSectionField>
 
 				<EditorInspectorSectionField title="Metallic / Roughness">
 					<EditorInspectorNumberField label="Metallic F0 Factor" object={this.props.material} property="metallicF0Factor" />
+					<EditorInspectorNumberField label="Base Weight" object={this.props.material} property="baseWeight" min={0} max={1} />
 
 					<EditorInspectorSwitchField
 						label="Metallic"
@@ -224,18 +234,28 @@ export class EditorPBRMaterialInspector extends Component<IEditorPBRMaterialInsp
 					</EditorInspectorSectionField>
 				)}
 
-				<EditorInspectorSectionField title="Misc">
+				<EditorInspectorSectionField title="Intensity Properties">
 					<EditorInspectorNumberField label="Direct Intensity" object={this.props.material} property="directIntensity" min={0} />
 					<EditorInspectorNumberField label="Environment Intensity" object={this.props.material} property="environmentIntensity" min={0} />
+					<EditorInspectorNumberField label="Emissive Intensity" object={this.props.material} property="emissiveIntensity" min={0} />
+					<EditorInspectorNumberField label="Specular Intensity" object={this.props.material} property="specularIntensity" min={0} />
+				</EditorInspectorSectionField>
+
+				<EditorInspectorSectionField title="Misc">
 					<EditorInspectorSwitchField label="Unlit" object={this.props.material} property="unlit" />
 					<EditorInspectorSwitchField label="Disable Lighting" object={this.props.material} property="disableLighting" />
-					<EditorInspectorSwitchField label="Use Specular Over Alpha" object={this.props.material} property="useSpecularOverAlpha" />
 					<EditorInspectorSwitchField label="Enable Specular Anti Aliasing" object={this.props.material} property="enableSpecularAntiAliasing" />
 					<EditorInspectorSwitchField label="Force Irradiance In Fragment" object={this.props.material} property="forceIrradianceInFragment" />
 					<EditorInspectorSwitchField label="Use Radiance Occlusion" object={this.props.material} property="useRadianceOcclusion" />
+					<EditorInspectorSwitchField label="Use Horizon Occlusion" object={this.props.material} property="useHorizonOcclusion" />
 					<EditorInspectorSwitchField label="Use Physical Light Falloff" object={this.props.material} property="usePhysicalLightFalloff" />
+					<EditorInspectorSwitchField label="Use Radiance Over Alpha" object={this.props.material} property="useRadianceOverAlpha" />
+					<EditorInspectorSwitchField label="Use Specular Over Alpha" object={this.props.material} property="useSpecularOverAlpha" />
 					<EditorInspectorSwitchField label="Separate Culling Pass" object={this.props.material} property="separateCullingPass" />
+					<EditorInspectorSwitchField label="Force Alpha Test" object={this.props.material} property="forceAlphaTest" />
 					<EditorInspectorNumberField label="Z Offset" object={this.props.material} property="zOffset" />
+					<EditorInspectorNumberField label="Z Offset Units" object={this.props.material} property="zOffsetUnits" />
+					<EditorInspectorSwitchField label="Fog Enabled" object={this.props.material} property="fogEnabled" />
 				</EditorInspectorSectionField>
 			</>
 		);

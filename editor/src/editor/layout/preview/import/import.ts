@@ -1,17 +1,18 @@
 import { isAbsolute } from "path";
 import { join, dirname, basename } from "path/posix";
-import { readFile, readJSON, writeFile } from "fs-extra";
+import { pathExists, readFile, readJSON, writeFile } from "fs-extra";
 
 import axios from "axios";
 import { toast } from "sonner";
 
-import { CubeTexture, ISceneLoaderAsyncResult, Material, Node, Scene, SceneLoader, Texture, Tools, ColorGradingTexture } from "babylonjs";
+import { CubeTexture, ISceneLoaderAsyncResult, Material, Node, Scene, SceneLoader, Texture, Tools, ColorGradingTexture, Vector3, Quaternion } from "babylonjs";
 
 import { UniqueNumber } from "../../../../tools/tools";
 import { isMesh } from "../../../../tools/guards/nodes";
 import { isTexture } from "../../../../tools/guards/texture";
+import { executeSimpleWorker } from "../../../../tools/worker";
 import { isMultiMaterial } from "../../../../tools/guards/material";
-import { configureSimultaneousLightsForMaterial } from "../../../../tools/mesh/material";
+import { configureSimultaneousLightsForMaterial } from "../../../../tools/material/material";
 import { onNodesAddedObservable, onTextureAddedObservable } from "../../../../tools/observables";
 
 import { projectConfiguration } from "../../../../project/configuration";
@@ -45,7 +46,7 @@ export async function tryConvertSceneFile(absolutePath: string, progress?: (perc
 	}
 }
 
-export async function loadImportedSceneFile(scene: Scene, absolutePath: string, fromCloudConverter?: boolean): Promise<ISceneLoaderAsyncResult | null> {
+export async function loadImportedSceneFile(scene: Scene, absolutePath: string): Promise<ISceneLoaderAsyncResult | null> {
 	if (!projectConfiguration.path) {
 		return null;
 	}
@@ -60,9 +61,13 @@ export async function loadImportedSceneFile(scene: Scene, absolutePath: string, 
 		return null;
 	}
 
-	if (fromCloudConverter) {
-		const root = result.meshes.find((m) => m.name === "__root__");
-		root?.scaling.scaleInPlace(100);
+	const root = result.meshes.find((m) => m.name === "__root__");
+	if (root) {
+		root.scaling.scaleInPlace(100);
+		root.name = basename(absolutePath);
+
+		// TODO: try cleaning the gltf to remove useless transform nodes. Also, does it make sens to clean the gltf for the user?
+		// cleanImportedGltf(result);
 	}
 
 	result.meshes.forEach((mesh) => {
@@ -70,6 +75,7 @@ export async function loadImportedSceneFile(scene: Scene, absolutePath: string, 
 
 		if (mesh.skeleton) {
 			mesh.skeleton.id = Tools.RandomId();
+			mesh.skeleton["_uniqueId"] = UniqueNumber.Get();
 			mesh.skeleton.bones.forEach((bone) => configureImportedNodeIds(bone));
 		}
 
@@ -211,8 +217,21 @@ export async function configureEmbeddedTexture(texture: Texture, absolutePath: s
 		buffer = Buffer.from(texture._buffer as Uint8Array);
 	}
 
-	const filename = join(dirname(absolutePath), `editor-generated_${texture.name}_${Tools.RandomId()}.${extension}`);
-	await writeFile(filename, buffer);
+	let filename = texture.url;
+	filename = filename?.split(":")[1] ?? filename; // in case prefiexed by data:
+
+	if (filename && !(await pathExists(filename))) {
+		const hash = await executeSimpleWorker("workers/md5.js", buffer);
+		filename = join(dirname(absolutePath), `editor-generated_${hash}.${extension}`);
+
+		if (!(await pathExists(filename))) {
+			await writeFile(filename, buffer);
+		}
+	}
+
+	if (!filename) {
+		return;
+	}
 
 	const relativePath = filename.replace(join(dirname(projectConfiguration.path!), "/"), "");
 	texture.name = relativePath;
@@ -244,4 +263,25 @@ export async function loadImportedMaterial(scene: Scene, absolutePath: string): 
 	material.uniqueId = uniqueId;
 
 	return material;
+}
+
+export function cleanImportedGltf(result: ISceneLoaderAsyncResult): void {
+	const identityQuaternion = Quaternion.Identity();
+	const allBones = result?.skeletons.map((s) => s.bones).flat();
+
+	result.transformNodes.slice().forEach((transformNode) => {
+		if (
+			transformNode.position.equalsWithEpsilon(Vector3.ZeroReadOnly) &&
+			(transformNode.rotation.equalsWithEpsilon(Vector3.ZeroReadOnly) || transformNode.rotationQuaternion?.equalsWithEpsilon(identityQuaternion)) &&
+			transformNode.scaling.equalsWithEpsilon(Vector3.OneReadOnly) &&
+			!allBones.find((b) => b._linkedTransformNode === transformNode)
+		) {
+			const descendants = transformNode.getDescendants(true);
+			descendants.forEach((node) => {
+				node.parent = transformNode.parent;
+			});
+
+			transformNode.dispose(true, false);
+		}
+	});
 }

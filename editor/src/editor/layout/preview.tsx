@@ -7,8 +7,9 @@ import { Component, MouseEvent, ReactNode } from "react";
 import { Grid } from "react-loader-spinner";
 
 import { FaCheck } from "react-icons/fa6";
-import { GiWireframeGlobe } from "react-icons/gi";
-import { IoIosOptions, IoIosStats } from "react-icons/io";
+import { GiArrowCursor, GiTeapot, GiWireframeGlobe } from "react-icons/gi";
+import { IoIosStats } from "react-icons/io";
+import { LuMove3D, LuRotate3D, LuScale3D } from "react-icons/lu";
 
 import {
 	AbstractEngine,
@@ -32,28 +33,31 @@ import {
 	SceneLoaderFlags,
 } from "babylonjs";
 
-import { Toggle } from "../../ui/shadcn/ui/toggle";
 import { Button } from "../../ui/shadcn/ui/button";
 import { Progress } from "../../ui/shadcn/ui/progress";
+import { Toggle } from "../../ui/shadcn/ui/toggle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/shadcn/ui/select";
+import { ToolbarRadioGroup, ToolbarRadioGroupItem } from "../../ui/shadcn/ui/toolbar-radio-group";
 
 import { Editor } from "../main";
 
-import { Tween } from "../../tools/animation/tween";
+import { isSound } from "../../tools/guards/sound";
+import { isVector3 } from "../../tools/guards/math";
+import { isDomTextInputFocused } from "../../tools/dom";
+import { isNodeLocked } from "../../tools/node/metadata";
 import { registerUndoRedo } from "../../tools/undoredo";
 import { initializeHavok } from "../../tools/physics/init";
+import { isAnyParticleSystem } from "../../tools/guards/particles";
 import { onTextureAddedObservable } from "../../tools/observables";
+import { getCameraFocusPositionFor } from "../../tools/camera/focus";
 import { waitNextAnimationFrame, waitUntil } from "../../tools/tools";
-import { checkProjectCachedCompressedTextures } from "../../tools/ktx/check";
+import { ITweenConfiguration, Tween } from "../../tools/animation/tween";
+import { checkProjectCachedCompressedTextures } from "../../tools/assets/ktx";
 import { createSceneLink, getRootSceneLink } from "../../tools/scene/scene-link";
-import { isAbstractMesh, isCamera, isCollisionInstancedMesh, isCollisionMesh, isInstancedMesh, isMesh, isTransformNode } from "../../tools/guards/nodes";
+import { isAbstractMesh, isCamera, isCollisionInstancedMesh, isCollisionMesh, isInstancedMesh, isLight, isMesh, isTransformNode } from "../../tools/guards/nodes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../../ui/shadcn/ui/dropdown-menu";
 
 import { EditorCamera } from "../nodes/camera";
-
-import { PositionIcon } from "../../ui/icons/position";
-import { RotationIcon } from "../../ui/icons/rotation";
-import { ScalingIcon } from "../../ui/icons/scaling";
 
 import { SpinnerUIComponent } from "../../ui/spinner";
 import { Separator } from "../../ui/shadcn/ui/separator";
@@ -81,6 +85,7 @@ import { applyImportedGuiFile } from "./preview/import/gui";
 import { applyTextureAssetToObject } from "./preview/import/texture";
 import { applyMaterialAssetToObject } from "./preview/import/material";
 import { EditorPreviewConvertProgress } from "./preview/import/progress";
+import { loadImportedParticleSystemFile } from "./preview/import/particles";
 import { loadImportedSceneFile, tryConvertSceneFile } from "./preview/import/import";
 
 export interface IEditorPreviewProps {
@@ -96,35 +101,23 @@ export interface IEditorPreviewState {
 	 */
 	informationMessage: ReactNode;
 
-	/**
-	 * Defines wether or not picking is enabled in the preview.
-	 */
-	pickingEnabled: boolean;
-	/**
-	 * Defines the type of gizmo that is currently active.
-	 * If "none", no gizmo is active.
-	 */
-	activeGizmo: "position" | "rotation" | "scaling" | "none";
-	/**
-	 * Defines wether or not the preview is focused in the editor.
-	 */
 	isFocused: boolean;
-
-	/**
-	 * Defines the reference to the object that was right-clicked.
-	 */
 	rightClickedObject?: any;
+	pickingEnabled: boolean;
+
+	showStatsValues: boolean;
+	statsValues?: StatsValuesType;
+
+	playEnabled: boolean;
+	playSceneLoadingProgress: number;
+
+	activeGizmo: "position" | "rotation" | "scaling" | "none";
 
 	/**
 	 * Defines the fixed dimensions of the preview canvas.
 	 * "fit" means the canvas will fit the entire panel container.
 	 */
 	fixedDimensions: "720p" | "1080p" | "4k" | "fit";
-
-	showStatsValues: boolean;
-	statsValues?: StatsValuesType;
-
-	playSceneLoadingProgress: number;
 }
 
 export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreviewState> {
@@ -170,14 +163,15 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		super(props);
 
 		this.state = {
+			isFocused: false,
 			activeGizmo: "none",
 			pickingEnabled: true,
-			isFocused: false,
 			informationMessage: "",
 			fixedDimensions: "fit",
 
 			showStatsValues: false,
 
+			playEnabled: false,
 			playSceneLoadingProgress: 0,
 		};
 
@@ -185,10 +179,7 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		ipcRenderer.on("gizmo:rotation", () => this.setActiveGizmo("rotation"));
 		ipcRenderer.on("gizmo:scaling", () => this.setActiveGizmo("scaling"));
 
-		document.addEventListener("copy", () => this.state.isFocused && this.props.editor.layout.graph.copySelectedNodes());
-		document.addEventListener("paste", () => this.state.isFocused && this.props.editor.layout.graph.pasteSelectedNodes());
-
-		ipcRenderer.on("preview:focus", () => this.state.isFocused && this.focusObject());
+		ipcRenderer.on("preview:focus", () => !isDomTextInputFocused() && this.focusObject());
 		ipcRenderer.on("preview:edit-camera", () => this.props.editor.layout.inspector.setEditedObject(this.props.editor.layout.preview.scene.activeCamera));
 
 		onTextureAddedObservable.add(() => checkProjectCachedCompressedTextures(props.editor));
@@ -279,13 +270,26 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 
 		this.icons?.stop();
 
-		this.scene?.dispose();
-		this.engine?.dispose();
-
 		disposeSSRRenderingPipeline();
 		disposeMotionBlurPostProcess();
 		disposeSSAO2RenderingPipeline();
 		disposeDefaultRenderingPipeline();
+
+		this.scene?.dispose();
+
+		/**
+		 * engine.dispose() generates an error:
+		 * node_modules/babylonjs/babylon.js:1 Uncaught (in promise) InvalidAccessError: Failed to execute 'disconnect' on 'AudioNode': the given destination is not connected.
+		 * This error is located in _WebAudioMainBus class in the dispose method. It is not reproduced on the Babylon.js playground. This error
+		 * appeared after the migration to electron 35.7.5. A workaround consists on try/catching the dispose method.
+		 * It appears to work this way and the VRAM is successfully released during the second .dispose() call in the catch.
+		 * TODO: investigate in future bump of electron versions if the problem persists.
+		 */
+		try {
+			this.engine?.dispose();
+		} catch (e) {
+			this.engine?.dispose();
+		}
 
 		this.scene = null!;
 		this.engine = null!;
@@ -327,13 +331,60 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 			return;
 		}
 
-		const position = isCamera(selectedNode) ? selectedNode.globalPosition : selectedNode.getAbsolutePosition?.();
-
 		const camera = this.scene.activeCamera;
-		if (position && camera) {
-			Tween.create(camera, 0.5, {
-				target: position,
+		if (!camera) {
+			return;
+		}
+
+		let target: Vector3 | undefined;
+		let position: Vector3 | undefined;
+
+		if (isCamera(selectedNode)) {
+			target = selectedNode.globalPosition;
+		} else if (isAbstractMesh(selectedNode)) {
+			selectedNode.refreshBoundingInfo({
+				applyMorph: true,
+				applySkeleton: true,
+				updatePositionsArray: true,
 			});
+
+			const bb = selectedNode.getBoundingInfo();
+			const center = bb.boundingSphere.centerWorld;
+
+			position = getCameraFocusPositionFor(center, camera, {
+				distance: 2,
+				minimum: bb.boundingBox.minimumWorld,
+				maximum: bb.boundingBox.maximumWorld,
+			});
+			target = bb.boundingBox.centerWorld;
+		} else if (isLight(selectedNode) || isTransformNode(selectedNode)) {
+			target = selectedNode.getAbsolutePosition();
+		} else if (isAnyParticleSystem(selectedNode)) {
+			if (isAbstractMesh(selectedNode.emitter)) {
+				target = selectedNode.emitter.getAbsolutePosition();
+			} else if (isVector3(selectedNode.emitter)) {
+				target = selectedNode.emitter;
+			}
+		} else if (isSound(selectedNode)) {
+			const soundPosition = selectedNode["_position"] as Vector3;
+
+			if (selectedNode["_connectedTransformNode"]) {
+				target = selectedNode["_connectedTransformNode"].getAbsolutePosition();
+			} else if (!soundPosition.equalsToFloats(0, 0, 0)) {
+				target = selectedNode["_position"]();
+			}
+		}
+
+		if (target) {
+			const tweenConfiguration = {
+				target,
+			} as ITweenConfiguration;
+
+			if (position) {
+				tweenConfiguration.position = position;
+			}
+
+			Tween.create(camera, 0.5, tweenConfiguration);
 		}
 	}
 
@@ -500,7 +551,7 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		const pickingInfo = this._getPickingInfo(x, y);
 		const mesh = pickingInfo.pickedMesh?._masterMesh ?? pickingInfo.pickedMesh;
 
-		if (mesh && this._meshUnderPointer !== mesh) {
+		if (mesh && this._meshUnderPointer !== mesh && !isNodeLocked(mesh)) {
 			this._restoreCurrentMeshUnderPointer();
 			this._highlightCurrentMeshUnderPointer(mesh);
 
@@ -543,6 +594,10 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 			return;
 		}
 
+		if (event.altKey || event.button === 1) {
+			return;
+		}
+
 		const distance = Vector2.Distance(this._mouseDownPosition, new Vector2(event.clientX, event.clientY));
 
 		if (distance > 2) {
@@ -552,7 +607,7 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		const pickingInfo = this._getPickingInfo(this.scene.pointerX, this.scene.pointerY);
 
 		let mesh = (pickingInfo.pickedMesh?._masterMesh ?? pickingInfo.pickedMesh) as Node;
-		if (mesh) {
+		if (mesh && !isNodeLocked(mesh)) {
 			const sceneLink = getRootSceneLink(mesh);
 			if (sceneLink) {
 				mesh = sceneLink;
@@ -691,7 +746,12 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 					{!this.play?.state.playing && this._getEditToolbar()}
 
 					<div className="flex gap-2 items-center h-10">
-						<EditorPreviewPlayComponent editor={this.props.editor} ref={(r) => (this.play = r!)} onRestart={() => this.play.restart()} />
+						<EditorPreviewPlayComponent
+							ref={(r) => (this.play = r!)}
+							editor={this.props.editor}
+							enabled={this.state.playEnabled}
+							onRestart={() => this.play.restart()}
+						/>
 					</div>
 				</div>
 			</div>
@@ -715,32 +775,71 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 						</SelectContent>
 					</Select>
 
-					<Separator orientation="vertical" className="mx-2 h-[24px]" />
+					<Separator orientation="vertical" className="mx-1 h-[24px]" />
+
+					<ToolbarRadioGroup
+						value={this.state.activeGizmo === "none" ? "select" : this.state.activeGizmo}
+						onValueChange={(value) => {
+							if (value === "select") {
+								this.setActiveGizmo("none");
+							} else {
+								this.setActiveGizmo(value as "position" | "rotation" | "scaling");
+							}
+						}}
+					>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<ToolbarRadioGroupItem value="select" className={this.state.activeGizmo === "none" ? "bg-primary/20" : ""}>
+									<GiArrowCursor className="h-4 w-4" />
+								</ToolbarRadioGroupItem>
+							</TooltipTrigger>
+							<TooltipContent>Select mode</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<ToolbarRadioGroupItem value="position" className={this.state.activeGizmo === "position" ? "bg-primary/20" : ""}>
+									<LuMove3D height={16} />
+								</ToolbarRadioGroupItem>
+							</TooltipTrigger>
+							<TooltipContent>Toggle position gizmo</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<ToolbarRadioGroupItem value="rotation" className={this.state.activeGizmo === "rotation" ? "bg-primary/20" : ""}>
+									<LuRotate3D height={16} />
+								</ToolbarRadioGroupItem>
+							</TooltipTrigger>
+							<TooltipContent>Toggle rotation gizmo</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<ToolbarRadioGroupItem value="scaling" className={this.state.activeGizmo === "scaling" ? "bg-primary/20" : ""}>
+									<LuScale3D height={16} />
+								</ToolbarRadioGroupItem>
+							</TooltipTrigger>
+							<TooltipContent>Toggle scaling gizmo</TooltipContent>
+						</Tooltip>
+					</ToolbarRadioGroup>
+
+					<Separator orientation="vertical" className="mx-1 h-[24px]" />
 
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<Toggle pressed={this.state.activeGizmo === "position"} onPressedChange={() => this.setActiveGizmo("position")}>
-								<PositionIcon height={16} />
+							<Toggle
+								className={this.scene?.forceWireframe ? "!px-2 !py-2 bg-primary/20" : "!px-2 !py-2"}
+								pressed={this.scene?.forceWireframe}
+								onPressedChange={() => {
+									this.scene.forceWireframe = !this.scene.forceWireframe;
+									this.forceUpdate();
+								}}
+							>
+								<GiWireframeGlobe className="w-6 h-6 scale-125" strokeWidth={1} color="white" />
 							</Toggle>
 						</TooltipTrigger>
-						<TooltipContent>Toggle position gizmo</TooltipContent>
+						<TooltipContent>Toggle wireframe</TooltipContent>
 					</Tooltip>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Toggle pressed={this.state.activeGizmo === "rotation"} onPressedChange={() => this.setActiveGizmo("rotation")}>
-								<RotationIcon height={16} />
-							</Toggle>
-						</TooltipTrigger>
-						<TooltipContent>Toggle rotation gizmo</TooltipContent>
-					</Tooltip>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Toggle pressed={this.state.activeGizmo === "scaling"} onPressedChange={() => this.setActiveGizmo("scaling")}>
-								<ScalingIcon height={16} />
-							</Toggle>
-						</TooltipTrigger>
-						<TooltipContent>Toggle scaling gizmo</TooltipContent>
-					</Tooltip>
+
+					<Separator orientation="vertical" className="mx-1 h-[24px]" />
 
 					<Select
 						value={this.gizmo?.getCoordinateMode().toString()}
@@ -758,30 +857,12 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 						</SelectContent>
 					</Select>
 
-					<Separator orientation="vertical" className="mx-2 h-[24px]" />
-
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Toggle
-								className="!px-2 !py-2"
-								pressed={this.scene?.forceWireframe}
-								onPressedChange={() => {
-									this.scene.forceWireframe = !this.scene.forceWireframe;
-									this.forceUpdate();
-								}}
-							>
-								<GiWireframeGlobe className="w-6 h-6 scale-125" strokeWidth={1} color="white" />
-							</Toggle>
-						</TooltipTrigger>
-						<TooltipContent>Toggle wireframe</TooltipContent>
-					</Tooltip>
-
-					<Separator orientation="vertical" className="mx-2 h-[24px]" />
+					<Separator orientation="vertical" className="mx-1 h-[24px]" />
 
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" className="px-1 py-1 w-9 h-9">
-								<IoIosOptions className="w-6 h-6" strokeWidth={1} />
+								<GiTeapot className="w-6 h-6" strokeWidth={1} />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent onClick={() => this.forceUpdate()}>
@@ -966,7 +1047,7 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 		}
 
 		this.setState({ informationMessage: `Importing scene "${basename(absolutePath)}"...` });
-		const result = await loadImportedSceneFile(this.scene, absolutePath, useCloudConverter);
+		const result = await loadImportedSceneFile(this.scene, absolutePath);
 		this.setState({ informationMessage: "" });
 
 		return result;
@@ -1048,7 +1129,7 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 				case ".ms3d":
 				case ".blend":
 				case ".babylon":
-					this.importSceneFile(absolutePath, !ev.shiftKey).then((result) => {
+					this.importSceneFile(absolutePath, ev.shiftKey).then((result) => {
 						if (pick.pickedPoint) {
 							result?.meshes.forEach((m) => !m.parent && m.position.addInPlace(pick.pickedPoint!));
 							result?.transformNodes.forEach((t) => !t.parent && t.position.addInPlace(pick.pickedPoint!));
@@ -1089,8 +1170,14 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 				case ".ogg":
 				case ".wav":
 				case ".wave":
-					if (this.props.editor.state.enableExperimentalFeatures) {
-						applySoundAsset(this.props.editor, mesh ?? this.scene, absolutePath).then(() => {
+					applySoundAsset(this.props.editor, mesh ?? this.scene, absolutePath).then(() => {
+						this.props.editor.layout.graph.refresh();
+					});
+					break;
+
+				case ".npss":
+					if (mesh) {
+						loadImportedParticleSystemFile(this.props.editor.layout.preview.scene, mesh, absolutePath).then(() => {
 							this.props.editor.layout.graph.refresh();
 						});
 					}

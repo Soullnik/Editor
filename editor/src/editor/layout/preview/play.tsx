@@ -31,6 +31,10 @@ export interface IEditorPreviewPlayComponentProps {
 	 * The editor reference.
 	 */
 	editor: Editor;
+	/**
+	 * Defines wether or not the play button is enabled in the preview.
+	 */
+	enabled: boolean;
 
 	/**
 	 * Called on the user wants to restart the game / application (aka. refresh the page of the game / application).
@@ -96,7 +100,7 @@ export class EditorPreviewPlayComponent extends Component<IEditorPreviewPlayComp
 						<Button
 							minimal
 							active={this.state.playing}
-							disabled={this.state.preparingPlay}
+							disabled={this.state.preparingPlay || !this.props.enabled}
 							icon={
 								this.state.preparingPlay ? (
 									<Grid width={24} height={24} color="gray" />
@@ -109,30 +113,37 @@ export class EditorPreviewPlayComponent extends Component<IEditorPreviewPlayComp
 							onClick={() => this.playOrStopApplication()}
 							className={`
                                 w-10 h-10 bg-muted/50 !rounded-lg
-                                ${this.state.preparingPlay ? "bg-muted/50" : this.state.playing ? "!bg-red-500/35" : "hover:!bg-green-500/35"}
+                                ${this.state.preparingPlay || !this.props.enabled ? `bg-muted/50 ${!this.props.enabled && "opacity-35"}` : this.state.playing ? "!bg-red-500/35" : "hover:!bg-green-500/35"}
                                 transition-all duration-300 ease-in-out
                             `}
 						/>
 					</TooltipTrigger>
-					<TooltipContent className="flex gap-2 items-center">Play the game / application</TooltipContent>
+					<TooltipContent className="flex gap-2 items-center">
+						{this.props.enabled ? "Play the game / application" : "Can't play the game now. Dependencies are still installing..."}
+					</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
 		);
 	}
 
 	public componentDidMount(): void {
-		ipcRenderer.on("preview:run-project", () => {
-			if (this.state.playing) {
-				this.props.onRestart();
-			} else if (!this.state.preparingPlay) {
-				this.playOrStopApplication();
-			}
+		ipcRenderer.on("preview:play-scene", () => {
+			this.triggerPlayScene();
 		});
+	}
+
+	public triggerPlayScene(): void {
+		if (this.state.playing) {
+			this.props.onRestart();
+		} else if (!this.state.preparingPlay) {
+			this.playOrStopApplication();
+		}
 	}
 
 	public componentDidUpdate(_: Readonly<IEditorPreviewPlayComponentProps>, prevState: Readonly<IEditorPreviewPlayComponentState>): void {
 		if (prevState !== this.state) {
 			this.props.editor.layout.preview.forceUpdate();
+			this.props.editor.layout.preview.gizmo._gizmosLayer.pickingEnabled = this.scene ? false : true;
 		}
 	}
 
@@ -165,10 +176,10 @@ export class EditorPreviewPlayComponent extends Component<IEditorPreviewPlayComp
 			return;
 		}
 
-		restorePlayOverrides(this.props.editor);
-
 		this.scene?.dispose();
 		this.scene = null;
+
+		restorePlayOverrides(this.props.editor);
 
 		this.props.editor.layout.preview.engine.wipeCaches(true);
 
@@ -325,13 +336,21 @@ export class EditorPreviewPlayComponent extends Component<IEditorPreviewPlayComp
 
 		const sceneName = basename(this.props.editor.state.lastOpenedScenePath!).split(".").shift()!;
 
-		await exports.loadScene(rootUrl, `${sceneName}.babylon`, scene, exports.scriptsMap, {
-			quality: "high",
-			onProgress: (progress) =>
-				this.props.editor.layout.preview.setState({
-					playSceneLoadingProgress: progress,
-				}),
-		});
+		try {
+			await exports.loadScene(rootUrl, `${sceneName}.babylon`, scene, exports.scriptsMap, {
+				quality: "high",
+				onProgress: (progress) =>
+					this.props.editor.layout.preview.setState({
+						playSceneLoadingProgress: progress,
+					}),
+			});
+		} catch (e) {
+			if (!scene.isDisposed) {
+				this.props.editor.layout.selectTab("console");
+				this.props.editor.layout.console.error(`Failed to load scene: ${(e as Error).message}`);
+				return this.stop();
+			}
+		}
 
 		if (scene.isDisposed) {
 			return; // scene may be disposed if the user stopped the play while loading it

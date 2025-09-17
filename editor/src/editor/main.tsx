@@ -33,9 +33,11 @@ import { EditorEditPreferencesComponent } from "./dialogs/edit-preferences/edit-
 import { Toaster } from "../ui/shadcn/ui/sonner";
 
 import { EditorLayout } from "./layout";
+import { removeNodes } from "./layout/graph/remove";
 
 import "./nodes/camera";
 import "./nodes/scene-link";
+import { isDomTextInputFocused } from "../tools/dom";
 
 export function createEditor(): void {
 	const theme = localStorage.getItem("editor-theme") ?? "dark";
@@ -154,6 +156,20 @@ export class Editor extends Component<IEditorProps, IEditorState> {
 							label: "Show Command Palette",
 							onKeyDown: () => this.commandPalette.setOpen(true),
 						},
+						{
+							global: true,
+							combo: "delete",
+							preventDefault: true,
+							label: "Delete Selected Objects",
+							onKeyDown: () => {
+								if (!isDomTextInputFocused()) {
+									const selectedNodes = this.layout.graph.getSelectedNodes();
+									if (selectedNodes.length > 0) {
+										removeNodes(this);
+									}
+								}
+							},
+						},
 					]}
 				>
 					<EditorLayout editor={this} ref={(ref) => (this.layout = ref!)} />
@@ -171,7 +187,7 @@ export class Editor extends Component<IEditorProps, IEditorState> {
 
 	public async componentDidMount(): Promise<void> {
 		ipcRenderer.on("save", () => saveProject(this));
-		ipcRenderer.on("export", () => exportProject(this, { optimize: true }));
+		ipcRenderer.on("generate", () => exportProject(this, { optimize: true }));
 
 		ipcRenderer.on("editor:edit-project", () => this.setState({ editProject: true }));
 		ipcRenderer.on("editor:edit-preferences", () => this.setState({ editPreferences: true }));

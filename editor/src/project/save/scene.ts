@@ -8,10 +8,11 @@ import { RenderTargetTexture, SceneSerializer } from "babylonjs";
 import { Editor } from "../../editor/main";
 
 import { isSceneLinkNode } from "../../tools/guards/scene";
+import { applyAssetsCache } from "../../tools/assets/cache";
 import { isFromSceneLink } from "../../tools/scene/scene-link";
+import { isNodeVisibleInGraph } from "../../tools/node/metadata";
 import { getBufferSceneScreenshot } from "../../tools/scene/screenshot";
 import { createDirectoryIfNotExist, normalizedGlob } from "../../tools/fs";
-import { isMeshMetadataNotVisibleInGraph } from "../../tools/mesh/metadata";
 import { isCollisionMesh, isEditorCamera, isMesh } from "../../tools/guards/nodes";
 import { isGPUParticleSystem, isParticleSystem } from "../../tools/guards/particles";
 import { serializePhysicsAggregate } from "../../tools/physics/serialization/aggregate";
@@ -56,11 +57,12 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 	const scene = editor.layout.preview.scene;
 
 	const savedFiles: string[] = [];
+	const savedGeometryIds: string[] = [];
 
 	// Write geometries and meshes
 	await Promise.all(
 		scene.meshes.map(async (mesh) => {
-			if ((!isMesh(mesh) && !isCollisionMesh(mesh)) || mesh._masterMesh || isFromSceneLink(mesh) || isMeshMetadataNotVisibleInGraph(mesh)) {
+			if ((!isMesh(mesh) && !isCollisionMesh(mesh)) || mesh._masterMesh || isFromSceneLink(mesh) || !isNodeVisibleInGraph(mesh)) {
 				return;
 			}
 
@@ -150,7 +152,18 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 								const geometryPath = join(scenePath, "geometries", geometryFileName);
 
 								try {
-									await writeBinaryGeometry(geometryPath, geometry, mesh);
+									let writeGeometry = false;
+									if (!savedGeometryIds.includes(geometry.id)) {
+										writeGeometry = true;
+										savedGeometryIds.push(geometry.id);
+									}
+
+									await writeBinaryGeometry({
+										mesh,
+										geometry,
+										path: geometryPath,
+										write: writeGeometry,
+									});
 
 									let geometryIndex = -1;
 									do {
@@ -229,7 +242,7 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 	// Write morph targets
 	await Promise.all(
 		scene.meshes.map(async (mesh) => {
-			if (!mesh.morphTargetManager || isFromSceneLink(mesh) || isMeshMetadataNotVisibleInGraph(mesh)) {
+			if (!mesh.morphTargetManager || isFromSceneLink(mesh) || !isNodeVisibleInGraph(mesh)) {
 				return;
 			}
 
@@ -489,6 +502,7 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 				}
 
 				data.className = particleSystem.getClassName();
+				data.sourceParticleSystemSetId = particleSystem.sourceParticleSystemSetId;
 
 				await writeJSON(particleSystemPath, data, {
 					spaces: 4,
@@ -590,6 +604,11 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 		})
 	);
 
+	// Update screenshot
+	getBufferSceneScreenshot(scene).then((screenshotBuffer) => {
+		writeFile(join(scenePath, "preview.png"), screenshotBuffer);
+	});
+
 	// Update material files
 	const materialFiles = await normalizedGlob(join(projectPath, "/**/*.material"), {
 		nodir: true,
@@ -616,9 +635,6 @@ export async function saveScene(editor: Editor, projectPath: string, scenePath: 
 		})
 	);
 
-	// Update screenshot
-	const screenshotBuffer = await getBufferSceneScreenshot(scene);
-	if (screenshotBuffer) {
-		await writeFile(join(scenePath, "preview.png"), screenshotBuffer);
-	}
+	// Update assets cache in all scenes and assets files.
+	await applyAssetsCache();
 }

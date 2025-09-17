@@ -1,15 +1,20 @@
 import { Node } from "@babylonjs/core/node";
 import { Scene } from "@babylonjs/core/scene";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
+import { PickingInfo } from "@babylonjs/core/Collisions/pickingInfo";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { Vector2, Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
+import { GPUParticleSystem } from "@babylonjs/core/Particles/gpuParticleSystem";
 
 import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture";
 
 import type { AudioSceneComponent as _AudioSceneComponent } from "@babylonjs/core/Audio/audioSceneComponent";
 
 import { getSoundById } from "../tools/sound";
+import { isAbstractMesh, isNode } from "../tools/guards";
 
+import { IPointerEventDecoratorOptions } from "./events";
 import { VisibleInInspectorDecoratorConfiguration, VisibleInInspectorDecoratorEntityConfiguration } from "./inspector";
 
 export interface ISceneDecoratorData {
@@ -48,6 +53,7 @@ export interface ISceneDecoratorData {
 	// @fromParticleSystems
 	_ParticleSystemsFromScene: {
 		particleSystemName: string;
+		directDescendantsOnly: boolean;
 		propertyKey: string | Symbol;
 	}[];
 
@@ -56,6 +62,19 @@ export interface ISceneDecoratorData {
 		label?: string;
 		propertyKey: string | Symbol;
 		configuration: VisibleInInspectorDecoratorConfiguration;
+	}[];
+
+	// @onPointerEvent
+	_PointerEvents: {
+		eventTypes: number[];
+		options: IPointerEventDecoratorOptions;
+		propertyKey: string | Symbol;
+	}[];
+
+	// @onKeyboardEvent
+	_KeyboardEvents: {
+		eventTypes: number[];
+		propertyKey: string | Symbol;
 	}[];
 }
 
@@ -108,8 +127,12 @@ export function applyDecorators(scene: Scene, object: any, script: any, instance
 
 	// @fromParticleSystems
 	ctor._ParticleSystemsFromScene?.forEach((params) => {
-		const particleSystem = scene.particleSystems?.find((particleSystem) => {
-			return particleSystem.name === params.particleSystemName;
+		const particleSystem = scene.particleSystems?.find((particleSystem: ParticleSystem | GPUParticleSystem) => {
+			if (particleSystem.name !== params.particleSystemName) {
+				return false;
+			}
+
+			return params.directDescendantsOnly ? particleSystem.emitter === object : particleSystem;
 		});
 
 		instance[params.propertyKey.toString()] = particleSystem;
@@ -171,4 +194,73 @@ export function applyDecorators(scene: Scene, object: any, script: any, instance
 			}
 		}
 	});
+
+	// @onPointerEvent
+	if (ctor._PointerEvents?.length) {
+		const wrongMeshListener = ctor._PointerEvents.find((params) => params.options.mode === "attachedMeshOnly");
+		if (wrongMeshListener && !isAbstractMesh(object)) {
+			throw new Error(`@onPointerEvent with mode "attachedMeshOnly" can only be used on scripts attached to meshes (extends AbstractMesh).`);
+		}
+
+		const wrongSceneListener = ctor._PointerEvents.find((params) => params.options.mode !== "global");
+		if (wrongSceneListener && !isNode(object)) {
+			throw new Error(`@onPointerEvent with mode different from "global" can be used only on scripts attached to Node: Mesh, Light, Camera, TransformNode.`);
+		}
+
+		scene.onPointerObservable.add((pointerInfo) => {
+			let pickInfo: PickingInfo | null = null;
+
+			ctor._PointerEvents.forEach((params) => {
+				if (!params.eventTypes.includes(pointerInfo.type)) {
+					return;
+				}
+
+				const propertyKey = params.propertyKey.toString();
+
+				if (params.options.mode === "global") {
+					return instance[propertyKey]?.(pointerInfo);
+				}
+
+				pickInfo = pointerInfo.pickInfo;
+				if (!pickInfo) {
+					pickInfo = scene.pick(
+						scene.pointerX,
+						scene.pointerY,
+						(m) => {
+							return m.isVisible && m.isPickable && m.isEnabled(true) && !m._masterMesh;
+						},
+						false
+					);
+				}
+
+				const pickedMesh = pickInfo.pickedMesh;
+				if (pickedMesh) {
+					if (params.options.mode === "attachedMeshOnly" && pickedMesh === object) {
+						return instance[propertyKey]?.(pointerInfo);
+					}
+
+					if (params.options.mode === "includeDescendants" && isNode(object)) {
+						const descendants = [object, ...object.getDescendants(false)];
+						const pickedDescendant = descendants.find((d) => d === pickedMesh);
+						if (pickedDescendant) {
+							return instance[propertyKey]?.(pointerInfo);
+						}
+					}
+				}
+			});
+		});
+	}
+
+	// @onKeyboardEvent
+	if (ctor._KeyboardEvents?.length) {
+		scene.onKeyboardObservable.add((keyboardInfo) => {
+			ctor._KeyboardEvents.forEach((params) => {
+				if (!params.eventTypes.includes(keyboardInfo.type)) {
+					return;
+				}
+
+				instance[params.propertyKey.toString()]?.(keyboardInfo);
+			});
+		});
+	}
 }
