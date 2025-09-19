@@ -2,7 +2,7 @@ import { Component, ReactNode } from "react";
 import { Icon, NonIdealState } from "@blueprintjs/core";
 
 import { FaInfoCircle } from "react-icons/fa";
-import { FaCube, FaSprayCanSparkles } from "react-icons/fa6";
+import { FaCube, FaSprayCanSparkles, FaPaintbrush } from "react-icons/fa6";
 
 import { Tools } from "babylonjs";
 
@@ -42,6 +42,8 @@ import { EditorDecalsInspector } from "./inspector/decals/decals";
 
 import { EditorParticleSystemInspector } from "./inspector/particles/particle-system";
 import { EditorGPUParticleSystemInspector } from "./inspector/particles/gpu-particle-system";
+
+import { EditorBrushInspector } from "./inspector/brush";
 
 export interface IEditorInspectorProps {
 	/**
@@ -105,6 +107,10 @@ export class EditorInspector extends Component<IEditorInspectorProps, IEditorIns
 						<TabsTrigger value="decals" className="flex gap-2 items-center w-full">
 							<FaSprayCanSparkles className="w-4 h-4" /> Decal
 						</TabsTrigger>
+
+						<TabsTrigger value="brush" className="flex gap-2 items-center w-full">
+							<FaPaintbrush className="w-4 h-4" /> Brush
+						</TabsTrigger>
 					</TabsList>
 
 					{disabled && (
@@ -133,6 +139,10 @@ export class EditorInspector extends Component<IEditorInspectorProps, IEditorIns
 
 					<TabsContent value="decals" className="w-full h-full overflow-auto">
 						<EditorDecalsInspector editor={this.props.editor} />
+					</TabsContent>
+
+					<TabsContent value="brush" className="w-full h-full overflow-auto">
+						<EditorBrushInspector editor={this.props.editor} />
 					</TabsContent>
 				</Tabs>
 			</div>

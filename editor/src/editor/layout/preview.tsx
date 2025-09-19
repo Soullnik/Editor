@@ -75,6 +75,7 @@ import { EditorGraphContextMenu } from "./graph/graph";
 import { EditorPreviewGizmo } from "./preview/gizmo";
 import { EditorPreviewIcons } from "./preview/icons";
 import { EditorPreviewPlayComponent } from "./preview/play";
+import { EditorBrushInspector } from "./inspector/brush";
 
 import { Stats } from "./preview/stats/stats";
 import { StatRow } from "./preview/stats/row";
@@ -152,6 +153,11 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 	 * The play component of the preview.
 	 */
 	public play: EditorPreviewPlayComponent;
+
+	/**
+	 * The brush inspector component.
+	 */
+	public brushInspector: EditorBrushInspector | null = null;
 
 	/**
 	 * The current statistics of the preview.
@@ -564,6 +570,15 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 			return;
 		}
 
+		// Call brush inspector mouse move handler first
+		if (this.brushInspector) {
+			const brushHandled = this.brushInspector.handleMouseMove();
+			// If brush inspector handled the event, don't process further
+			if (brushHandled) {
+				return;
+			}
+		}
+
 		const pickingInfo = this._getPickingInfo(x, y);
 		const mesh = pickingInfo.pickedMesh?._masterMesh ?? pickingInfo.pickedMesh;
 
@@ -586,6 +601,15 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 	private _handleMouseDown(event: MouseEvent<HTMLCanvasElement, globalThis.MouseEvent>): void {
 		if (!this.state.pickingEnabled) {
 			return;
+		}
+
+		// Call brush inspector mouse down handler first
+		if (this.brushInspector) {
+			const brushHandled = this.brushInspector.handleMouseDown(event);
+			// If brush inspector handled the event, don't process further
+			if (brushHandled) {
+				return;
+			}
 		}
 
 		this._mouseDownPosition.set(event.clientX, event.clientY);
@@ -619,6 +643,15 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 	private _handleMouseUp(event: MouseEvent<HTMLCanvasElement, globalThis.MouseEvent>): void {
 		if (!this.state.pickingEnabled) {
 			return;
+		}
+
+		// Call brush inspector mouse up handler first
+		if (this.brushInspector) {
+			const brushHandled = this.brushInspector.handleMouseUp(event);
+			// If brush inspector handled the event, don't process further
+			if (brushHandled) {
+				return;
+			}
 		}
 
 		if (event.altKey || event.button === 1) {
@@ -1031,6 +1064,14 @@ export class EditorPreview extends Component<IEditorPreviewProps, IEditorPreview
 
 		this.gizmo.setGizmoType(gizmo);
 		this.setState({ activeGizmo: gizmo });
+	}
+
+	/**
+	 * Sets the brush inspector reference.
+	 * @param brushInspector the brush inspector component.
+	 */
+	public setBrushInspector(brushInspector: EditorBrushInspector | null): void {
+		this.brushInspector = brushInspector;
 	}
 
 	public async importSceneFile(absolutePath: string, useCloudConverter: boolean): Promise<ISceneLoaderAsyncResult | null> {
