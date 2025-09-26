@@ -40,7 +40,7 @@ export interface IVFXSettings {
 	duration: number;
 	loop: boolean;
 	preview: boolean;
-	quality?: 'low' | 'medium' | 'high';
+	quality?: "low" | "medium" | "high";
 }
 
 export interface IVFXFile {
@@ -60,32 +60,32 @@ export enum VFXNodeType {
 	// Particle Systems
 	PARTICLE_SYSTEM = "particle_system",
 	SOLID_PARTICLE_SYSTEM = "solid_particle_system",
-	
+
 	// Emitters
 	MESH_EMITTER = "mesh_emitter",
 	POINT_EMITTER = "point_emitter",
 	BOX_EMITTER = "box_emitter",
 	SPHERE_EMITTER = "sphere_emitter",
-	
+
 	// Materials
 	MATERIAL = "material",
 	PBR_MATERIAL = "pbr_material",
 	STANDARD_MATERIAL = "standard_material",
-	
+
 	// Animation
 	ANIMATION = "animation",
 	KEYFRAME_ANIMATION = "keyframe_animation",
-	
+
 	// Lighting
 	LIGHT = "light",
 	DIRECTIONAL_LIGHT = "directional_light",
 	POINT_LIGHT = "point_light",
 	SPOT_LIGHT = "spot_light",
-	
+
 	// Sound
 	SOUND = "sound",
 	SPATIAL_SOUND = "spatial_sound",
-	
+
 	// Logic
 	TRIGGER = "trigger",
 	DELAY = "delay",
@@ -96,15 +96,15 @@ export enum VFXNodeType {
 	CONDITION = "condition",
 	LOOP = "loop",
 	SEQUENCE = "sequence",
-	
+
 	// Effects
 	POST_PROCESS = "post_process",
 	BLOOM = "bloom",
 	BLUR = "blur",
 	GLOW = "glow",
-	
+
 	// Physics
 	PHYSICS = "physics",
 	COLLISION = "collision",
-	FORCE = "force"
+	FORCE = "force",
 }

@@ -6,16 +6,7 @@ import { toast } from "sonner";
 import { Component, ReactNode } from "react";
 import { Actions, IJsonModel, Layout, Model, TabNode } from "flexlayout-react";
 
-import { 
-	Engine, 
-	Scene, 
-	ArcRotateCamera, 
-	Vector3, 
-	Color3, 
-	Color4,
-	MeshBuilder,
-	SolidParticleSystem
-} from "babylonjs";
+import { Engine, Scene, ArcRotateCamera, Vector3, Color3, Color4, MeshBuilder, SolidParticleSystem } from "babylonjs";
 
 import { Button } from "../../../ui/shadcn/ui/button";
 import { Toaster } from "../../../ui/shadcn/ui/sonner";
@@ -87,9 +78,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			<>
 				<div className="flex flex-col w-screen h-screen">
 					{/* Header */}
-					<div 
-						className="flex items-center justify-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0" 
-						style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+					<div
+						className="flex items-center justify-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0"
+						style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 					>
 						<div className="flex items-center gap-1 font-semibold text-lg select-none">
 							VFX Editor
@@ -98,38 +89,17 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					</div>
 
 					{/* Toolbar */}
-					<div 
-						className="flex justify-between items-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0 px-3" 
-					>
-						<div 
-							className="flex gap-2 items-center" 
-						>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => this._play()}
-								disabled={this.state.playing}
-								className="h-8 px-2"
-							>
+					<div className="flex justify-between items-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0 px-3">
+						<div className="flex gap-2 items-center">
+							<Button variant="ghost" size="sm" onClick={() => this._play()} disabled={this.state.playing} className="h-8 px-2">
 								<FaPlay className="w-3 h-3 mr-1" />
 								Play
 							</Button>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => this._stop()}
-								disabled={!this.state.playing}
-								className="h-8 px-2"
-							>
+							<Button variant="ghost" size="sm" onClick={() => this._stop()} disabled={!this.state.playing} className="h-8 px-2">
 								<FaStop className="w-3 h-3 mr-1" />
 								Stop
 							</Button>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => this._save()}
-								className="h-8 px-2"
-							>
+							<Button variant="ghost" size="sm" onClick={() => this._save()} className="h-8 px-2">
 								Save
 							</Button>
 						</div>
@@ -141,12 +111,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 
 					{/* Layout */}
 					<div className="relative flex-1 w-full overflow-hidden">
-						<Layout 
-							model={this._model} 
-							ref={(r) => (this._layoutRef = r)} 
-							factory={(n) => this._layoutFactory(n)} 
-							onModelChange={(m) => this._saveLayout(m)} 
-						/>
+						<Layout model={this._model} ref={(r) => (this._layoutRef = r)} factory={(n) => this._layoutFactory(n)} onModelChange={(m) => this._saveLayout(m)} />
 					</div>
 				</div>
 
@@ -178,18 +143,18 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					duration: 5000,
 					loop: false,
 					preview: true,
-					quality: 'medium'
+					quality: "medium",
 				},
 				created: new Date().toISOString(),
 				modified: new Date().toISOString(),
 				author: "Editor",
-				tags: []
+				tags: [],
 			};
 			this.setState({ vfxData: emptyVfxData });
 		} else {
 			try {
 				const vfxData = await readJSON(this.props.filePath);
-				
+
 				// Ensure VFX data has the correct structure
 				if (!vfxData.nodes) {
 					vfxData.nodes = [];
@@ -202,10 +167,10 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 						duration: 5000,
 						loop: false,
 						preview: true,
-						quality: 'medium'
+						quality: "medium",
 					};
 				}
-				
+
 				this.setState({ vfxData });
 			} catch (error) {
 				console.error("Failed to load VFX data:", error);
@@ -221,12 +186,12 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 						duration: 5000,
 						loop: false,
 						preview: true,
-						quality: 'medium'
+						quality: "medium",
 					},
 					created: new Date().toISOString(),
 					modified: new Date().toISOString(),
 					author: "Editor",
-					tags: []
+					tags: [],
 				};
 				this.setState({ vfxData: emptyVfxData });
 			}
@@ -269,14 +234,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					onDrop={(ev) => this._handleDrop(ev)}
 				/>
 			),
-			preview: (
-				<VFXPreviewPanel
-					scene={this.state.scene}
-					engine={this.state.engine}
-					camera={this.state.camera}
-					onCanvasRef={(canvas) => (this._canvasRef = canvas)}
-				/>
-			),
+			preview: <VFXPreviewPanel scene={this.state.scene} engine={this.state.engine} camera={this.state.camera} onCanvasRef={(canvas) => (this._canvasRef = canvas)} />,
 			inspector: (
 				<VFXInspectorPanel
 					selectedComponent={this.state.selectedComponent}
@@ -352,48 +310,45 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		camera.wheelDeltaPercentage = 0.01;
 		camera.pinchDeltaPercentage = 0.01;
 
-        const groundMaterial = new GridMaterial("groundMaterial", scene);
-        groundMaterial.majorUnitFrequency = 2;
-        groundMaterial.minorUnitVisibility = 0.1;
-        groundMaterial.gridRatio = 0.5;
-        groundMaterial.backFaceCulling = false;
-        groundMaterial.mainColor = new Color3(1, 1, 1);
-        groundMaterial.lineColor = new Color3(1.0, 1.0, 1.0);
-        groundMaterial.lineColor = new Color3(1.0, 1.0, 1.0);
-        groundMaterial.opacity = 0.5;
+		const groundMaterial = new GridMaterial("groundMaterial", scene);
+		groundMaterial.majorUnitFrequency = 2;
+		groundMaterial.minorUnitVisibility = 0.1;
+		groundMaterial.gridRatio = 0.5;
+		groundMaterial.backFaceCulling = false;
+		groundMaterial.mainColor = new Color3(1, 1, 1);
+		groundMaterial.lineColor = new Color3(1.0, 1.0, 1.0);
+		groundMaterial.lineColor = new Color3(1.0, 1.0, 1.0);
+		groundMaterial.opacity = 0.5;
 
-        const ground = MeshBuilder.CreateGround("ground", { width: 100, height: 100 }, scene);
-        ground.material = groundMaterial;
+		const ground = MeshBuilder.CreateGround("ground", { width: 100, height: 100 }, scene);
+		ground.material = groundMaterial;
 
 		engine.runRenderLoop(() => {
 			engine.resize();
-			
+
 			// Update SPS particles
 			if (this.state.vfxData) {
-				this.state.vfxData.nodes.forEach(node => {
+				this.state.vfxData.nodes.forEach((node) => {
 					if (node.type === VFXNodeType.SOLID_PARTICLE_SYSTEM && node.properties.babylonSPS) {
 						node.properties.babylonSPS.setParticles();
 					}
 				});
 			}
-			
+
 			scene.render();
 		});
 
 		this.setState({ engine, scene, camera });
 	}
 
-
-
 	public close(): void {
 		ipcRenderer.send("window:close");
 	}
 
-
 	private _updateComponentProperty(property: string, value: any): void {
 		const updatedComponent = {
 			...this.state.selectedComponent,
-			[property]: value
+			[property]: value,
 		};
 		this.setState({ selectedComponent: updatedComponent }, () => {
 			this._updateComponents();
@@ -405,8 +360,8 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			...this.state.selectedComponent,
 			properties: {
 				...this.state.selectedComponent.properties,
-				[property]: value
-			}
+				[property]: value,
+			},
 		};
 		this.setState({ selectedComponent: updatedComponent }, () => {
 			this._updateComponents();
@@ -419,7 +374,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		this.setState({ playing: true });
 
 		// Start all particle systems and SPS
-		this.state.vfxData.nodes.forEach(node => {
+		this.state.vfxData.nodes.forEach((node) => {
 			if (node.active) {
 				if (node.type === VFXNodeType.PARTICLE_SYSTEM && node.properties.babylonSystem) {
 					node.properties.babylonSystem.start();
@@ -437,7 +392,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		this.setState({ playing: false });
 
 		// Stop all particle systems
-		this.state.vfxData.nodes.forEach(node => {
+		this.state.vfxData.nodes.forEach((node) => {
 			if (node.type === VFXNodeType.PARTICLE_SYSTEM && node.properties.babylonSystem) {
 				node.properties.babylonSystem.stop();
 			}
@@ -462,287 +417,286 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	}
 
 	private _handleDrop(ev: React.DragEvent<HTMLDivElement>): void {
-        const assets = ev.dataTransfer.getData("assets");
-        if (assets) {
-            return this._handleAssetsDropped(ev);
-        }
+		const assets = ev.dataTransfer.getData("assets");
+		if (assets) {
+			return this._handleAssetsDropped(ev);
+		}
 	}
 
-    private _handleAssetsDropped(ev: React.DragEvent<HTMLDivElement>): void {
-        const assets = ev.dataTransfer.getData("assets");
-        if (!assets) {
-            return;
-        }
-        try {
-            const assetPaths = JSON.parse(assets) as string[];
-            assetPaths.forEach(async (absolutePath) => {
-                await this._processAssetFile(absolutePath);
-                // Force layout update after processing each asset
-                this._forceLayoutUpdate();
-            });
-        } catch (error) {
-            console.error("Failed to parse dropped assets:", error);
-            toast.error("Failed to process dropped assets");
-        }
-    }
+	private _handleAssetsDropped(ev: React.DragEvent<HTMLDivElement>): void {
+		const assets = ev.dataTransfer.getData("assets");
+		if (!assets) {
+			return;
+		}
+		try {
+			const assetPaths = JSON.parse(assets) as string[];
+			assetPaths.forEach(async (absolutePath) => {
+				await this._processAssetFile(absolutePath);
+				// Force layout update after processing each asset
+				this._forceLayoutUpdate();
+			});
+		} catch (error) {
+			console.error("Failed to parse dropped assets:", error);
+			toast.error("Failed to process dropped assets");
+		}
+	}
 
-    private async _processAssetFile(absolutePath: string): Promise<void> {
-        if (!this.state.vfxData || !this.state.scene) return;
+	private async _processAssetFile(absolutePath: string): Promise<void> {
+		if (!this.state.vfxData || !this.state.scene) return;
 
-        const extension = absolutePath.toLowerCase().split('.').pop();
-        if (!extension) return;
+		const extension = absolutePath.toLowerCase().split(".").pop();
+		if (!extension) return;
 
-        try {
-            switch (extension) {
-                case "glb":
-                case "babylon":
-                    await this._createSPSFromMesh(absolutePath);
-                    break;
-                
-                case "json":
-                    await this._createParticleSystemFromJSON(absolutePath);
-                    break;
-                
-                case "npss":
-                    await this._createParticleSystemFromNPSS(absolutePath);
-                    break;
-                
-                case "png":
-                case "jpg":
-                case "jpeg":
-                case "svg":
-                case "webp":
-                case "bmp":
-                    // Textures are now handled by EditorParticleSystemInspector
-                    toast.info("Textures can be assigned through the particle system inspector");
-                    break;
-                
-                default:
-                    toast.warning(`Unsupported file type: .${extension}`);
-                    break;
-            }
-        } catch (error) {
-            console.error(`Error processing ${absolutePath}:`, error);
-            toast.error(`Failed to process ${absolutePath.split('/').pop()}`);
-        }
-    }
+		try {
+			switch (extension) {
+				case "glb":
+				case "babylon":
+					await this._createSPSFromMesh(absolutePath);
+					break;
 
-    private async _createSPSFromMesh(absolutePath: string): Promise<void> {
-        if (!this.state.vfxData || !this.state.scene) return;
+				case "json":
+					await this._createParticleSystemFromJSON(absolutePath);
+					break;
 
-        const fileName = absolutePath.split('/').pop() || 'mesh';
-        const componentName = fileName.replace(/\.(glb|babylon)$/i, '');
+				case "npss":
+					await this._createParticleSystemFromNPSS(absolutePath);
+					break;
 
-        const component = {
-            id: `sps_${Date.now()}`,
-            type: VFXNodeType.SOLID_PARTICLE_SYSTEM,
-            name: componentName,
-            position: { x: 100, y: 100 },
-            inputs: [],
-            outputs: [],
-            properties: {
-                ...this._getDefaultProperties(VFXNodeType.SOLID_PARTICLE_SYSTEM),
-                filePath: absolutePath,
-                particleCount: 1,
-                useModelMaterial: true,
-                meshLoaded: false,
-                babylonSPS: null as any,
-            },
-            active: true,
-        };
+				case "png":
+				case "jpg":
+				case "jpeg":
+				case "svg":
+				case "webp":
+				case "bmp":
+					// Textures are now handled by EditorParticleSystemInspector
+					toast.info("Textures can be assigned through the particle system inspector");
+					break;
 
-        // Load mesh using existing import function
-        try {
-            const result = await loadImportedSceneFile(this.state.scene, absolutePath);
-            
-            if (result && result.meshes.length > 0) {
-                // Use the first mesh as template
-                const templateMesh = result.meshes[0];
-                templateMesh.isVisible = false; // Hide template mesh
+				default:
+					toast.warning(`Unsupported file type: .${extension}`);
+					break;
+			}
+		} catch (error) {
+			console.error(`Error processing ${absolutePath}:`, error);
+			toast.error(`Failed to process ${absolutePath.split("/").pop()}`);
+		}
+	}
 
-                // Create Solid Particle System
-                const sps = new SolidParticleSystem(componentName, this.state.scene, {
-                    useModelMaterial: true
-                });
+	private async _createSPSFromMesh(absolutePath: string): Promise<void> {
+		if (!this.state.vfxData || !this.state.scene) return;
 
-                // Add shape to SPS
-                sps.addShape(templateMesh as any, component.properties.particleCount);
-                sps.buildMesh();
+		const fileName = absolutePath.split("/").pop() || "mesh";
+		const componentName = fileName.replace(/\.(glb|babylon)$/i, "");
 
-                // Initialize particles
-                sps.initParticles = () => {
-                    for (let i = 0; i < sps.nbParticles; i++) {
-                        const particle = sps.particles[i];
-                        particle.position = new Vector3(
-                            (Math.random() - 0.5) * 2,
-                            Math.random() * 0.5,
-                            (Math.random() - 0.5) * 2
-                        );
-                        particle.scaling = new Vector3(1, 1, 1);
-                        particle.rotation = new Vector3(0, 0, 0);
-                    }
-                };
+		const component = {
+			id: `sps_${Date.now()}`,
+			type: VFXNodeType.SOLID_PARTICLE_SYSTEM,
+			name: componentName,
+			position: { x: 100, y: 100 },
+			inputs: [],
+			outputs: [],
+			properties: {
+				...this._getDefaultProperties(VFXNodeType.SOLID_PARTICLE_SYSTEM),
+				filePath: absolutePath,
+				particleCount: 1,
+				useModelMaterial: true,
+				meshLoaded: false,
+				babylonSPS: null as any,
+			},
+			active: true,
+		};
 
-                sps.initParticles();
-                sps.setParticles();
+		// Load mesh using existing import function
+		try {
+			const result = await loadImportedSceneFile(this.state.scene, absolutePath);
 
-                // Store SPS in component properties
-                component.properties.babylonSPS = sps;
-                component.properties.meshLoaded = true;
+			if (result && result.meshes.length > 0) {
+				// Use the first mesh as template
+				const templateMesh = result.meshes[0];
+				templateMesh.isVisible = false; // Hide template mesh
 
-                const updatedVfxData = {
-                    ...this.state.vfxData,
-                    nodes: [...this.state.vfxData.nodes, component],
-                    modified: new Date().toISOString(),
-                };
+				// Create Solid Particle System
+				const sps = new SolidParticleSystem(componentName, this.state.scene, {
+					useModelMaterial: true,
+				});
+
+				// Add shape to SPS
+				sps.addShape(templateMesh as any, component.properties.particleCount);
+				sps.buildMesh();
+
+				// Initialize particles
+				sps.initParticles = () => {
+					for (let i = 0; i < sps.nbParticles; i++) {
+						const particle = sps.particles[i];
+						particle.position = new Vector3((Math.random() - 0.5) * 2, Math.random() * 0.5, (Math.random() - 0.5) * 2);
+						particle.scaling = new Vector3(1, 1, 1);
+						particle.rotation = new Vector3(0, 0, 0);
+					}
+				};
+
+				sps.initParticles();
+				sps.setParticles();
+
+				// Store SPS in component properties
+				component.properties.babylonSPS = sps;
+				component.properties.meshLoaded = true;
+
+				const updatedVfxData = {
+					...this.state.vfxData,
+					nodes: [...this.state.vfxData.nodes, component],
+					modified: new Date().toISOString(),
+				};
 
 				this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
 					this._updateComponents();
 					this._forceLayoutUpdate();
 				});
 				toast.success(`Created SPS component: ${componentName}`);
-            } else {
-                throw new Error("No meshes loaded from file");
-            }
-        } catch (error) {
-            console.error("Failed to create SPS from mesh:", error);
-            toast.error(`Failed to create SPS from ${fileName}`);
-        }
-    }
+			} else {
+				throw new Error("No meshes loaded from file");
+			}
+		} catch (error) {
+			console.error("Failed to create SPS from mesh:", error);
+			toast.error(`Failed to create SPS from ${fileName}`);
+		}
+	}
 
-    private async _createParticleSystemFromJSON(absolutePath: string): Promise<void> {
-        if (!this.state.vfxData || !this.state.scene) return;
+	private async _createParticleSystemFromJSON(absolutePath: string): Promise<void> {
+		if (!this.state.vfxData || !this.state.scene) return;
 
-        const fileName = absolutePath.split('/').pop() || 'particles';
-        const componentName = fileName.replace('.json', '');
+		const fileName = absolutePath.split("/").pop() || "particles";
+		const componentName = fileName.replace(".json", "");
 
-        const component = {
-            id: `particle_${Date.now()}`,
-            type: VFXNodeType.PARTICLE_SYSTEM,
-            name: componentName,
-            position: { x: 100, y: 100 },
-            inputs: [],
-            outputs: [],
-            properties: {
-                filePath: absolutePath,
-                babylonSystem: null as any,
-            },
-            active: true,
-        };
+		const component = {
+			id: `particle_${Date.now()}`,
+			type: VFXNodeType.PARTICLE_SYSTEM,
+			name: componentName,
+			position: { x: 100, y: 100 },
+			inputs: [],
+			outputs: [],
+			properties: {
+				filePath: absolutePath,
+				babylonSystem: null as any,
+			},
+			active: true,
+		};
 
-        // Load particle system using existing import function
-        try {
-            // Create a temporary mesh as emitter for the particle system
-            const tempMesh = MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, this.state.scene);
-            tempMesh.isVisible = false;
-            
-            // Load particle system using the existing function
-            const particleSystem = await loadImportedParticleSystemFileFromJSON(this.state.scene, tempMesh, absolutePath);
-            
-            if (particleSystem) {
-                // Update component properties
-                component.properties.babylonSystem = particleSystem;
+		// Load particle system using existing import function
+		try {
+			// Create a temporary mesh as emitter for the particle system
+			const tempMesh = MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, this.state.scene);
+			tempMesh.isVisible = false;
 
-                // Stop the particle system initially
-                particleSystem.stop();
+			// Load particle system using the existing function
+			const particleSystem = await loadImportedParticleSystemFileFromJSON(this.state.scene, tempMesh, absolutePath);
 
-                const updatedVfxData = {
-                    ...this.state.vfxData,
-                    nodes: [...this.state.vfxData.nodes, component],
-                    modified: new Date().toISOString(),
-                };
+			if (particleSystem) {
+				// Update component properties
+				component.properties.babylonSystem = particleSystem;
 
-                this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
+				// Stop the particle system initially
+				particleSystem.stop();
+
+				const updatedVfxData = {
+					...this.state.vfxData,
+					nodes: [...this.state.vfxData.nodes, component],
+					modified: new Date().toISOString(),
+				};
+
+				this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
 					this._updateComponents();
 					this._forceLayoutUpdate();
 				});
-                toast.success(`Created particle system: ${componentName}`);
-            } else {
-                throw new Error("Particle system not found after loading");
-            }
-        } catch (error) {
-            console.error("Failed to create particle system from JSON:", error);
-            toast.error(`Failed to create particle system from ${fileName}`);
-        }
-    }
+				toast.success(`Created particle system: ${componentName}`);
+			} else {
+				throw new Error("Particle system not found after loading");
+			}
+		} catch (error) {
+			console.error("Failed to create particle system from JSON:", error);
+			toast.error(`Failed to create particle system from ${fileName}`);
+		}
+	}
 
-    private async _createParticleSystemFromNPSS(absolutePath: string): Promise<void> {
-        if (!this.state.vfxData || !this.state.scene) return;
+	private async _createParticleSystemFromNPSS(absolutePath: string): Promise<void> {
+		if (!this.state.vfxData || !this.state.scene) return;
 
-        const fileName = absolutePath.split('/').pop() || 'particles';
-        const componentName = fileName.replace('.npss', '');
+		const fileName = absolutePath.split("/").pop() || "particles";
+		const componentName = fileName.replace(".npss", "");
 
-        const component = {
-            id: `particle_${Date.now()}`,
-            type: VFXNodeType.PARTICLE_SYSTEM,
-            name: componentName,
-            position: { x: 100, y: 100 },
-            inputs: [],
-            outputs: [],
-            properties: {
-                filePath: absolutePath,
-                isNPSS: true,
-                babylonSystem: null as any,
-            },
-            active: true,
-        };
+		const component = {
+			id: `particle_${Date.now()}`,
+			type: VFXNodeType.PARTICLE_SYSTEM,
+			name: componentName,
+			position: { x: 100, y: 100 },
+			inputs: [],
+			outputs: [],
+			properties: {
+				filePath: absolutePath,
+				isNPSS: true,
+				babylonSystem: null as any,
+			},
+			active: true,
+		};
 
-        // Load NPSS file using existing import function
-        try {
-            // Create a temporary mesh as emitter for the particle system
-            const tempMesh = MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, this.state.scene);
-            tempMesh.isVisible = false;
-            
-            // Load particle system using the existing function
-            await loadImportedParticleSystemFile(this.state.scene, tempMesh, absolutePath);
-            
-            // Find the created particle system
-            const particleSystem = this.state.scene.particleSystems.find(ps => ps.name.includes(componentName) || ps.name.includes(fileName.replace('.npss', '')));
-            
-            if (particleSystem) {
-                // Update component properties
-                component.properties.babylonSystem = particleSystem;
+		// Load NPSS file using existing import function
+		try {
+			// Create a temporary mesh as emitter for the particle system
+			const tempMesh = MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, this.state.scene);
+			tempMesh.isVisible = false;
 
-                // Stop the particle system initially
-                particleSystem.stop();
+			// Load particle system using the existing function
+			await loadImportedParticleSystemFile(this.state.scene, tempMesh, absolutePath);
 
-                const updatedVfxData = {
-                    ...this.state.vfxData,
-                    nodes: [...this.state.vfxData.nodes, component],
-                    modified: new Date().toISOString(),
-                };
+			// Find the created particle system
+			const particleSystem = this.state.scene.particleSystems.find((ps) => ps.name.includes(componentName) || ps.name.includes(fileName.replace(".npss", "")));
 
-                this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
+			if (particleSystem) {
+				// Update component properties
+				component.properties.babylonSystem = particleSystem;
+
+				// Stop the particle system initially
+				particleSystem.stop();
+
+				const updatedVfxData = {
+					...this.state.vfxData,
+					nodes: [...this.state.vfxData.nodes, component],
+					modified: new Date().toISOString(),
+				};
+
+				this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
 					this._updateComponents();
 					this._forceLayoutUpdate();
 				});
-                toast.success(`Created NPSS particle system: ${componentName}`);
-            } else {
-                throw new Error("Particle system not found after loading");
-            }
-        } catch (error) {
-            console.error("Failed to create NPSS particle system:", error);
-            toast.error(`Failed to create NPSS particle system from ${fileName}`);
-        }
-    }
+				toast.success(`Created NPSS particle system: ${componentName}`);
+			} else {
+				throw new Error("Particle system not found after loading");
+			}
+		} catch (error) {
+			console.error("Failed to create NPSS particle system:", error);
+			toast.error(`Failed to create NPSS particle system from ${fileName}`);
+		}
+	}
 
 	private _removeComponent(id: string): void {
 		if (!this.state.vfxData) return;
 
 		const updatedVfxData = {
 			...this.state.vfxData,
-			nodes: this.state.vfxData.nodes.filter(n => n.id !== id),
-			connections: this.state.vfxData.connections.filter(c => c.fromNodeId !== id && c.toNodeId !== id),
+			nodes: this.state.vfxData.nodes.filter((n) => n.id !== id),
+			connections: this.state.vfxData.connections.filter((c) => c.fromNodeId !== id && c.toNodeId !== id),
 			modified: new Date().toISOString(),
 		};
 
-		this.setState({ 
-			vfxData: updatedVfxData,
-			selectedComponent: this.state.selectedComponent?.id === id ? null : this.state.selectedComponent
-		}, () => {
-			this._updateComponents();
-			this._forceLayoutUpdate();
-		});
+		this.setState(
+			{
+				vfxData: updatedVfxData,
+				selectedComponent: this.state.selectedComponent?.id === id ? null : this.state.selectedComponent,
+			},
+			() => {
+				this._updateComponents();
+				this._forceLayoutUpdate();
+			}
+		);
 		toast.info("Component removed");
 	}
 
@@ -762,7 +716,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					duration: 1000,
 					loop: false,
 					property: "position",
-					keys: []
+					keys: [],
 				};
 			default:
 				return {};

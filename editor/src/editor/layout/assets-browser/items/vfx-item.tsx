@@ -112,5 +112,4 @@ export class AssetBrowserVFXItem extends AssetsBrowserItem {
 			this.props.editor.layout.assets.setSelectedFile(newAbsolutePath);
 		});
 	}
-
 }

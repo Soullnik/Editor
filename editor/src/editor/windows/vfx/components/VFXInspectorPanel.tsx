@@ -37,28 +37,25 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 			const mockEditor = {
 				layout: {
 					preview: {
-						scene: this.props.scene
+						scene: this.props.scene,
 					},
 					graph: {
 						refresh: () => {
 							// Mock refresh function - does nothing in VFX context
 							console.log("Graph refresh called (mock)");
-						}
-					}
+						},
+					},
 				},
 				path: null,
 				state: {
-					projectPath: null
-				}
+					projectPath: null,
+				},
 			};
 
 			return (
 				<div className="flex flex-col w-full h-full">
 					<div className="flex-1 overflow-auto">
-						<EditorParticleSystemInspector 
-							editor={mockEditor as any}
-							object={component.properties.babylonSystem}
-						/>
+						<EditorParticleSystemInspector editor={mockEditor as any} object={component.properties.babylonSystem} />
 					</div>
 				</div>
 			);
@@ -71,19 +68,12 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 					{/* Basic Properties */}
 					<div className="space-y-2">
 						<Label className="text-xs font-medium">Name</Label>
-						<Input
-							value={component.name}
-							onChange={(e) => this.props.onComponentPropertyUpdate('name', e.target.value)}
-							className="h-8 text-xs"
-						/>
+						<Input value={component.name} onChange={(e) => this.props.onComponentPropertyUpdate("name", e.target.value)} className="h-8 text-xs" />
 					</div>
 
 					<div className="space-y-2">
 						<Label className="text-xs font-medium">Active</Label>
-						<Switch
-							checked={component.active}
-							onCheckedChange={(checked) => this.props.onComponentPropertyUpdate('active', checked)}
-						/>
+						<Switch checked={component.active} onCheckedChange={(checked) => this.props.onComponentPropertyUpdate("active", checked)} />
 					</div>
 
 					{/* Component-specific properties */}
@@ -94,7 +84,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 								<Input
 									type="number"
 									value={properties.particleCount || 100}
-									onChange={(e) => this.props.onPropertyUpdate('particleCount', parseInt(e.target.value))}
+									onChange={(e) => this.props.onPropertyUpdate("particleCount", parseInt(e.target.value))}
 									className="h-8 text-xs"
 								/>
 							</div>
@@ -105,12 +95,10 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 									max={1.0}
 									step={0.01}
 									value={[properties.size || 0.1]}
-									onValueChange={(value) => this.props.onPropertyUpdate('size', value[0])}
+									onValueChange={(value) => this.props.onPropertyUpdate("size", value[0])}
 									className="w-full"
 								/>
-								<div className="text-xs text-muted-foreground text-center">
-									{properties.size || 0.1}
-								</div>
+								<div className="text-xs text-muted-foreground text-center">{properties.size || 0.1}</div>
 							</div>
 						</>
 					)}

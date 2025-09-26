@@ -1121,12 +1121,12 @@ export class EditorAssetsBrowser extends Component<IEditorAssetsBrowserProps, IE
 				duration: 5000,
 				loop: false,
 				preview: true,
-				quality: 'medium'
+				quality: "medium",
 			},
 			created: new Date().toISOString(),
 			modified: new Date().toISOString(),
 			author: "Editor",
-			tags: ["vfx", "effect"]
+			tags: ["vfx", "effect"],
 		};
 
 		await writeJSON(join(this.state.browsedPath, name), vfxData, {
