@@ -81,12 +81,11 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
                     {/* Canvas as background */}
 					<canvas
 						ref={(r) => (this._canvasRef = r)}
-						className="absolute inset-0 w-full h-full bg-background"
-						style={{ zIndex: 1 }}
+						className="absolute inset-0 w-full h-full bg-background z-0"
 					/>
                     
 					<ToolbarComponent>
-						<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ zIndex: 20 }}>
+						<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1">
 							<div className="flex items-center gap-1 font-semibold text-lg select-none">
 								VFX Editor
 								<div className="text-sm font-thin">(...{this.props.filePath.substring(this.props.filePath.length - 30)})</div>
@@ -95,7 +94,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					</ToolbarComponent>
 
 					{/* Toolbar */}
-					<div className="flex justify-between items-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border" style={{ zIndex: 20 }}>
+					<div className="flex justify-between items-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border z-1">
 						<div className="flex gap-2 items-center pl-3">
 							<Button
 								variant="ghost"
@@ -135,14 +134,14 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					
 
 					{/* UI Panels over canvas */}
-					<div className="flex flex-1 w-full h-full relative" style={{ zIndex: 10 }}>
+					<div className="flex flex-1 w-full h-full relative z-1 pointer-events-none">
 						{/* Left Panel - Components List */}
 						<div className="w-80 border-r border-border bg-primary-foreground/95 backdrop-blur-sm pointer-events-auto">
 							{this._renderComponentsList()}
 						</div>
 
 						{/* Center Panel - Empty space for preview */}
-						<div className="flex-1 flex flex-col pointer-events-none">
+						<div className="flex-1 flex flex-col">
 							{/* Empty space - canvas shows through */}
 						</div>
 
