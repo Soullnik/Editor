@@ -4,6 +4,7 @@ import { readJSON, writeJSON, pathExists } from "fs-extra";
 import { toast } from "sonner";
 
 import { Component, ReactNode } from "react";
+import { Actions, IJsonModel, Layout, Model, TabNode } from "flexlayout-react";
 
 import { 
 	Engine, 
@@ -12,36 +13,27 @@ import {
 	Vector3, 
 	Color3, 
 	Color4,
-	MeshBuilder
+	MeshBuilder,
+	SolidParticleSystem
 } from "babylonjs";
 
 import { ToolbarComponent } from "../../../ui/toolbar";
 import { Button } from "../../../ui/shadcn/ui/button";
-import { Input } from "../../../ui/shadcn/ui/input";
-import { Label } from "../../../ui/shadcn/ui/label";
-import { Slider } from "../../../ui/shadcn/ui/slider";
-import { Switch } from "../../../ui/shadcn/ui/switch";
-import {
-	ContextMenu,
-	ContextMenuItem,
-	ContextMenuContent,
-	ContextMenuTrigger,
-	ContextMenuSeparator,
-	ContextMenuSub,
-	ContextMenuSubTrigger,
-	ContextMenuSubContent,
-} from "../../../ui/shadcn/ui/context-menu";
 
 import { Toaster } from "../../../ui/shadcn/ui/sonner";
 
 import { waitNextAnimationFrame } from "../../../tools/tools";
+import { loadImportedParticleSystemFile, loadImportedParticleSystemFileFromJSON } from "../../layout/preview/import/particles";
+import { loadImportedSceneFile } from "../../layout/preview/import/import";
 
 import { IVFXFile, VFXNodeType } from "../../layout/assets-browser/items/vfx-types";
 
-import { FaMagic, FaPlay, FaStop } from "react-icons/fa";
-import { GiSparkles } from "react-icons/gi";
-import { MdOutlineQuestionMark } from "react-icons/md";
+import { FaPlay, FaStop } from "react-icons/fa";
 import { GridMaterial } from "babylonjs-materials";
+
+import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel } from "./components";
+
+import layoutModel from "./layout.json";
 
 export interface IVFXEditorWindowProps {
 	filePath: string;
@@ -59,6 +51,9 @@ export interface IVFXEditorWindowState {
 
 export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IVFXEditorWindowState> {
 	private _canvasRef: HTMLCanvasElement | null = null;
+	private _layoutRef: Layout | null = null;
+	private _model: Model = Model.fromJson(layoutModel as any);
+	private _components: Record<string, React.ReactNode> = {};
 
 	public constructor(props: IVFXEditorWindowProps) {
 		super(props);
@@ -72,18 +67,26 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			camera: null,
 			search: "",
 		};
+
+		// Try to load saved layout
+		try {
+			const layoutData = JSON.parse(localStorage.getItem("vfx-editor-layout") as string);
+			if (layoutData.version === "1.0.0") {
+				this._model = Model.fromJson(layoutData);
+			}
+		} catch (e) {
+			// Use default layout
+			this._model = Model.fromJson(layoutModel as any);
+		}
+
+		// Initialize components
+		this._initializeComponents();
 	}
 
 	public render(): ReactNode {
 		return (
 			<>
 				<div className="flex flex-col w-screen h-screen">
-                    {/* Canvas as background */}
-					<canvas
-						ref={(r) => (this._canvasRef = r)}
-						className="absolute inset-0 w-full h-full bg-background z-0"
-					/>
-                    
 					<ToolbarComponent>
 						<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1">
 							<div className="flex items-center gap-1 font-semibold text-lg select-none">
@@ -131,24 +134,14 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 						</div>
 					</div>
 
-					
-
-					{/* UI Panels over canvas */}
-					<div className="flex flex-1 w-full h-full relative z-1 pointer-events-none">
-						{/* Left Panel - Components List */}
-						<div className="w-80 border-r border-border bg-primary-foreground/95 backdrop-blur-sm pointer-events-auto">
-							{this._renderComponentsList()}
-						</div>
-
-						{/* Center Panel - Empty space for preview */}
-						<div className="flex-1 flex flex-col">
-							{/* Empty space - canvas shows through */}
-						</div>
-
-						{/* Right Panel - Inspector */}
-						<div className="w-80 border-l border-border bg-primary-foreground/95 backdrop-blur-sm pointer-events-auto">
-							{this._renderInspector()}
-						</div>
+					{/* FlexLayout */}
+					<div className="flex-1 w-full h-full">
+						<Layout 
+							model={this._model} 
+							ref={(r) => (this._layoutRef = r)} 
+							factory={(n) => this._layoutFactory(n)} 
+							onModelChange={(m) => this._saveLayout(m)} 
+						/>
 					</div>
 				</div>
 
@@ -231,10 +224,11 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			}
 		}
 
-		// Initialize Babylon.js scene
-		await this._initializeBabylon();
+		await this._initializeScene();
 
-		// Setup IPC listeners
+		// Update components after scene initialization
+		this._updateComponents();
+
 		ipcRenderer.on("save", () => this._save());
 		ipcRenderer.on("editor:close-window", () => this.close());
 
@@ -250,7 +244,69 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		}
 	}
 
-	private async _initializeBabylon(): Promise<void> {
+	private _initializeComponents(): void {
+		this._updateComponents();
+	}
+
+	private _updateComponents(): void {
+		this._components = {
+			components: (
+				<VFXComponentsPanel
+					vfxData={this.state.vfxData}
+					search={this.state.search}
+					selectedComponent={this.state.selectedComponent}
+					onSearchChange={(search) => this.setState({ search }, () => this._updateComponents())}
+					onComponentSelect={(component) => this.setState({ selectedComponent: component }, () => this._updateComponents())}
+					onComponentRemove={(id) => this._removeComponent(id)}
+					onDrop={(ev) => this._handleDrop(ev)}
+				/>
+			),
+			preview: (
+				<VFXPreviewPanel
+					scene={this.state.scene}
+					engine={this.state.engine}
+					camera={this.state.camera}
+					onCanvasRef={(canvas) => (this._canvasRef = canvas)}
+				/>
+			),
+			inspector: (
+				<VFXInspectorPanel
+					selectedComponent={this.state.selectedComponent}
+					onComponentPropertyUpdate={(property, value) => this._updateComponentProperty(property, value)}
+					onPropertyUpdate={(property, value) => this._updateProperty(property, value)}
+				/>
+			),
+		};
+	}
+
+	private _layoutFactory(node: TabNode): ReactNode {
+		const componentName = node.getComponent();
+		if (!componentName) {
+			return <div>Error, see console...</div>;
+		}
+
+		const component = this._components[componentName];
+		if (!component) {
+			setTimeout(() => {
+				this._layoutRef?.props.model.doAction(Actions.deleteTab(componentName));
+			}, 0);
+
+			return <div>Error, see console...</div>;
+		}
+
+		return component;
+	}
+
+	private _saveLayout(model: Model): void {
+		const layoutData = model.toJson() as IJsonModel & {
+			version: string;
+		};
+
+		layoutData.version = "1.0.0";
+		localStorage.setItem("vfx-editor-layout", JSON.stringify(layoutData));
+	}
+
+	private async _initializeScene(): Promise<void> {
 		if (!this._canvasRef) return;
 
 		const engine = new Engine(this._canvasRef, true);
@@ -258,7 +314,6 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		scene.clearColor = new Color4(0.1, 0.1, 0.1, 1.0);
 		scene.ambientColor = new Color3(1, 1, 1);
 
-		// Camera
 		const camera = new ArcRotateCamera("Camera", 0, 0.8, 4, Vector3.Zero(), scene);
 		camera.doNotSerialize = true;
 		camera.lowerRadiusLimit = 3;
@@ -270,14 +325,6 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		camera.wheelDeltaPercentage = 0.01;
 		camera.pinchDeltaPercentage = 0.01;
 
-		// // Lights
-		// const hemisphericLight = new HemisphericLight("hemisphericLight", new Vector3(0, 1, 0), scene);
-		// hemisphericLight.intensity = 0.6;
-
-		// const directionalLight = new DirectionalLight("directionalLight", new Vector3(-1, -1, -1), scene);
-		// directionalLight.intensity = 0.4;
-
-		// Ground
         const groundMaterial = new GridMaterial("groundMaterial", scene);
         groundMaterial.majorUnitFrequency = 2;
         groundMaterial.minorUnitVisibility = 0.1;
@@ -291,251 +338,39 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
         const ground = MeshBuilder.CreateGround("ground", { width: 100, height: 100 }, scene);
         ground.material = groundMaterial;
 
-		// Render loop
 		engine.runRenderLoop(() => {
 			engine.resize();
+			
+			// Update SPS particles
+			if (this.state.vfxData) {
+				this.state.vfxData.nodes.forEach(node => {
+					if (node.type === VFXNodeType.SOLID_PARTICLE_SYSTEM && node.properties.babylonSPS) {
+						node.properties.babylonSPS.setParticles();
+					}
+				});
+			}
+			
 			scene.render();
 		});
 
 		this.setState({ engine, scene, camera });
 	}
 
-	private _renderComponentsList(): ReactNode {
-		return (
-			<div className="flex flex-col w-full h-full">
-				{/* Header */}
-				<div className="flex items-center justify-between p-3 border-b border-border">
-					<h3 className="font-semibold text-sm">Components</h3>
-				</div>
 
-				{/* Search */}
-				<div className="p-3 border-b border-border">
-					<Input
-						placeholder="Search components..."
-						value={this.state.search}
-						onChange={(e) => this.setState({ search: e.target.value })}
-						className="h-8 text-xs"
-					/>
-				</div>
-
-				{/* Components List */}
-				<ContextMenu>
-					<ContextMenuTrigger>
-						<div className="flex-1 flex flex-col">
-							{/* Components */}
-							<div className="flex-shrink-0">
-								{this._getFilteredComponents().map((component) => (
-									<ContextMenu key={component.id}>
-										<ContextMenuTrigger>
-											<div
-												className={`
-													flex items-center gap-2 p-2 cursor-pointer hover:bg-primary/10 transition-colors duration-200
-													${this.state.selectedComponent?.id === component.id ? 'bg-primary/20' : ''}
-												`}
-												onClick={() => this.setState({ selectedComponent: component })}
-											>
-												<div className={`w-3 h-3 rounded-full ${component.active ? 'bg-green-500' : 'bg-gray-400'}`} />
-												{this._getComponentIcon(component.type)}
-												<div className="flex-1 min-w-0">
-													<div className="text-sm font-medium truncate">{component.name}</div>
-													<div className="text-xs text-muted-foreground truncate">{component.type}</div>
-												</div>
-											</div>
-										</ContextMenuTrigger>
-										<ContextMenuContent>
-											<ContextMenuItem onClick={() => this.setState({ selectedComponent: component })}>
-												Select
-											</ContextMenuItem>
-											<ContextMenuSeparator />
-											<ContextMenuItem 
-												onClick={() => this._removeComponent(component.id)}
-												className="text-red-500"
-											>
-												Delete
-											</ContextMenuItem>
-										</ContextMenuContent>
-									</ContextMenu>
-								))}
-							</div>
-
-							{/* Empty space for right-click */}
-							<div className="flex-1 min-h-[300px] flex flex-col items-center justify-center text-muted-foreground">
-								{!this._getFilteredComponents().length && (
-									<>
-										<FaMagic className="w-8 h-8 mb-2" />
-										<div className="text-sm">No components found</div>
-										<div className="text-xs">Right-click to add components</div>
-									</>
-								)}
-							</div>
-						</div>
-					</ContextMenuTrigger>
-					<ContextMenuContent>
-						<ContextMenuSub>
-							<ContextMenuSubTrigger className="flex items-center gap-2">
-								<GiSparkles className="w-4 h-4" /> Particle Systems
-							</ContextMenuSubTrigger>
-							<ContextMenuSubContent>
-								<ContextMenuItem onClick={() => this._addComponent(VFXNodeType.PARTICLE_SYSTEM)}>
-									Particle System
-								</ContextMenuItem>
-								<ContextMenuItem onClick={() => this._addComponent(VFXNodeType.SOLID_PARTICLE_SYSTEM)}>
-									Solid Particle System
-								</ContextMenuItem>
-							</ContextMenuSubContent>
-						</ContextMenuSub>
-						<ContextMenuSeparator />
-						<ContextMenuItem onClick={() => this._addComponent(VFXNodeType.ANIMATION)}>
-							<FaMagic className="w-4 h-4 mr-2" /> Animation
-						</ContextMenuItem>
-					</ContextMenuContent>
-				</ContextMenu>
-			</div>
-		);
-	}
-
-	private _renderInspector(): ReactNode {
-		if (!this.state.selectedComponent) {
-			return (
-				<div className="flex flex-col w-full h-full">
-					<div className="p-3 border-b border-border">
-						<h3 className="font-semibold text-sm">Properties</h3>
-					</div>
-					<div className="flex-1 flex items-center justify-center text-muted-foreground">
-						<div className="text-center">
-							<div className="text-sm">No component selected</div>
-							<div className="text-xs">Select a component to edit its properties</div>
-						</div>
-					</div>
-				</div>
-			);
-		}
-
-		const component = this.state.selectedComponent;
-		const properties = component.properties || {};
-
-		return (
-			<div className="flex flex-col w-full h-full">
-				<div className="p-3 border-b border-border">
-					<h3 className="font-semibold text-sm">Properties</h3>
-					<div className="text-xs text-muted-foreground mt-1">
-						{component.type}
-					</div>
-				</div>
-
-				<div className="flex-1 overflow-auto p-3 space-y-4">
-					{/* Basic Properties */}
-					<div className="space-y-2">
-						<Label className="text-xs font-medium">Name</Label>
-						<Input
-							value={component.name}
-							onChange={(e) => this._updateComponentProperty('name', e.target.value)}
-							className="h-8 text-xs"
-						/>
-					</div>
-
-					<div className="space-y-2">
-						<Label className="text-xs font-medium">Active</Label>
-						<Switch
-							checked={component.active}
-							onCheckedChange={(checked) => this._updateComponentProperty('active', checked)}
-						/>
-					</div>
-
-					{/* Component-specific properties */}
-					{component.type === VFXNodeType.SOLID_PARTICLE_SYSTEM && (
-						<>
-							<div className="space-y-2">
-								<Label className="text-xs font-medium">Particle Count</Label>
-								<Input
-									type="number"
-									value={properties.particleCount || 100}
-									onChange={(e) => this._updateProperty('particleCount', parseInt(e.target.value))}
-									className="h-8 text-xs"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label className="text-xs font-medium">Size</Label>
-								<Slider
-									min={0.01}
-									max={1.0}
-									step={0.01}
-									value={[properties.size || 0.1]}
-									onValueChange={(value) => this._updateProperty('size', value[0])}
-									className="w-full"
-								/>
-								<div className="text-xs text-muted-foreground text-center">
-									{properties.size || 0.1}
-								</div>
-							</div>
-						</>
-					)}
-
-					{component.type === VFXNodeType.PARTICLE_SYSTEM && (
-						<>
-							<div className="space-y-2">
-								<Label className="text-xs font-medium">Emit Rate</Label>
-								<Input
-									type="number"
-									value={properties.emitRate || 100}
-									onChange={(e) => this._updateProperty('emitRate', parseInt(e.target.value))}
-									className="h-8 text-xs"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label className="text-xs font-medium">Particle Life Time</Label>
-								<Slider
-									min={0.1}
-									max={10.0}
-									step={0.1}
-									value={[properties.particleLifeTime || 2.0]}
-									onValueChange={(value) => this._updateProperty('particleLifeTime', value[0])}
-									className="w-full"
-								/>
-								<div className="text-xs text-muted-foreground text-center">
-									{properties.particleLifeTime || 2.0}s
-								</div>
-							</div>
-						</>
-					)}
-				</div>
-			</div>
-		);
-	}
 
 	public close(): void {
 		ipcRenderer.send("window:close");
 	}
 
-	private _getFilteredComponents() {
-		if (!this.state.vfxData) {
-			return [];
-		}
-
-		return this.state.vfxData.nodes.filter(component => 
-			component.name.toLowerCase().includes(this.state.search.toLowerCase()) ||
-			component.type.toLowerCase().includes(this.state.search.toLowerCase())
-		);
-	}
-
-	private _getComponentIcon(type: VFXNodeType): ReactNode {
-		switch (type) {
-			case VFXNodeType.PARTICLE_SYSTEM:
-			case VFXNodeType.SOLID_PARTICLE_SYSTEM:
-				return <GiSparkles className="w-4 h-4 text-yellow-500" />;
-			case VFXNodeType.ANIMATION:
-				return <FaMagic className="w-4 h-4 text-green-500" />;
-			default:
-				return <MdOutlineQuestionMark className="w-4 h-4 text-gray-500" />;
-		}
-	}
 
 	private _updateComponentProperty(property: string, value: any): void {
 		const updatedComponent = {
 			...this.state.selectedComponent,
 			[property]: value
 		};
-		this.setState({ selectedComponent: updatedComponent });
+		this.setState({ selectedComponent: updatedComponent }, () => {
+			this._updateComponents();
+		});
 	}
 
 	private _updateProperty(property: string, value: any): void {
@@ -546,18 +381,41 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 				[property]: value
 			}
 		};
-		this.setState({ selectedComponent: updatedComponent });
+		this.setState({ selectedComponent: updatedComponent }, () => {
+			this._updateComponents();
+		});
 	}
 
 	private _play(): void {
+		if (!this.state.vfxData) return;
+
 		this.setState({ playing: true });
-		// TODO: Implement VFX playback
+
+		// Start all particle systems and SPS
+		this.state.vfxData.nodes.forEach(node => {
+			if (node.active) {
+				if (node.type === VFXNodeType.PARTICLE_SYSTEM && node.properties.babylonSystem) {
+					node.properties.babylonSystem.start();
+				}
+				// SPS doesn't need start/stop, it's always running
+			}
+		});
+
 		toast.success("VFX playback started");
 	}
 
 	private _stop(): void {
+		if (!this.state.vfxData) return;
+
 		this.setState({ playing: false });
-		// TODO: Implement VFX stop
+
+		// Stop all particle systems
+		this.state.vfxData.nodes.forEach(node => {
+			if (node.type === VFXNodeType.PARTICLE_SYSTEM && node.properties.babylonSystem) {
+				node.properties.babylonSystem.stop();
+			}
+		});
+
 		toast.info("VFX playback stopped");
 	}
 
@@ -576,29 +434,290 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		}
 	}
 
-	private _addComponent(type: VFXNodeType): void {
-		if (!this.state.vfxData) return;
-
-		const component = {
-			id: `component_${Date.now()}`,
-			type: type,
-			name: `${type}_${this.state.vfxData.nodes.length + 1}`,
-			position: { x: 100, y: 100 },
-			inputs: [],
-			outputs: [],
-			properties: this._getDefaultProperties(type),
-			active: true,
-		};
-
-		const updatedVfxData = {
-			...this.state.vfxData,
-			nodes: [...this.state.vfxData.nodes, component],
-			modified: new Date().toISOString(),
-		};
-
-		this.setState({ vfxData: updatedVfxData });
-		toast.success(`Added ${type} component`);
+	private _handleDrop(ev: React.DragEvent<HTMLDivElement>): void {
+        const assets = ev.dataTransfer.getData("assets");
+        if (assets) {
+            return this._handleAssetsDropped(ev);
+        }
 	}
+
+    private _handleAssetsDropped(ev: React.DragEvent<HTMLDivElement>): void {
+        const assets = ev.dataTransfer.getData("assets");
+        if (!assets) {
+            return;
+        }
+        try {
+            const assetPaths = JSON.parse(assets) as string[];
+            assetPaths.forEach(async (absolutePath) => {
+                await this._processAssetFile(absolutePath);
+            });
+        } catch (error) {
+            console.error("Failed to parse dropped assets:", error);
+            toast.error("Failed to process dropped assets");
+        }
+    }
+
+    private async _processAssetFile(absolutePath: string): Promise<void> {
+        if (!this.state.vfxData || !this.state.scene) return;
+
+        const extension = absolutePath.toLowerCase().split('.').pop();
+        if (!extension) return;
+
+        try {
+            switch (extension) {
+                case "glb":
+                case "babylon":
+                    await this._createSPSFromMesh(absolutePath);
+                    break;
+                
+                case "json":
+                    await this._createParticleSystemFromJSON(absolutePath);
+                    break;
+                
+                case "npss":
+                    await this._createParticleSystemFromNPSS(absolutePath);
+                    break;
+                
+                case "png":
+                case "jpg":
+                case "jpeg":
+                case "svg":
+                case "webp":
+                case "bmp":
+                    // Textures are now handled by EditorParticleSystemInspector
+                    toast.info("Textures can be assigned through the particle system inspector");
+                    break;
+                
+                default:
+                    toast.warning(`Unsupported file type: .${extension}`);
+                    break;
+            }
+        } catch (error) {
+            console.error(`Error processing ${absolutePath}:`, error);
+            toast.error(`Failed to process ${absolutePath.split('/').pop()}`);
+        }
+    }
+
+    private async _createSPSFromMesh(absolutePath: string): Promise<void> {
+        if (!this.state.vfxData || !this.state.scene) return;
+
+        const fileName = absolutePath.split('/').pop() || 'mesh';
+        const componentName = fileName.replace(/\.(glb|babylon)$/i, '');
+
+        const component = {
+            id: `sps_${Date.now()}`,
+            type: VFXNodeType.SOLID_PARTICLE_SYSTEM,
+            name: componentName,
+            position: { x: 100, y: 100 },
+            inputs: [],
+            outputs: [],
+            properties: {
+                ...this._getDefaultProperties(VFXNodeType.SOLID_PARTICLE_SYSTEM),
+                filePath: absolutePath,
+                particleCount: 1,
+                useModelMaterial: true,
+                meshLoaded: false,
+                babylonSPS: null as any,
+            },
+            active: true,
+        };
+
+        // Load mesh using existing import function
+        try {
+            const result = await loadImportedSceneFile(this.state.scene, absolutePath);
+            
+            if (result && result.meshes.length > 0) {
+                // Use the first mesh as template
+                const templateMesh = result.meshes[0];
+                templateMesh.isVisible = false; // Hide template mesh
+
+                // Create Solid Particle System
+                const sps = new SolidParticleSystem(componentName, this.state.scene, {
+                    useModelMaterial: true
+                });
+
+                // Add shape to SPS
+                sps.addShape(templateMesh as any, component.properties.particleCount);
+                sps.buildMesh();
+
+                // Initialize particles
+                sps.initParticles = () => {
+                    for (let i = 0; i < sps.nbParticles; i++) {
+                        const particle = sps.particles[i];
+                        particle.position = new Vector3(
+                            (Math.random() - 0.5) * 2,
+                            Math.random() * 0.5,
+                            (Math.random() - 0.5) * 2
+                        );
+                        particle.scaling = new Vector3(1, 1, 1);
+                        particle.rotation = new Vector3(0, 0, 0);
+                    }
+                };
+
+                sps.initParticles();
+                sps.setParticles();
+
+                // Store SPS in component properties
+                component.properties.babylonSPS = sps;
+                component.properties.meshLoaded = true;
+
+                const updatedVfxData = {
+                    ...this.state.vfxData,
+                    nodes: [...this.state.vfxData.nodes, component],
+                    modified: new Date().toISOString(),
+                };
+
+				this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
+					this._updateComponents();
+				});
+				toast.success(`Created SPS component: ${componentName}`);
+            } else {
+                throw new Error("No meshes loaded from file");
+            }
+        } catch (error) {
+            console.error("Failed to create SPS from mesh:", error);
+            toast.error(`Failed to create SPS from ${fileName}`);
+        }
+    }
+
+    private async _createParticleSystemFromJSON(absolutePath: string): Promise<void> {
+        if (!this.state.vfxData || !this.state.scene) return;
+
+        const fileName = absolutePath.split('/').pop() || 'particles';
+        const componentName = fileName.replace('.json', '');
+
+        const component = {
+            id: `particle_${Date.now()}`,
+            type: VFXNodeType.PARTICLE_SYSTEM,
+            name: componentName,
+            position: { x: 100, y: 100 },
+            inputs: [],
+            outputs: [],
+            properties: {
+                filePath: absolutePath,
+                babylonSystem: null as any,
+            },
+            active: true,
+        };
+
+        // Load particle system using existing import function
+        try {
+            // Create a temporary mesh as emitter for the particle system
+            const tempMesh = MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, this.state.scene);
+            tempMesh.isVisible = false;
+            
+            // Load particle system using the existing function
+            const particleSystem = await loadImportedParticleSystemFileFromJSON(this.state.scene, tempMesh, absolutePath);
+            
+            if (particleSystem) {
+                // Update component properties
+                component.properties.babylonSystem = particleSystem;
+
+                // Stop the particle system initially
+                particleSystem.stop();
+
+                const updatedVfxData = {
+                    ...this.state.vfxData,
+                    nodes: [...this.state.vfxData.nodes, component],
+                    modified: new Date().toISOString(),
+                };
+
+                this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
+					this._updateComponents();
+				});
+                toast.success(`Created particle system: ${componentName}`);
+            } else {
+                throw new Error("Particle system not found after loading");
+            }
+        } catch (error) {
+            console.error("Failed to create particle system from JSON:", error);
+            toast.error(`Failed to create particle system from ${fileName}`);
+        }
+    }
+
+    private async _createParticleSystemFromNPSS(absolutePath: string): Promise<void> {
+        if (!this.state.vfxData || !this.state.scene) return;
+
+        const fileName = absolutePath.split('/').pop() || 'particles';
+        const componentName = fileName.replace('.npss', '');
+
+        const component = {
+            id: `particle_${Date.now()}`,
+            type: VFXNodeType.PARTICLE_SYSTEM,
+            name: componentName,
+            position: { x: 100, y: 100 },
+            inputs: [],
+            outputs: [],
+            properties: {
+                filePath: absolutePath,
+                isNPSS: true,
+                babylonSystem: null as any,
+            },
+            active: true,
+        };
+
+        // Load NPSS file using existing import function
+        try {
+            // Create a temporary mesh as emitter for the particle system
+            const tempMesh = MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, this.state.scene);
+            tempMesh.isVisible = false;
+            
+            // Load particle system using the existing function
+            await loadImportedParticleSystemFile(this.state.scene, tempMesh, absolutePath);
+            
+            // Find the created particle system
+            const particleSystem = this.state.scene.particleSystems.find(ps => ps.name.includes(componentName) || ps.name.includes(fileName.replace('.npss', '')));
+            
+            if (particleSystem) {
+                // Update component properties
+                component.properties.babylonSystem = particleSystem;
+
+                // Stop the particle system initially
+                particleSystem.stop();
+
+                const updatedVfxData = {
+                    ...this.state.vfxData,
+                    nodes: [...this.state.vfxData.nodes, component],
+                    modified: new Date().toISOString(),
+                };
+
+                this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
+					this._updateComponents();
+				});
+                toast.success(`Created NPSS particle system: ${componentName}`);
+            } else {
+                throw new Error("Particle system not found after loading");
+            }
+        } catch (error) {
+            console.error("Failed to create NPSS particle system:", error);
+            toast.error(`Failed to create NPSS particle system from ${fileName}`);
+        }
+    }
+
+
+	// private _addComponent(type: VFXNodeType): void {
+	// 	if (!this.state.vfxData) return;
+
+	// 	const component = {
+	// 		id: `component_${Date.now()}`,
+	// 		type: type,
+	// 		name: `${type}_${this.state.vfxData.nodes.length + 1}`,
+	// 		position: { x: 100, y: 100 },
+	// 		inputs: [],
+	// 		outputs: [],
+	// 		properties: this._getDefaultProperties(type),
+	// 		active: true,
+	// 	};
+
+	// 	const updatedVfxData = {
+	// 		...this.state.vfxData,
+	// 		nodes: [...this.state.vfxData.nodes, component],
+	// 		modified: new Date().toISOString(),
+	// 	};
+
+	// 	this.setState({ vfxData: updatedVfxData });
+	// 	toast.success(`Added ${type} component`);
+	// }
 
 	private _removeComponent(id: string): void {
 		if (!this.state.vfxData) return;
@@ -613,6 +732,8 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		this.setState({ 
 			vfxData: updatedVfxData,
 			selectedComponent: this.state.selectedComponent?.id === id ? null : this.state.selectedComponent
+		}, () => {
+			this._updateComponents();
 		});
 		toast.info("Component removed");
 	}
@@ -637,22 +758,11 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			case VFXNodeType.SOLID_PARTICLE_SYSTEM:
 				return {
 					particleCount: 100,
-					meshType: "box",
 					size: 0.1,
-					color: { r: 1, g: 1, b: 1 },
-					position: { x: 0, y: 0, z: 0 },
-					rotation: { x: 0, y: 0, z: 0 },
-					scaling: { x: 1, y: 1, z: 1 }
 				};
 			case VFXNodeType.PARTICLE_SYSTEM:
 				return {
-					emitRate: 100,
-					particleLifeTime: 2.0,
-					particleSize: 0.1,
-					color1: { r: 1, g: 1, b: 1 },
-					color2: { r: 0, g: 0, b: 0 },
-					gravity: { x: 0, y: -9.81, z: 0 },
-					position: { x: 0, y: 0, z: 0 }
+					// Properties are now managed by EditorParticleSystemInspector
 				};
 			case VFXNodeType.ANIMATION:
 				return {

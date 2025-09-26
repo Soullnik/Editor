@@ -1,0 +1,58 @@
+{
+	"global": {
+		"tabSetEnableMaximize": true,
+		"tabEnableRename": false,
+		"tabSetMinHeight": 50,
+		"tabSetMinWidth": 240,
+		"enableEdgeDock": false
+	},
+	"layout": {
+		"type": "row",
+		"width": "100%",
+		"height": "100%",
+		"children": [
+			{
+				"type": "tabset",
+				"weight": 25,
+				"children": [
+					{
+						"type": "tab",
+						"id": "components",
+						"name": "Components",
+						"component": "components",
+						"enableClose": false,
+						"enableRenderOnDemand": false
+					}
+				]
+			},
+			{
+				"type": "tabset",
+				"weight": 50,
+				"children": [
+					{
+						"type": "tab",
+						"id": "preview",
+						"name": "Preview",
+						"component": "preview",
+						"enableClose": false,
+						"enableRenderOnDemand": false
+					}
+				]
+			},
+			{
+				"type": "tabset",
+				"weight": 25,
+				"children": [
+					{
+						"type": "tab",
+						"id": "inspector",
+						"name": "Properties",
+						"component": "inspector",
+						"enableClose": false,
+						"enableRenderOnDemand": false
+					}
+				]
+			}
+		]
+	}
+}
