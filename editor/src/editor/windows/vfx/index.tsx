@@ -694,31 +694,6 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
         }
     }
 
-
-	// private _addComponent(type: VFXNodeType): void {
-	// 	if (!this.state.vfxData) return;
-
-	// 	const component = {
-	// 		id: `component_${Date.now()}`,
-	// 		type: type,
-	// 		name: `${type}_${this.state.vfxData.nodes.length + 1}`,
-	// 		position: { x: 100, y: 100 },
-	// 		inputs: [],
-	// 		outputs: [],
-	// 		properties: this._getDefaultProperties(type),
-	// 		active: true,
-	// 	};
-
-	// 	const updatedVfxData = {
-	// 		...this.state.vfxData,
-	// 		nodes: [...this.state.vfxData.nodes, component],
-	// 		modified: new Date().toISOString(),
-	// 	};
-
-	// 	this.setState({ vfxData: updatedVfxData });
-	// 	toast.success(`Added ${type} component`);
-	// }
-
 	private _removeComponent(id: string): void {
 		if (!this.state.vfxData) return;
 
@@ -737,21 +712,6 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		});
 		toast.info("Component removed");
 	}
-
-	// private _updateComponent(component: any): void {
-	// 	if (!this.state.vfxData) return;
-
-	// 	const updatedVfxData = {
-	// 		...this.state.vfxData,
-	// 		nodes: this.state.vfxData.nodes.map(n => n.id === component.id ? component : n),
-	// 		modified: new Date().toISOString(),
-	// 	};
-
-	// 	this.setState({ 
-	// 		vfxData: updatedVfxData,
-	// 		selectedComponent: component
-	// 	});
-	// }
 
 	private _getDefaultProperties(type: VFXNodeType): Record<string, any> {
 		switch (type) {
