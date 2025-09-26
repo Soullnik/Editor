@@ -73,6 +73,8 @@ import { AssetBrowserMaterialItem } from "./assets-browser/items/material-item";
 import { AssetBrowserCinematicItem } from "./assets-browser/items/cinematic-item";
 import { AssetsBrowserItem, IAssetsBrowserItemProps } from "./assets-browser/items/item";
 import { AssetBrowserParticleSystemItem } from "./assets-browser/items/particle-system-item";
+import { AssetBrowserVFXItem } from "./assets-browser/items/vfx-item";
+import { IVFXFile } from "./assets-browser/items/vfx-types";
 
 import { listenGuiAssetsEvents } from "./assets-browser/events/gui";
 import { listenSceneAssetsEvents } from "./assets-browser/events/scene";
@@ -97,6 +99,7 @@ const SceneSelectable = createSelectable(AssetBrowserSceneItem);
 const MaterialSelectable = createSelectable(AssetBrowserMaterialItem);
 const CinematicSelectable = createSelectable(AssetBrowserCinematicItem);
 const ParticleSystemSelectable = createSelectable(AssetBrowserParticleSystemItem);
+const VFXSelectable = createSelectable(AssetBrowserVFXItem);
 
 export interface IEditorAssetsBrowserProps {
 	/**
@@ -775,6 +778,9 @@ export class EditorAssetsBrowser extends Component<IEditorAssetsBrowserProps, IE
 									<>
 										<ContextMenuSeparator />
 										<ContextMenuItem onClick={() => this._handleAddFullScreenGUI()}>Full Screen GUI</ContextMenuItem>
+										<ContextMenuSeparator />
+										<ContextMenuItem onClick={() => this._handleAddVFX()}>VFX</ContextMenuItem>
+										<ContextMenuSeparator />
 									</>
 								)}
 
@@ -859,6 +865,9 @@ export class EditorAssetsBrowser extends Component<IEditorAssetsBrowserProps, IE
 
 			case ".npss":
 				return <ParticleSystemSelectable {...props} />;
+
+			case ".vfx":
+				return <VFXSelectable {...props} />;
 
 			default:
 				return <DefaultSelectable {...props} />;
@@ -1093,6 +1102,37 @@ export class EditorAssetsBrowser extends Component<IEditorAssetsBrowserProps, IE
 		});
 
 		gui.dispose();
+
+		return this._refreshItems(this.state.browsedPath);
+	}
+	private async _handleAddVFX(): Promise<void> {
+		if (!this.state.browsedPath) {
+			return;
+		}
+
+		const name = await findAvailableFilename(this.state.browsedPath, "New VFX", ".vfx");
+		const vfxData: IVFXFile = {
+			name: "New VFX",
+			version: "1.0.0",
+			description: "A new VFX effect",
+			nodes: [],
+			connections: [],
+			settings: {
+				duration: 5000,
+				loop: false,
+				preview: true,
+				quality: 'medium'
+			},
+			created: new Date().toISOString(),
+			modified: new Date().toISOString(),
+			author: "Editor",
+			tags: ["vfx", "effect"]
+		};
+
+		await writeJSON(join(this.state.browsedPath, name), vfxData, {
+			spaces: "\t",
+			encoding: "utf-8",
+		});
 
 		return this._refreshItems(this.state.browsedPath);
 	}
