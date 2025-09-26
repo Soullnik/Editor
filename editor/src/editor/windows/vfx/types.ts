@@ -1,8 +1,8 @@
 /**
- * VFX File Types and Interfaces
+ * VFX Editor Types and Interfaces
  */
 
-import { ParticleSystem, GPUParticleSystem, SolidParticleSystem } from "babylonjs";
+import { ParticleSystem, GPUParticleSystem, SolidParticleSystem, Scene, Engine, ArcRotateCamera } from "babylonjs";
 
 // Base component interface
 export interface IVFXComponent {
@@ -64,55 +64,44 @@ export interface IVFXFile {
 	tags?: string[];
 }
 
-export enum VFXNodeType {
-	// Particle Systems
-	PARTICLE_SYSTEM = "particle_system",
-	SOLID_PARTICLE_SYSTEM = "solid_particle_system",
+// VFX Editor Window Props
+export interface IVFXEditorWindowProps {
+	filePath: string;
+}
 
-	// Emitters
-	MESH_EMITTER = "mesh_emitter",
-	POINT_EMITTER = "point_emitter",
-	BOX_EMITTER = "box_emitter",
-	SPHERE_EMITTER = "sphere_emitter",
+// VFX Editor Window State
+export interface IVFXEditorWindowState {
+	vfxData: IVFXFile | null;
+	selectedComponent: VFXComponent | null;
+	playing: boolean;
+	scene: Scene | null;
+	engine: Engine | null;
+	camera: ArcRotateCamera | null;
+	search: string;
+}
 
-	// Materials
-	MATERIAL = "material",
-	PBR_MATERIAL = "pbr_material",
-	STANDARD_MATERIAL = "standard_material",
+// VFX Editor Window Instance (for passing to child components)
+export interface IVFXEditorWindow {
+	state: IVFXEditorWindowState;
+	setState: (state: any) => void;
+	close: () => void;
+	removeComponent: (id: string) => void;
+	getAllComponents: () => VFXComponent[];
+	play: () => void;
+	stop: () => void;
+	save: () => Promise<void>;
+	canvasRef: HTMLCanvasElement | null;
+}
 
-	// Animation
-	ANIMATION = "animation",
-	KEYFRAME_ANIMATION = "keyframe_animation",
+// Component Panel Props
+export interface IVFXComponentsPanelProps {
+	vfxEditor: IVFXEditorWindow;
+}
 
-	// Lighting
-	LIGHT = "light",
-	DIRECTIONAL_LIGHT = "directional_light",
-	POINT_LIGHT = "point_light",
-	SPOT_LIGHT = "spot_light",
+export interface IVFXPreviewPanelProps {
+	vfxEditor: IVFXEditorWindow;
+}
 
-	// Sound
-	SOUND = "sound",
-	SPATIAL_SOUND = "spatial_sound",
-
-	// Logic
-	TRIGGER = "trigger",
-	DELAY = "delay",
-	BLEND = "blend",
-	MULTIPLY = "multiply",
-	ADD = "add",
-	SUBTRACT = "subtract",
-	CONDITION = "condition",
-	LOOP = "loop",
-	SEQUENCE = "sequence",
-
-	// Effects
-	POST_PROCESS = "post_process",
-	BLOOM = "bloom",
-	BLUR = "blur",
-	GLOW = "glow",
-
-	// Physics
-	PHYSICS = "physics",
-	COLLISION = "collision",
-	FORCE = "force",
+export interface IVFXInspectorPanelProps {
+	vfxEditor: IVFXEditorWindow;
 }
