@@ -27,11 +27,36 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	public canvasRef: HTMLCanvasElement | null = null;
 	private _layoutRef: Layout | null = null;
 	private _model: Model = Model.fromJson(layoutModel as unknown as IJsonModel);
-	private _components: Record<string, React.ReactNode> = {
-		components: <VFXComponentsPanel vfxEditor={this} />,
-		preview: <VFXPreviewPanel vfxEditor={this} />,
-		inspector: <VFXInspectorPanel vfxEditor={this} />,
-	};
+	private _getComponents(): Record<string, React.ReactNode> {
+		return {
+			components: (
+				<VFXComponentsPanel
+					vfxData={this.state.vfxData}
+					selectedComponent={this.state.selectedComponent}
+					search={this.state.search}
+					scene={this.state.scene}
+					onSearchChange={(search) => this.setState({ search })}
+					onComponentSelect={(component) => this.setState({ selectedComponent: component })}
+					onComponentRemove={(id) => this.removeComponent(id)}
+					onComponentAdded={(component) => this._addComponent(component)}
+				/>
+			),
+			preview: (
+				<VFXPreviewPanel
+					scene={this.state.scene}
+					engine={this.state.engine}
+					onCanvasRef={(canvas) => { this.canvasRef = canvas; }}
+				/>
+			),
+			inspector: (
+				<VFXInspectorPanel
+					selectedComponent={this.state.selectedComponent}
+					scene={this.state.scene}
+					onComponentPropertyUpdate={(component) => this.setState({ selectedComponent: component })}
+				/>
+			),
+		};
+	}
 
 	public constructor(props: IVFXEditorWindowProps) {
 		super(props);
@@ -171,7 +196,8 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			return <div>Error, see console...</div>;
 		}
 
-		const component = this._components[componentName];
+		const components = this._getComponents();
+		const component = components[componentName];
 		if (!component) {
 			setTimeout(() => {
 				this._layoutRef?.props.model.doAction(Actions.deleteTab(componentName));
@@ -295,6 +321,31 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			selectedComponent: this.state.selectedComponent?.id === id ? null : this.state.selectedComponent,
 		});
 		toast.info("Component removed");
+	}
+
+	private _addComponent(component: VFXComponent): void {
+		if (!this.state.vfxData) return;
+
+		const updatedVfxData = { ...this.state.vfxData };
+
+		// Add component to appropriate array based on type
+		switch (component.type) {
+			case "cpu_particle_system":
+				updatedVfxData.cpuParticles = [...this.state.vfxData.cpuParticles, component as any];
+				break;
+			case "gpu_particle_system":
+				updatedVfxData.gpuParticles = [...this.state.vfxData.gpuParticles, component as any];
+				break;
+			case "solid_particle_system":
+				updatedVfxData.sps = [...this.state.vfxData.sps, component as any];
+				break;
+			default:
+				console.warn(`Unknown component type: ${component.type}`);
+				return;
+		}
+
+		updatedVfxData.modified = new Date().toISOString();
+		this.setState({ vfxData: updatedVfxData, selectedComponent: component });
 	}
 
 	public getAllComponents(): VFXComponent[] {

@@ -9,7 +9,7 @@ import { EditorGPUParticleSystemInspector } from "../../../layout/inspector/part
 
 export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 	public render(): ReactNode {
-		const { selectedComponent, scene } = this.props.vfxEditor.state;
+		const { selectedComponent, scene } = this.props;
 		if (!selectedComponent) {
 			return (
 				<div className="flex flex-col w-full h-full">
@@ -80,7 +80,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 								value={component.name}
 								onChange={(e) => {
 									const updatedComponent = { ...component, name: e.target.value };
-									this.props.vfxEditor.setState({ selectedComponent: updatedComponent });
+									this.props.onComponentPropertyUpdate(updatedComponent);
 								}}
 								className="h-8 text-xs"
 							/>
@@ -92,7 +92,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 								checked={component.active}
 								onCheckedChange={(checked) => {
 									const updatedComponent = { ...component, active: checked };
-									this.props.vfxEditor.setState({ selectedComponent: updatedComponent });
+									this.props.onComponentPropertyUpdate(updatedComponent);
 								}}
 							/>
 						</div>
@@ -108,7 +108,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 										...component,
 										particleCount: parseInt(e.target.value),
 									};
-									this.props.vfxEditor.setState({ selectedComponent: updatedComponent });
+									this.props.onComponentPropertyUpdate(updatedComponent);
 								}}
 								className="h-8 text-xs"
 							/>
@@ -125,7 +125,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 										...component,
 										size: value[0],
 									};
-									this.props.vfxEditor.setState({ selectedComponent: updatedComponent });
+									this.props.onComponentPropertyUpdate(updatedComponent);
 								}}
 								className="w-full"
 							/>
@@ -147,7 +147,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 							value={component.name}
 							onChange={(e) => {
 								const updatedComponent = { ...component, name: e.target.value };
-								this.props.vfxEditor.setState({ selectedComponent: updatedComponent });
+								this.props.onComponentPropertyUpdate(updatedComponent);
 							}}
 							className="h-8 text-xs"
 						/>
@@ -159,7 +159,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 							checked={component.active}
 							onCheckedChange={(checked) => {
 								const updatedComponent = { ...component, active: checked };
-								this.props.vfxEditor.setState({ selectedComponent: updatedComponent });
+								this.props.onComponentPropertyUpdate(updatedComponent);
 							}}
 						/>
 					</div>

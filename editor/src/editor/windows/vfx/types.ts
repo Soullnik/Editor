@@ -95,13 +95,24 @@ export interface IVFXEditorWindow {
 
 // Component Panel Props
 export interface IVFXComponentsPanelProps {
-	vfxEditor: IVFXEditorWindow;
+	vfxData: IVFXFile | null;
+	selectedComponent: VFXComponent | null;
+	search: string;
+	scene: Scene | null;
+	onSearchChange: (search: string) => void;
+	onComponentSelect: (component: VFXComponent) => void;
+	onComponentRemove: (id: string) => void;
+	onComponentAdded: (component: VFXComponent) => void;
 }
 
 export interface IVFXPreviewPanelProps {
-	vfxEditor: IVFXEditorWindow;
+	scene: Scene | null;
+	engine: Engine | null;
+	onCanvasRef: (canvas: HTMLCanvasElement | null) => void;
 }
 
 export interface IVFXInspectorPanelProps {
-	vfxEditor: IVFXEditorWindow;
+	selectedComponent: VFXComponent | null;
+	scene: Scene | null;
+	onComponentPropertyUpdate: (component: VFXComponent) => void;
 }

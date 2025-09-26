@@ -8,18 +8,18 @@ import { toast } from "sonner";
 import { Vector3, MeshBuilder, SolidParticleSystem, ParticleSystem, GPUParticleSystem, Mesh } from "babylonjs";
 import { loadImportedParticleSystemFile, loadImportedParticleSystemFileFromJSON } from "../../../layout/preview/import/particles";
 import { loadImportedSceneFile } from "../../../layout/preview/import/import";
-import { VFXComponent, IVFXCPUParticleSystem, IVFXGPUParticleSystem, IVFXSolidParticleSystem, IVFXComponent, IVFXComponentsPanelProps } from "../types";
+import { VFXComponent, IVFXSolidParticleSystem, IVFXComponentsPanelProps } from "../types";
 import { isGPUParticleSystem } from "../../../../tools/guards/particles";
 
 export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 	public render(): ReactNode {
-		const { search, selectedComponent } = this.props.vfxEditor.state;
+		const { vfxData, selectedComponent, search } = this.props;
 
 		return (
 			<div className="flex flex-col w-full h-full">
 				{/* Search */}
 				<div className="p-3 border-b border-border">
-					<Input placeholder="Search components..." value={search} onChange={(e) => this.props.vfxEditor.setState({ search: e.target.value })} className="h-8 text-xs" />
+					<Input placeholder="Search components..." value={search} onChange={(e) => this.props.onSearchChange(e.target.value)} className="h-8 text-xs" />
 				</div>
 
 				{/* Components List */}
@@ -34,7 +34,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 											flex items-center gap-2 p-2 cursor-pointer hover:bg-primary/10 transition-colors duration-200
 											${selectedComponent?.id === component.id ? "bg-primary/20" : ""}
 										`}
-										onClick={() => this.props.vfxEditor.setState({ selectedComponent: component })}
+										onClick={() => this.props.onComponentSelect(component)}
 									>
 										<div className={`w-3 h-3 rounded-full ${component.active ? "bg-green-500" : "bg-gray-400"}`} />
 										{this._getComponentIcon(component.type)}
@@ -45,9 +45,9 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 									</div>
 								</ContextMenuTrigger>
 								<ContextMenuContent>
-									<ContextMenuItem onClick={() => this.props.vfxEditor.setState({ selectedComponent: component })}>Select</ContextMenuItem>
+									<ContextMenuItem onClick={() => this.props.onComponentSelect(component)}>Select</ContextMenuItem>
 									<ContextMenuSeparator />
-									<ContextMenuItem onClick={() => this.props.vfxEditor.removeComponent(component.id)} className="text-red-500">
+									<ContextMenuItem onClick={() => this.props.onComponentRemove(component.id)} className="text-red-500">
 										Delete
 									</ContextMenuItem>
 								</ContextMenuContent>
@@ -75,7 +75,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 	}
 
 	private _getFilteredComponents(): VFXComponent[] {
-		const { vfxData, search } = this.props.vfxEditor.state;
+		const { vfxData, search } = this.props;
 		if (!vfxData) {
 			return [];
 		}
@@ -117,30 +117,8 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 			for (const absolutePath of assetPaths) {
 				const component = await this._processAssetFile(absolutePath);
 				if (component) {
-					// Add the new component to VFX data
-					const { vfxData } = this.props.vfxEditor.state;
-					if (vfxData) {
-						const updatedVfxData = { ...vfxData };
-
-						// Add component to appropriate array based on type
-						switch (component.type) {
-							case "cpu_particle_system":
-								updatedVfxData.cpuParticles = [...vfxData.cpuParticles, component as IVFXCPUParticleSystem];
-								break;
-							case "gpu_particle_system":
-								updatedVfxData.gpuParticles = [...vfxData.gpuParticles, component as IVFXGPUParticleSystem];
-								break;
-							case "solid_particle_system":
-								updatedVfxData.sps = [...vfxData.sps, component as IVFXSolidParticleSystem];
-								break;
-							default:
-								console.warn(`Unknown component type: ${component.type}`);
-								break;
-						}
-
-						updatedVfxData.modified = new Date().toISOString();
-						this.props.vfxEditor.setState({ vfxData: updatedVfxData, selectedComponent: component });
-					}
+					// Notify parent about the new component
+					this.props.onComponentAdded(component);
 				}
 			}
 		} catch (error) {
@@ -150,7 +128,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 	}
 
 	private async _processAssetFile(absolutePath: string): Promise<VFXComponent | null> {
-		const { vfxData, scene } = this.props.vfxEditor.state;
+		const { vfxData, scene } = this.props;
 		if (!vfxData || !scene) return null;
 
 		const extension = absolutePath.toLowerCase().split(".").pop();
@@ -181,7 +159,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 
 	private async _createSPSFromMesh(absolutePath: string): Promise<IVFXSolidParticleSystem | null> {
 		console.log("createSPSFromMesh", absolutePath);
-		const { vfxData, scene } = this.props.vfxEditor.state;
+		const { vfxData, scene } = this.props;
 		if (!vfxData || !scene) return null;
 
 		const fileName = absolutePath.split("/").pop() || "mesh";
@@ -244,7 +222,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 		}
 	}
 
-	private _createBaseComponent(absolutePath: string, componentName: string): IVFXComponent {
+	private _createBaseComponent(absolutePath: string, componentName: string): any {
 		return {
 			id: `particle_${Date.now()}`,
 			type: "cpu_particle_system", // Will be updated after loading
@@ -255,7 +233,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 	}
 
 	private async _createParticleSystemFromJSON(absolutePath: string): Promise<VFXComponent | null> {
-		const { vfxData, scene } = this.props.vfxEditor.state;
+		const { vfxData, scene } = this.props;
 		if (!vfxData || !scene) return null;
 
 		const fileName = absolutePath.split("/").pop() || "particles";
@@ -306,7 +284,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 	}
 
 	private async _createParticleSystemFromNPSS(absolutePath: string): Promise<VFXComponent | null> {
-		const { vfxData, scene } = this.props.vfxEditor.state;
+		const { vfxData, scene } = this.props;
 		if (!vfxData || !scene) return null;
 
 		const fileName = absolutePath.split("/").pop() || "particles";
