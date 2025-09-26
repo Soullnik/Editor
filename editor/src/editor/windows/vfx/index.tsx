@@ -17,9 +17,7 @@ import {
 	SolidParticleSystem
 } from "babylonjs";
 
-import { ToolbarComponent } from "../../../ui/toolbar";
 import { Button } from "../../../ui/shadcn/ui/button";
-
 import { Toaster } from "../../../ui/shadcn/ui/sonner";
 
 import { waitNextAnimationFrame } from "../../../tools/tools";
@@ -27,6 +25,7 @@ import { loadImportedParticleSystemFile, loadImportedParticleSystemFileFromJSON 
 import { loadImportedSceneFile } from "../../layout/preview/import/import";
 
 import { IVFXFile, VFXNodeType } from "../../layout/assets-browser/items/vfx-types";
+import { projectConfiguration } from "../../../project/configuration";
 
 import { FaPlay, FaStop } from "react-icons/fa";
 import { GridMaterial } from "babylonjs-materials";
@@ -87,18 +86,24 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		return (
 			<>
 				<div className="flex flex-col w-screen h-screen">
-					<ToolbarComponent>
-						<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1">
-							<div className="flex items-center gap-1 font-semibold text-lg select-none">
-								VFX Editor
-								<div className="text-sm font-thin">(...{this.props.filePath.substring(this.props.filePath.length - 30)})</div>
-							</div>
+					{/* Header */}
+					<div 
+						className="flex items-center justify-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0" 
+						style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+					>
+						<div className="flex items-center gap-1 font-semibold text-lg select-none">
+							VFX Editor
+							<div className="text-sm font-thin">(...{this.props.filePath.substring(this.props.filePath.length - 30)})</div>
 						</div>
-					</ToolbarComponent>
+					</div>
 
 					{/* Toolbar */}
-					<div className="flex justify-between items-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border z-1">
-						<div className="flex gap-2 items-center pl-3">
+					<div 
+						className="flex justify-between items-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0 px-3" 
+					>
+						<div 
+							className="flex gap-2 items-center" 
+						>
 							<Button
 								variant="ghost"
 								size="sm"
@@ -128,14 +133,14 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 								Save
 							</Button>
 						</div>
-						<div className="text-xs text-muted-foreground pr-3">
+						<div className="text-xs text-muted-foreground">
 							{this.state.vfxData?.nodes?.length || 0} components
 							{this.state.vfxData && ` (${this.state.vfxData.name})`}
 						</div>
 					</div>
 
-					{/* FlexLayout */}
-					<div className="flex-1 w-full h-full">
+					{/* Layout */}
+					<div className="relative flex-1 w-full overflow-hidden">
 						<Layout 
 							model={this._model} 
 							ref={(r) => (this._layoutRef = r)} 
@@ -155,6 +160,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		if (!document.body.classList.contains("dark")) {
 			document.body.classList.add("dark");
 		}
+
+		// Set project configuration path for texture handling
+		projectConfiguration.path = this.props.filePath;
 
 		// Load VFX data
 		if (!(await pathExists(this.props.filePath))) {
@@ -272,6 +280,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			inspector: (
 				<VFXInspectorPanel
 					selectedComponent={this.state.selectedComponent}
+					scene={this.state.scene}
 					onComponentPropertyUpdate={(property, value) => this._updateComponentProperty(property, value)}
 					onPropertyUpdate={(property, value) => this._updateProperty(property, value)}
 				/>
@@ -294,6 +303,17 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			return <div>Error, see console...</div>;
 		}
 
+		// Add resize listener for preview panel
+		if (componentName === "preview") {
+			node.setEventListener("resize", () => {
+				waitNextAnimationFrame().then(() => {
+					if (this.state.engine) {
+						this.state.engine.resize();
+					}
+				});
+			});
+		}
+
 		return component;
 	}
 
@@ -304,6 +324,13 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 
 		layoutData.version = "1.0.0";
 		localStorage.setItem("vfx-editor-layout", JSON.stringify(layoutData));
+	}
+
+	private _forceLayoutUpdate(): void {
+		// Force layout to re-render by updating the model
+		if (this._layoutRef) {
+			this._layoutRef.forceUpdate();
+		}
 	}
 
 	private async _initializeScene(): Promise<void> {
@@ -450,6 +477,8 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
             const assetPaths = JSON.parse(assets) as string[];
             assetPaths.forEach(async (absolutePath) => {
                 await this._processAssetFile(absolutePath);
+                // Force layout update after processing each asset
+                this._forceLayoutUpdate();
             });
         } catch (error) {
             console.error("Failed to parse dropped assets:", error);
@@ -569,6 +598,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 
 				this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
 					this._updateComponents();
+					this._forceLayoutUpdate();
 				});
 				toast.success(`Created SPS component: ${componentName}`);
             } else {
@@ -624,6 +654,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 
                 this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
 					this._updateComponents();
+					this._forceLayoutUpdate();
 				});
                 toast.success(`Created particle system: ${componentName}`);
             } else {
@@ -683,6 +714,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 
                 this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
 					this._updateComponents();
+					this._forceLayoutUpdate();
 				});
                 toast.success(`Created NPSS particle system: ${componentName}`);
             } else {
@@ -709,6 +741,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			selectedComponent: this.state.selectedComponent?.id === id ? null : this.state.selectedComponent
 		}, () => {
 			this._updateComponents();
+			this._forceLayoutUpdate();
 		});
 		toast.info("Component removed");
 	}

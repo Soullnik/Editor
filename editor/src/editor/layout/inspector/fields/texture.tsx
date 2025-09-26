@@ -569,8 +569,9 @@ export class EditorInspectorTextureField extends Component<IEditorInspectorTextu
 			case ".bmp":
 			case ".exr":
 				const oldTexture = this.props.object[this.props.property];
+				const scene = this.props.scene ?? (isScene(this.props.object) ? this.props.object : this.props.object.getScene());
 				const newTexture = configureImportedTexture(
-					new Texture(absolutePath, this.props.scene ?? (isScene(this.props.object) ? this.props.object : this.props.object.getScene()))
+					new Texture(absolutePath, scene)
 				);
 
 				if (oldTexture !== newTexture) {

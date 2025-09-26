@@ -8,6 +8,7 @@ import { VFXNodeType } from "../../../layout/assets-browser/items/vfx-types";
 
 export interface IVFXInspectorPanelProps {
 	selectedComponent: any;
+	scene: any; // Babylon.js Scene
 	onComponentPropertyUpdate: (property: string, value: any) => void;
 	onPropertyUpdate: (property: string, value: any) => void;
 }
@@ -17,9 +18,6 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 		if (!this.props.selectedComponent) {
 			return (
 				<div className="flex flex-col w-full h-full">
-					<div className="p-3 border-b border-border">
-						<h3 className="font-semibold text-sm">Properties</h3>
-					</div>
 					<div className="flex-1 flex items-center justify-center text-muted-foreground">
 						<div className="text-center">
 							<div className="text-sm">No component selected</div>
@@ -35,24 +33,27 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 
 		// Use EditorParticleSystemInspector for particle systems
 		if (component.type === VFXNodeType.PARTICLE_SYSTEM && component.properties.babylonSystem) {
-			// Create a mock editor object for the inspector
+			// Create a more complete mock editor object
 			const mockEditor = {
 				layout: {
+					preview: {
+						scene: this.props.scene
+					},
 					graph: {
-						refresh: () => {}
+						refresh: () => {
+							// Mock refresh function - does nothing in VFX context
+							console.log("Graph refresh called (mock)");
+						}
 					}
+				},
+				path: null,
+				state: {
+					projectPath: null
 				}
 			};
 
 			return (
 				<div className="flex flex-col w-full h-full">
-					<div className="p-3 border-b border-border">
-						<h3 className="font-semibold text-sm">Properties</h3>
-						<div className="text-xs text-muted-foreground mt-1">
-							{component.name} - {component.type}
-						</div>
-					</div>
-
 					<div className="flex-1 overflow-auto">
 						<EditorParticleSystemInspector 
 							editor={mockEditor as any}
@@ -66,13 +67,6 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 		// Default inspector for other component types
 		return (
 			<div className="flex flex-col w-full h-full">
-				<div className="p-3 border-b border-border">
-					<h3 className="font-semibold text-sm">Properties</h3>
-					<div className="text-xs text-muted-foreground mt-1">
-						{component.type}
-					</div>
-				</div>
-
 				<div className="flex-1 overflow-auto p-3 space-y-4">
 					{/* Basic Properties */}
 					<div className="space-y-2">

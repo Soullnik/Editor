@@ -26,11 +26,6 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 	public render(): ReactNode {
 		return (
 			<div className="flex flex-col w-full h-full">
-				{/* Header */}
-				<div className="flex items-center justify-between p-3 border-b border-border">
-					<h3 className="font-semibold text-sm">Components</h3>
-				</div>
-
 				{/* Search */}
 				<div className="p-3 border-b border-border">
 					<Input
