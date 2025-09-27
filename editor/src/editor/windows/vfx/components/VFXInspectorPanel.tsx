@@ -1,11 +1,12 @@
 import { Component, ReactNode } from "react";
-import { IVFXInspectorPanelProps } from "../types";
+import { IVFXInspectorPanelProps, IVFXEmitterMesh } from "../types";
 import { Input } from "../../../../ui/shadcn/ui/input";
 import { Label } from "../../../../ui/shadcn/ui/label";
 import { Switch } from "../../../../ui/shadcn/ui/switch";
 import { EditorParticleSystemInspector } from "../../../layout/inspector/particles/particle-system";
 import { EditorGPUParticleSystemInspector } from "../../../layout/inspector/particles/gpu-particle-system";
 import { EditorSolidParticleSystemInspector } from "../../../layout/inspector/particles/solid-particle-system";
+import { EditorMeshInspector } from "../../../layout/inspector/mesh/mesh";
 import { Editor } from "../../../main";
 
 export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
@@ -70,6 +71,17 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 				<div className="flex flex-col w-full h-full">
 					<div className="flex-1 overflow-auto">
 						<EditorSolidParticleSystemInspector editor={mockEditor} object={component.babylonSPS} />
+					</div>
+				</div>
+			);
+		}
+
+		if (component.type === "emitter_mesh") {
+			const emitterComponent = component as IVFXEmitterMesh;
+			return (
+				<div className="flex flex-col w-full h-full">
+					<div className="flex-1 overflow-auto">
+						<EditorMeshInspector editor={mockEditor} object={emitterComponent.babylonMesh} />
 					</div>
 				</div>
 			);

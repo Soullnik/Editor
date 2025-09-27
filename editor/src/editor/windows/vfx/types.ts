@@ -2,7 +2,7 @@
  * VFX Editor Types and Interfaces
  */
 
-import { ParticleSystem, GPUParticleSystem, SolidParticleSystem, Scene, Engine, ArcRotateCamera } from "babylonjs";
+import { ParticleSystem, GPUParticleSystem, SolidParticleSystem, Scene, Engine, ArcRotateCamera, Mesh } from "babylonjs";
 
 // Base component interface
 export interface IVFXComponent {
@@ -39,8 +39,14 @@ export interface IVFXParticleSystemSet extends IVFXComponent {
 	particleSystems: (IVFXCPUParticleSystem | IVFXGPUParticleSystem)[];
 }
 
+// Emitter Mesh Component
+export interface IVFXEmitterMesh extends IVFXComponent {
+	type: "emitter_mesh";
+	babylonMesh: Mesh;
+}
+
 // Union type for all VFX components
-export type VFXComponent = IVFXCPUParticleSystem | IVFXGPUParticleSystem | IVFXSolidParticleSystem | IVFXParticleSystemSet;
+export type VFXComponent = IVFXCPUParticleSystem | IVFXGPUParticleSystem | IVFXSolidParticleSystem | IVFXParticleSystemSet | IVFXEmitterMesh;
 
 export interface IVFXSettings {
 	duration: number;

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Component, ReactNode } from "react";
 import { Actions, IJsonModel, Layout, Model, TabNode } from "flexlayout-react";
 
-import { Engine, Scene, ArcRotateCamera, Vector3, Color3, Color4, MeshBuilder } from "babylonjs";
+import { Engine, Scene, ArcRotateCamera, Vector3, Color3, Color4, MeshBuilder, DirectionalLight } from "babylonjs";
 
 import { Button } from "../../../ui/shadcn/ui/button";
 import { Toaster } from "../../../ui/shadcn/ui/sonner";
@@ -265,6 +265,12 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		camera.useFramingBehavior = true;
 		camera.wheelDeltaPercentage = 0.01;
 		camera.pinchDeltaPercentage = 0.01;
+
+		// Create directional light (sun)
+		const sunLight = new DirectionalLight("sun", new Vector3(-1, -1, -1), scene);
+		sunLight.intensity = 1.0;
+		sunLight.diffuse = new Color3(1, 1, 1);
+		sunLight.specular = new Color3(1, 1, 1);
 
 		const groundMaterial = new GridMaterial("groundMaterial", scene);
 		groundMaterial.majorUnitFrequency = 2;

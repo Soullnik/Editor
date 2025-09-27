@@ -1,14 +1,14 @@
 import { Component, ReactNode } from "react";
 import { Input } from "../../../../ui/shadcn/ui/input";
-import { ContextMenu, ContextMenuItem, ContextMenuContent, ContextMenuTrigger, ContextMenuSeparator } from "../../../../ui/shadcn/ui/context-menu";
-import { FaMagic, FaPlus } from "react-icons/fa";
+import { ContextMenu, ContextMenuItem, ContextMenuContent, ContextMenuTrigger } from "../../../../ui/shadcn/ui/context-menu";
+import { FaMagic } from "react-icons/fa";
 import { GiSparkles } from "react-icons/gi";
 import { MdOutlineQuestionMark } from "react-icons/md";
 import { toast } from "sonner";
 import { Vector3, MeshBuilder, SolidParticleSystem, ParticleSystem, GPUParticleSystem, Mesh } from "babylonjs";
 import { loadImportedParticleSystemFile, loadImportedParticleSystemFileFromJSON } from "../../../layout/preview/import/particles";
 import { loadImportedSceneFile } from "../../../layout/preview/import/import";
-import { VFXComponent, IVFXSolidParticleSystem, IVFXComponentsPanelProps } from "../types";
+import { VFXComponent, IVFXSolidParticleSystem, IVFXComponentsPanelProps, IVFXEmitterMesh } from "../types";
 import { isGPUParticleSystem } from "../../../../tools/guards/particles";
 import { EditorInspectorSectionField } from "../../../layout/inspector/fields/section";
 
@@ -24,9 +24,11 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		};
 	}
 
-	public componentDidMount(): void {
-		// Create default empty emitter mesh on mount
-		this._createDefaultEmitter();
+	public componentDidUpdate(prevProps: IVFXComponentsPanelProps): void {
+		// Create default emitter when scene becomes available
+		if (!prevProps.scene && this.props.scene && !this.state.emitterMesh) {
+			this._createDefaultEmitter();
+		}
 	}
 
 	public render(): ReactNode {
@@ -172,6 +174,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 						className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
 						onDragOver={(ev) => ev.preventDefault()}
 						onDrop={(ev) => this._handleEmitterDrop(ev)}
+						onClick={() => this._selectEmitter()}
 					>
 						<div className="flex items-center gap-2">
 							<GiSparkles className="w-4 h-4 text-green-500" />
@@ -180,31 +183,20 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 								<div className="text-xs text-muted-foreground">Emitter Mesh</div>
 							</div>
 						</div>
-						<div className="text-xs text-muted-foreground/70">
-							Right-click to replace or drag mesh
-						</div>
 					</div>
 				</ContextMenuTrigger>
 				<ContextMenuContent>
 					<ContextMenuItem onClick={() => this._createEmitterMesh("empty")}>
-						<FaPlus className="w-3 h-3 mr-2" />
 						Replace with Empty Mesh
 					</ContextMenuItem>
 					<ContextMenuItem onClick={() => this._createEmitterMesh("box")}>
-						<FaPlus className="w-3 h-3 mr-2" />
 						Replace with Box Mesh
 					</ContextMenuItem>
 					<ContextMenuItem onClick={() => this._createEmitterMesh("sphere")}>
-						<FaPlus className="w-3 h-3 mr-2" />
 						Replace with Sphere Mesh
 					</ContextMenuItem>
 					<ContextMenuItem onClick={() => this._createEmitterMesh("plane")}>
-						<FaPlus className="w-3 h-3 mr-2" />
 						Replace with Plane Mesh
-					</ContextMenuItem>
-					<ContextMenuSeparator />
-					<ContextMenuItem className="text-muted-foreground">
-						Drop mesh file to replace
 					</ContextMenuItem>
 				</ContextMenuContent>
 			</ContextMenu>
@@ -291,6 +283,21 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		});
 	}
 
+	private _selectEmitter(): void {
+		if (this.state.emitterMesh) {
+			// Create a special emitter component for inspection
+			const emitterComponent: IVFXEmitterMesh = {
+				id: "emitter-mesh",
+				name: this.state.emitterMesh.name,
+				active: this.state.emitterMesh.isEnabled(),
+				type: "emitter_mesh",
+				babylonMesh: this.state.emitterMesh,
+			};
+
+			this.props.onComponentSelect(emitterComponent);
+		}
+	}
+
 	private _updateAllParticleSystemsEmitter(): void {
 		const { vfxData } = this.props;
 		if (!vfxData || !this.state.emitterMesh) return;
@@ -311,9 +318,8 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 	}
 
 	private _handleDrop(ev: React.DragEvent<HTMLDivElement>): void {
-		console.log("handleDrop");
 		const assets = ev.dataTransfer.getData("assets");
-		if (assets) {
+		if (assets && this.state.emitterMesh) {
 			this._handleAssetsDropped(ev);
 		}
 	}
