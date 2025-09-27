@@ -1,7 +1,8 @@
 import { Component, ReactNode } from "react";
 import { Input } from "../../../../ui/shadcn/ui/input";
 import { ContextMenu, ContextMenuItem, ContextMenuContent, ContextMenuTrigger, ContextMenuSeparator } from "../../../../ui/shadcn/ui/context-menu";
-import { FaMagic } from "react-icons/fa";
+import { Button } from "../../../../ui/shadcn/ui/button";
+import { FaMagic, FaPlus } from "react-icons/fa";
 import { GiSparkles } from "react-icons/gi";
 import { MdOutlineQuestionMark } from "react-icons/md";
 import { toast } from "sonner";
@@ -10,10 +11,13 @@ import { loadImportedParticleSystemFile, loadImportedParticleSystemFileFromJSON 
 import { loadImportedSceneFile } from "../../../layout/preview/import/import";
 import { VFXComponent, IVFXSolidParticleSystem, IVFXComponentsPanelProps } from "../types";
 import { isGPUParticleSystem } from "../../../../tools/guards/particles";
+import { EditorInspectorSectionField } from "../../../layout/inspector/fields/section";
 
 export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
+	private emitterMesh: Mesh | null = null;
+
 	public render(): ReactNode {
-		const { vfxData, selectedComponent, search } = this.props;
+		const { selectedComponent, search } = this.props;
 
 		return (
 			<div className="flex flex-col w-full h-full">
@@ -22,36 +26,52 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 					<Input placeholder="Search components..." value={search} onChange={(e) => this.props.onSearchChange(e.target.value)} className="h-8 text-xs" />
 				</div>
 
+				{/* Emitter Section */}
+				<div className="p-3 border-b border-border">
+					<div className="text-xs font-medium text-muted-foreground mb-2">Emitter</div>
+					{this._renderEmitterSection()}
+				</div>
+
 				{/* Components List */}
 				<div className="flex-1 flex flex-col">
 					{/* Components */}
-					<div className="flex-shrink-0">
-						{this._getFilteredComponents().map((component) => (
-							<ContextMenu key={component.id}>
-								<ContextMenuTrigger>
-									<div
-										className={`
-											flex items-center gap-2 p-2 cursor-pointer hover:bg-primary/10 transition-colors duration-200
-											${selectedComponent?.id === component.id ? "bg-primary/20" : ""}
-										`}
-										onClick={() => this.props.onComponentSelect(component)}
-									>
-										<div className={`w-3 h-3 rounded-full ${component.active ? "bg-green-500" : "bg-gray-400"}`} />
-										{this._getComponentIcon(component.type)}
-										<div className="flex-1 min-w-0">
-											<div className="text-sm font-medium truncate">{component.name}</div>
-											<div className="text-xs text-muted-foreground truncate">{component.type}</div>
-										</div>
-									</div>
-								</ContextMenuTrigger>
-								<ContextMenuContent>
-									<ContextMenuItem onClick={() => this.props.onComponentSelect(component)}>Select</ContextMenuItem>
-									<ContextMenuSeparator />
-									<ContextMenuItem onClick={() => this.props.onComponentRemove(component.id)} className="text-red-500">
-										Delete
-									</ContextMenuItem>
-								</ContextMenuContent>
-							</ContextMenu>
+					<div className="flex-shrink-0 space-y-2">
+						{Object.entries(this._getFilteredComponents()).map(([type, components]) => (
+							<EditorInspectorSectionField 
+								key={type} 
+								title={this._getTypeDisplayName(type)}
+								label={`${components.length}`}
+							>
+								<div className="space-y-1">
+									{components.map((component) => (
+										<ContextMenu key={component.id}>
+											<ContextMenuTrigger>
+												<div
+													className={`
+														flex items-center gap-2 p-2 cursor-pointer hover:bg-primary/10 transition-colors duration-200 rounded
+														${selectedComponent?.id === component.id ? "bg-primary/20" : ""}
+													`}
+													onClick={() => this.props.onComponentSelect(component)}
+												>
+													<div className={`w-3 h-3 rounded-full ${component.active ? "bg-green-500" : "bg-gray-400"}`} />
+													{this._getComponentIcon(component.type)}
+													<div className="flex-1 min-w-0">
+														<div className="text-sm font-medium truncate">{component.name}</div>
+														<div className="text-xs text-muted-foreground truncate">{component.type}</div>
+													</div>
+												</div>
+											</ContextMenuTrigger>
+											<ContextMenuContent>
+												<ContextMenuItem onClick={() => this.props.onComponentSelect(component)}>Select</ContextMenuItem>
+												<ContextMenuSeparator />
+												<ContextMenuItem onClick={() => this.props.onComponentRemove(component.id)} className="text-red-500">
+													Delete
+												</ContextMenuItem>
+											</ContextMenuContent>
+										</ContextMenu>
+									))}
+								</div>
+							</EditorInspectorSectionField>
 						))}
 					</div>
 
@@ -61,7 +81,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 						onDragOver={(ev) => ev.preventDefault()}
 						onDrop={(ev) => this._handleDrop(ev)}
 					>
-						{!this._getFilteredComponents().length && (
+						{Object.keys(this._getFilteredComponents()).length === 0 && (
 							<>
 								<FaMagic className="w-8 h-8 mb-2" />
 								<div className="text-sm">No components found</div>
@@ -74,15 +94,25 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 		);
 	}
 
-	private _getFilteredComponents(): VFXComponent[] {
+	private _getFilteredComponents(): { [key: string]: VFXComponent[] } {
 		const { vfxData, search } = this.props;
 		if (!vfxData) {
-			return [];
+			return {};
 		}
 
 		const allComponents: VFXComponent[] = [...vfxData.cpuParticles, ...vfxData.gpuParticles, ...vfxData.sps, ...vfxData.particleSystemSets];
+		const filteredComponents = allComponents.filter((component) => component.name.toLowerCase().includes(search.toLowerCase()) || component.type.toLowerCase().includes(search.toLowerCase()));
 
-		return allComponents.filter((component) => component.name.toLowerCase().includes(search.toLowerCase()) || component.type.toLowerCase().includes(search.toLowerCase()));
+		// Group components by type
+		const groupedComponents: { [key: string]: VFXComponent[] } = {};
+		filteredComponents.forEach(component => {
+			if (!groupedComponents[component.type]) {
+				groupedComponents[component.type] = [];
+			}
+			groupedComponents[component.type].push(component);
+		});
+
+		return groupedComponents;
 	}
 
 	private _getComponentIcon(type: string): ReactNode {
@@ -97,6 +127,225 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 			default:
 				return <MdOutlineQuestionMark className="w-4 h-4 text-gray-500" />;
 		}
+	}
+
+	private _getTypeDisplayName(type: string): string {
+		switch (type) {
+			case "cpu_particle_system":
+				return "CPU Particle Systems";
+			case "gpu_particle_system":
+				return "GPU Particle Systems";
+			case "solid_particle_system":
+				return "Solid Particle Systems";
+			case "particle_system_set":
+				return "Particle System Sets";
+			default:
+				return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) + 's';
+		}
+	}
+
+	private _renderEmitterSection(): ReactNode {
+		
+		if (!this.emitterMesh) {
+			return (
+				<ContextMenu>
+					<ContextMenuTrigger>
+						<div
+							className="flex items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-muted-foreground/50 transition-colors"
+							onDragOver={(ev) => ev.preventDefault()}
+							onDrop={(ev) => this._handleEmitterDrop(ev)}
+						>
+							<div className="text-center">
+								<FaPlus className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
+								<div className="text-sm text-muted-foreground">No Emitter</div>
+								<div className="text-xs text-muted-foreground/70">Right-click to create or drag mesh</div>
+							</div>
+						</div>
+					</ContextMenuTrigger>
+					<ContextMenuContent>
+						<ContextMenuItem onClick={() => this._createEmitterMesh("empty")}>
+							<FaPlus className="w-3 h-3 mr-2" />
+							Empty Mesh
+						</ContextMenuItem>
+						<ContextMenuItem onClick={() => this._createEmitterMesh("box")}>
+							<FaPlus className="w-3 h-3 mr-2" />
+							Box Mesh
+						</ContextMenuItem>
+						<ContextMenuItem onClick={() => this._createEmitterMesh("sphere")}>
+							<FaPlus className="w-3 h-3 mr-2" />
+							Sphere Mesh
+						</ContextMenuItem>
+						<ContextMenuItem onClick={() => this._createEmitterMesh("plane")}>
+							<FaPlus className="w-3 h-3 mr-2" />
+							Plane Mesh
+						</ContextMenuItem>
+					</ContextMenuContent>
+				</ContextMenu>
+			);
+		}
+
+		return (
+			<div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+				<div className="flex items-center gap-2">
+					<GiSparkles className="w-4 h-4 text-green-500" />
+					<div>
+						<div className="text-sm font-medium">{this.emitterMesh.name}</div>
+						<div className="text-xs text-muted-foreground">Emitter Mesh</div>
+					</div>
+				</div>
+				<ContextMenu>
+					<ContextMenuTrigger>
+						<Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+							<FaPlus className="w-3 h-3" />
+						</Button>
+					</ContextMenuTrigger>
+					<ContextMenuContent>
+						<ContextMenuItem onClick={() => this._createEmitterMesh("empty")}>
+							<FaPlus className="w-3 h-3 mr-2" />
+							Replace with Empty Mesh
+						</ContextMenuItem>
+						<ContextMenuItem onClick={() => this._createEmitterMesh("box")}>
+							<FaPlus className="w-3 h-3 mr-2" />
+							Replace with Box Mesh
+						</ContextMenuItem>
+						<ContextMenuItem onClick={() => this._createEmitterMesh("sphere")}>
+							<FaPlus className="w-3 h-3 mr-2" />
+							Replace with Sphere Mesh
+						</ContextMenuItem>
+						<ContextMenuItem onClick={() => this._createEmitterMesh("plane")}>
+							<FaPlus className="w-3 h-3 mr-2" />
+							Replace with Plane Mesh
+						</ContextMenuItem>
+						<ContextMenuSeparator />
+						<ContextMenuItem 
+							onClick={() => this._handleEmitterDrop}
+							className="text-muted-foreground"
+						>
+							Drop mesh file to replace
+						</ContextMenuItem>
+					</ContextMenuContent>
+				</ContextMenu>
+			</div>
+		);
+	}
+
+	private _createEmitterMesh(type: "empty" | "box" | "sphere" | "plane"): void {
+		const { scene } = this.props;
+		if (!scene) return;
+
+		// Remove old emitter if exists
+		if (this.emitterMesh) {
+			this._removeOldEmitter();
+		}
+
+		// Create new emitter mesh
+		let newMesh: Mesh;
+		switch (type) {
+			case "empty":
+				newMesh = new Mesh("VFX_Emitter_Empty", scene);
+				break;
+			case "box":
+				newMesh = MeshBuilder.CreateBox("VFX_Emitter_Box", { size: 1 }, scene);
+				break;
+			case "sphere":
+				newMesh = MeshBuilder.CreateSphere("VFX_Emitter_Sphere", { diameter: 1 }, scene);
+				break;
+			case "plane":
+				newMesh = MeshBuilder.CreatePlane("VFX_Emitter_Plane", { size: 1 }, scene);
+				break;
+		}
+
+		// Make emitter invisible by default
+		newMesh.isVisible = false;
+		this.emitterMesh = newMesh;
+
+		// Update all particle systems to use new emitter
+		this._updateAllParticleSystemsEmitter();
+
+		toast.success(`Created ${type} emitter`);
+		this.forceUpdate();
+	}
+
+	private _handleEmitterDrop(ev: React.DragEvent<HTMLDivElement>): void {
+		const assets = ev.dataTransfer.getData("assets");
+		if (!assets) return;
+
+		try {
+			const assetPaths = JSON.parse(assets) as string[];
+			const meshPath = assetPaths.find(path => 
+				path.toLowerCase().endsWith('.glb') || 
+				path.toLowerCase().endsWith('.babylon')
+			);
+
+			if (meshPath) {
+				this._loadEmitterFromFile(meshPath);
+			} else {
+				toast.warning("Please drop a .glb or .babylon file for emitter");
+			}
+		} catch (error) {
+			console.error("Failed to parse dropped emitter assets:", error);
+			toast.error("Failed to process dropped emitter");
+		}
+	}
+
+	private async _loadEmitterFromFile(absolutePath: string): Promise<void> {
+		const { scene } = this.props;
+		if (!scene) return;
+
+		try {
+			// Remove old emitter if exists
+			if (this.emitterMesh) {
+				this._removeOldEmitter();
+			}
+
+			// Load mesh from file
+			const result = await loadImportedSceneFile(scene, absolutePath);
+			if (result && result.meshes.length > 0) {
+				const loadedMesh = result.meshes[0] as Mesh;
+				loadedMesh.name = "VFX_Emitter_Imported";
+				loadedMesh.isVisible = false; // Hide emitter mesh
+				
+				this.emitterMesh = loadedMesh;
+
+				// Update all particle systems to use new emitter
+				this._updateAllParticleSystemsEmitter();
+
+				const fileName = absolutePath.split("/").pop() || "mesh";
+				toast.success(`Loaded emitter from ${fileName}`);
+				this.forceUpdate();
+			} else {
+				throw new Error("No meshes loaded from file");
+			}
+		} catch (error) {
+			console.error("Failed to load emitter from file:", error);
+			toast.error("Failed to load emitter from file");
+		}
+	}
+
+	private _removeOldEmitter(): void {
+		if (this.emitterMesh) {
+			this.emitterMesh.dispose();
+			this.emitterMesh = null;
+		}
+	}
+
+	private _updateAllParticleSystemsEmitter(): void {
+		const { vfxData } = this.props;
+		if (!vfxData || !this.emitterMesh) return;
+
+		// Update CPU particle systems
+		vfxData.cpuParticles.forEach(component => {
+			if (component.babylonSystem && component.babylonSystem.emitter) {
+				component.babylonSystem.emitter = this.emitterMesh;
+			}
+		});
+
+		// Update GPU particle systems
+		vfxData.gpuParticles.forEach(component => {
+			if (component.babylonSystem && component.babylonSystem.emitter) {
+				component.babylonSystem.emitter = this.emitterMesh;
+			}
+		});
 	}
 
 	private _handleDrop(ev: React.DragEvent<HTMLDivElement>): void {
@@ -243,12 +492,14 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 
 		// Load particle system using existing import function
 		try {
-			// Create a temporary mesh as emitter for the particle system
-			const tempMesh = MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, scene);
-			tempMesh.isVisible = false;
+			// Use existing emitter or create temporary one
+			const emitterMesh = this.emitterMesh || MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, scene);
+			if (!this.emitterMesh) {
+				emitterMesh.isVisible = false;
+			}
 
 			// Load particle system using the existing function
-			const particleSystem = await loadImportedParticleSystemFileFromJSON(scene, tempMesh, absolutePath);
+			const particleSystem = await loadImportedParticleSystemFileFromJSON(scene, emitterMesh, absolutePath);
 
 			if (particleSystem) {
 				// Create properly typed component based on particle system type
@@ -294,12 +545,14 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 
 		// Load NPSS file using existing import function
 		try {
-			// Create a temporary mesh as emitter for the particle system
-			const tempMesh = MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, scene);
-			tempMesh.isVisible = false;
+			// Use existing emitter or create temporary one
+			const emitterMesh = this.emitterMesh || MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, scene);
+			if (!this.emitterMesh) {
+				emitterMesh.isVisible = false;
+			}
 
 			// Load particle system using the existing function
-			await loadImportedParticleSystemFile(scene, tempMesh, absolutePath);
+			await loadImportedParticleSystemFile(scene, emitterMesh, absolutePath);
 
 			// Find the created particle system
 			const particleSystem = scene.particleSystems.find((ps: any) => ps.name.includes(componentName) || ps.name.includes(fileName.replace(".npss", "")));

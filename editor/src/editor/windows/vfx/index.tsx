@@ -91,7 +91,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			<>
 				<div className="flex flex-col w-screen h-screen">
 					<div className="flex items-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0">
-						<div className="flex-1 flex items-center justify-center gap-1 font-semibold text-lg select-none">
+						<div className="flex-1 flex items-center justify-center gap-1 font-semibold text-lg select-none electron-draggable">
 							VFX Editor
 							<div className="text-sm font-thin">(...{this.props.filePath.substring(this.props.filePath.length - 30)})</div>
 						</div>
