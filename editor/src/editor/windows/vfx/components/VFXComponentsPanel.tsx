@@ -1,7 +1,6 @@
 import { Component, ReactNode } from "react";
 import { Input } from "../../../../ui/shadcn/ui/input";
 import { ContextMenu, ContextMenuItem, ContextMenuContent, ContextMenuTrigger, ContextMenuSeparator } from "../../../../ui/shadcn/ui/context-menu";
-import { Button } from "../../../../ui/shadcn/ui/button";
 import { FaMagic, FaPlus } from "react-icons/fa";
 import { GiSparkles } from "react-icons/gi";
 import { MdOutlineQuestionMark } from "react-icons/md";
@@ -13,8 +12,22 @@ import { VFXComponent, IVFXSolidParticleSystem, IVFXComponentsPanelProps } from 
 import { isGPUParticleSystem } from "../../../../tools/guards/particles";
 import { EditorInspectorSectionField } from "../../../layout/inspector/fields/section";
 
-export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
-	private emitterMesh: Mesh | null = null;
+export interface IVFXComponentsPanelState {
+	emitterMesh: Mesh | null;
+}
+
+export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFXComponentsPanelState> {
+	public constructor(props: IVFXComponentsPanelProps) {
+		super(props);
+		this.state = {
+			emitterMesh: null,
+		};
+	}
+
+	public componentDidMount(): void {
+		// Create default empty emitter mesh on mount
+		this._createDefaultEmitter();
+	}
 
 	public render(): ReactNode {
 		const { selectedComponent, search } = this.props;
@@ -62,8 +75,6 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 												</div>
 											</ContextMenuTrigger>
 											<ContextMenuContent>
-												<ContextMenuItem onClick={() => this.props.onComponentSelect(component)}>Select</ContextMenuItem>
-												<ContextMenuSeparator />
 												<ContextMenuItem onClick={() => this.props.onComponentRemove(component.id)} className="text-red-500">
 													Delete
 												</ContextMenuItem>
@@ -144,100 +155,65 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 		}
 	}
 
+	private _createDefaultEmitter(): void {
+		const { scene } = this.props;
+		if (!scene) return;
+		const defaultEmitter = new Mesh("VFX_Emitter_Default", scene);
+		this._updateEmitterMesh(defaultEmitter);
+	}
+
 	private _renderEmitterSection(): ReactNode {
-		
-		if (!this.emitterMesh) {
-			return (
-				<ContextMenu>
-					<ContextMenuTrigger>
-						<div
-							className="flex items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-muted-foreground/50 transition-colors"
-							onDragOver={(ev) => ev.preventDefault()}
-							onDrop={(ev) => this._handleEmitterDrop(ev)}
-						>
-							<div className="text-center">
-								<FaPlus className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-								<div className="text-sm text-muted-foreground">No Emitter</div>
-								<div className="text-xs text-muted-foreground/70">Right-click to create or drag mesh</div>
-							</div>
-						</div>
-					</ContextMenuTrigger>
-					<ContextMenuContent>
-						<ContextMenuItem onClick={() => this._createEmitterMesh("empty")}>
-							<FaPlus className="w-3 h-3 mr-2" />
-							Empty Mesh
-						</ContextMenuItem>
-						<ContextMenuItem onClick={() => this._createEmitterMesh("box")}>
-							<FaPlus className="w-3 h-3 mr-2" />
-							Box Mesh
-						</ContextMenuItem>
-						<ContextMenuItem onClick={() => this._createEmitterMesh("sphere")}>
-							<FaPlus className="w-3 h-3 mr-2" />
-							Sphere Mesh
-						</ContextMenuItem>
-						<ContextMenuItem onClick={() => this._createEmitterMesh("plane")}>
-							<FaPlus className="w-3 h-3 mr-2" />
-							Plane Mesh
-						</ContextMenuItem>
-					</ContextMenuContent>
-				</ContextMenu>
-			);
-		}
+		if (!this.state.emitterMesh) return null;
 
 		return (
-			<div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-				<div className="flex items-center gap-2">
-					<GiSparkles className="w-4 h-4 text-green-500" />
-					<div>
-						<div className="text-sm font-medium">{this.emitterMesh.name}</div>
-						<div className="text-xs text-muted-foreground">Emitter Mesh</div>
+			<ContextMenu>
+				<ContextMenuTrigger>
+					<div
+						className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+						onDragOver={(ev) => ev.preventDefault()}
+						onDrop={(ev) => this._handleEmitterDrop(ev)}
+					>
+						<div className="flex items-center gap-2">
+							<GiSparkles className="w-4 h-4 text-green-500" />
+							<div>
+								<div className="text-sm font-medium">{this.state.emitterMesh.name}</div>
+								<div className="text-xs text-muted-foreground">Emitter Mesh</div>
+							</div>
+						</div>
+						<div className="text-xs text-muted-foreground/70">
+							Right-click to replace or drag mesh
+						</div>
 					</div>
-				</div>
-				<ContextMenu>
-					<ContextMenuTrigger>
-						<Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-							<FaPlus className="w-3 h-3" />
-						</Button>
-					</ContextMenuTrigger>
-					<ContextMenuContent>
-						<ContextMenuItem onClick={() => this._createEmitterMesh("empty")}>
-							<FaPlus className="w-3 h-3 mr-2" />
-							Replace with Empty Mesh
-						</ContextMenuItem>
-						<ContextMenuItem onClick={() => this._createEmitterMesh("box")}>
-							<FaPlus className="w-3 h-3 mr-2" />
-							Replace with Box Mesh
-						</ContextMenuItem>
-						<ContextMenuItem onClick={() => this._createEmitterMesh("sphere")}>
-							<FaPlus className="w-3 h-3 mr-2" />
-							Replace with Sphere Mesh
-						</ContextMenuItem>
-						<ContextMenuItem onClick={() => this._createEmitterMesh("plane")}>
-							<FaPlus className="w-3 h-3 mr-2" />
-							Replace with Plane Mesh
-						</ContextMenuItem>
-						<ContextMenuSeparator />
-						<ContextMenuItem 
-							onClick={() => this._handleEmitterDrop}
-							className="text-muted-foreground"
-						>
-							Drop mesh file to replace
-						</ContextMenuItem>
-					</ContextMenuContent>
-				</ContextMenu>
-			</div>
+				</ContextMenuTrigger>
+				<ContextMenuContent>
+					<ContextMenuItem onClick={() => this._createEmitterMesh("empty")}>
+						<FaPlus className="w-3 h-3 mr-2" />
+						Replace with Empty Mesh
+					</ContextMenuItem>
+					<ContextMenuItem onClick={() => this._createEmitterMesh("box")}>
+						<FaPlus className="w-3 h-3 mr-2" />
+						Replace with Box Mesh
+					</ContextMenuItem>
+					<ContextMenuItem onClick={() => this._createEmitterMesh("sphere")}>
+						<FaPlus className="w-3 h-3 mr-2" />
+						Replace with Sphere Mesh
+					</ContextMenuItem>
+					<ContextMenuItem onClick={() => this._createEmitterMesh("plane")}>
+						<FaPlus className="w-3 h-3 mr-2" />
+						Replace with Plane Mesh
+					</ContextMenuItem>
+					<ContextMenuSeparator />
+					<ContextMenuItem className="text-muted-foreground">
+						Drop mesh file to replace
+					</ContextMenuItem>
+				</ContextMenuContent>
+			</ContextMenu>
 		);
 	}
 
 	private _createEmitterMesh(type: "empty" | "box" | "sphere" | "plane"): void {
 		const { scene } = this.props;
 		if (!scene) return;
-
-		// Remove old emitter if exists
-		if (this.emitterMesh) {
-			this._removeOldEmitter();
-		}
-
 		// Create new emitter mesh
 		let newMesh: Mesh;
 		switch (type) {
@@ -255,12 +231,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 				break;
 		}
 
-		// Make emitter invisible by default
-		newMesh.isVisible = false;
-		this.emitterMesh = newMesh;
-
-		// Update all particle systems to use new emitter
-		this._updateAllParticleSystemsEmitter();
+		this._updateEmitterMesh(newMesh);
 
 		toast.success(`Created ${type} emitter`);
 		this.forceUpdate();
@@ -293,22 +264,13 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 		if (!scene) return;
 
 		try {
-			// Remove old emitter if exists
-			if (this.emitterMesh) {
-				this._removeOldEmitter();
-			}
-
 			// Load mesh from file
 			const result = await loadImportedSceneFile(scene, absolutePath);
 			if (result && result.meshes.length > 0) {
 				const loadedMesh = result.meshes[0] as Mesh;
 				loadedMesh.name = "VFX_Emitter_Imported";
-				loadedMesh.isVisible = false; // Hide emitter mesh
 				
-				this.emitterMesh = loadedMesh;
-
-				// Update all particle systems to use new emitter
-				this._updateAllParticleSystemsEmitter();
+				this._updateEmitterMesh(loadedMesh);
 
 				const fileName = absolutePath.split("/").pop() || "mesh";
 				toast.success(`Loaded emitter from ${fileName}`);
@@ -322,28 +284,28 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 		}
 	}
 
-	private _removeOldEmitter(): void {
-		if (this.emitterMesh) {
-			this.emitterMesh.dispose();
-			this.emitterMesh = null;
-		}
+	private _updateEmitterMesh(loadedMesh: Mesh): void {
+		this.state.emitterMesh?.dispose();
+		this.setState({ emitterMesh: loadedMesh }, () => {
+			this._updateAllParticleSystemsEmitter();
+		});
 	}
 
 	private _updateAllParticleSystemsEmitter(): void {
 		const { vfxData } = this.props;
-		if (!vfxData || !this.emitterMesh) return;
+		if (!vfxData || !this.state.emitterMesh) return;
 
 		// Update CPU particle systems
 		vfxData.cpuParticles.forEach(component => {
 			if (component.babylonSystem && component.babylonSystem.emitter) {
-				component.babylonSystem.emitter = this.emitterMesh;
+				component.babylonSystem.emitter = this.state.emitterMesh;
 			}
 		});
 
 		// Update GPU particle systems
 		vfxData.gpuParticles.forEach(component => {
 			if (component.babylonSystem && component.babylonSystem.emitter) {
-				component.babylonSystem.emitter = this.emitterMesh;
+				component.babylonSystem.emitter = this.state.emitterMesh;
 			}
 		});
 	}
@@ -492,14 +454,13 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 
 		// Load particle system using existing import function
 		try {
-			// Use existing emitter or create temporary one
-			const emitterMesh = this.emitterMesh || MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, scene);
-			if (!this.emitterMesh) {
-				emitterMesh.isVisible = false;
+			// Use existing emitter (should always exist after componentDidMount)
+			if (!this.state.emitterMesh) {
+				throw new Error("No emitter mesh available");
 			}
 
 			// Load particle system using the existing function
-			const particleSystem = await loadImportedParticleSystemFileFromJSON(scene, emitterMesh, absolutePath);
+			const particleSystem = await loadImportedParticleSystemFileFromJSON(scene, this.state.emitterMesh, absolutePath);
 
 			if (particleSystem) {
 				// Create properly typed component based on particle system type
@@ -545,14 +506,13 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps> {
 
 		// Load NPSS file using existing import function
 		try {
-			// Use existing emitter or create temporary one
-			const emitterMesh = this.emitterMesh || MeshBuilder.CreateBox("tempEmitter", { size: 0.1 }, scene);
-			if (!this.emitterMesh) {
-				emitterMesh.isVisible = false;
+			// Use existing emitter (should always exist after componentDidMount)
+			if (!this.state.emitterMesh) {
+				throw new Error("No emitter mesh available");
 			}
 
 			// Load particle system using the existing function
-			await loadImportedParticleSystemFile(scene, emitterMesh, absolutePath);
+			await loadImportedParticleSystemFile(scene, this.state.emitterMesh, absolutePath);
 
 			// Find the created particle system
 			const particleSystem = scene.particleSystems.find((ps: any) => ps.name.includes(componentName) || ps.name.includes(fileName.replace(".npss", "")));
