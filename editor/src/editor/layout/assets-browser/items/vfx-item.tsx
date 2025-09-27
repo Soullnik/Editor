@@ -12,8 +12,7 @@ import { waitNextAnimationFrame } from "../../../../tools/tools";
 import { ContextMenuItem } from "../../../../ui/shadcn/ui/context-menu";
 
 import { AssetsBrowserItem } from "./item";
-import { IVFXFile } from "./vfx-types";
-
+import { IVFXFile } from "../../../windows/vfx/types";
 export class AssetBrowserVFXItem extends AssetsBrowserItem {
 	private _previewPath: string | null = null;
 	private _vfxData: IVFXFile | null = null;
