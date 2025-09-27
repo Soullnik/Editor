@@ -376,7 +376,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 			switch (extension) {
 				case "glb":
 				case "babylon":
-					return await this._createSPSFromMesh(absolutePath);
+					return await this._createSPSFromMesh(absolutePath, extension);
 
 				case "json":
 					return await this._createParticleSystemFromJSON(absolutePath);
@@ -395,7 +395,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		}
 	}
 
-	private async _createSPSFromMesh(absolutePath: string): Promise<IVFXSolidParticleSystem | null> {
+	private async _createSPSFromMesh(absolutePath: string, extension: string): Promise<IVFXSolidParticleSystem | null> {
 		console.log("createSPSFromMesh", absolutePath);
 		const { vfxData, scene } = this.props;
 		if (!vfxData || !scene) return null;
@@ -419,10 +419,13 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 			const result = await loadImportedSceneFile(scene, absolutePath);
 			console.log(result);
 			if (result && result.meshes.length > 0) {
-				// Use the first mesh as template
-				const templateMesh = result.meshes[0] as Mesh;
+				let templateMesh: Mesh;
+				if (extension === 'glb') {
+					templateMesh = result.meshes[1] as Mesh;
+				} else {
+					templateMesh = result.meshes[0] as Mesh;
+				}
 				templateMesh.isVisible = false; // Hide template mesh
-
 				// Create Solid Particle System
 				const sps = new SolidParticleSystem(componentName, scene, {
 					useModelMaterial: true,

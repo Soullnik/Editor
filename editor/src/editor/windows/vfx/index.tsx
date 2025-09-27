@@ -1,4 +1,5 @@
 import { ipcRenderer } from "electron";
+import "babylonjs-loaders";
 import { readJSON, writeJSON, pathExists } from "fs-extra";
 
 import { toast } from "sonner";
