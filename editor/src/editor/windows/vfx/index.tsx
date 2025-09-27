@@ -19,7 +19,7 @@ import { projectConfiguration } from "../../../project/configuration";
 import { FaPlay, FaStop } from "react-icons/fa";
 import { GridMaterial } from "babylonjs-materials";
 
-import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel } from "./components";
+import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel, VFXAnimationPanel } from "./components";
 
 import layoutModel from "./layout.json";
 import { isDarwin } from "../../../tools/os";
@@ -30,6 +30,12 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	public canvasRef: HTMLCanvasElement | null = null;
 	private _layoutRef: Layout | null = null;
 	private _model: Model = Model.fromJson(layoutModel as unknown as IJsonModel);
+
+	private _components: VFXComponentsPanel;
+	private _preview: VFXPreviewPanel;
+	private _inspector: VFXInspectorPanel;
+	private _animation: VFXAnimationPanel;
+
 	private _getComponents(): Record<string, React.ReactNode> {
 		return {
 			components: (
@@ -39,9 +45,10 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					search={this.state.search}
 					scene={this.state.scene}
 					onSearchChange={(search) => this.setState({ search })}
-					onComponentSelect={(component) => this.setState({ selectedComponent: component })}
+					onComponentSelect={(component) => this.setSelectedComponent(component)}
 					onComponentRemove={(id) => this.removeComponent(id)}
 					onComponentAdded={(component) => this._addComponent(component)}
+					ref={(r) => (this._components = r!)}
 				/>
 			),
 			preview: (
@@ -51,13 +58,22 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					onCanvasRef={(canvas) => {
 						this.canvasRef = canvas;
 					}}
+					ref={(r) => (this._preview = r!)}
 				/>
 			),
 			inspector: (
 				<VFXInspectorPanel
 					selectedComponent={this.state.selectedComponent}
 					scene={this.state.scene}
-					onComponentPropertyUpdate={(component) => this.setState({ selectedComponent: component })}
+					onComponentPropertyUpdate={(component) => this.setSelectedComponent(component)}
+					ref={(r) => (this._inspector = r!)}
+				/>
+			),
+			animation: (
+				<VFXAnimationPanel
+					selectedComponent={this.state.selectedComponent}
+					scene={this.state.scene}
+					ref={(r) => (this._animation = r!)}
 				/>
 			),
 		};
@@ -328,6 +344,13 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		ipcRenderer.send("window:close");
 	}
 
+	public setSelectedComponent(component: VFXComponent): void {
+		this.setState({ selectedComponent: component }, () => {
+			// @ts-ignore
+			this._animation.setEditedObject(component?.babylonMesh || component?.babylonSystem || component?.babylonSPS || component?.babylonParticleSystemSet);
+		});
+	}
+
 	public removeComponent(id: string): void {
 		if (!this.state.vfxData) return;
 
@@ -343,7 +366,10 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		this.setState({
 			vfxData: updatedVfxData,
 			selectedComponent: this.state.selectedComponent?.id === id ? null : this.state.selectedComponent,
+		}, () => {
+			this._animation.setEditedObject(null);
 		});
+
 		toast.info("Component removed");
 	}
 
@@ -369,7 +395,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		}
 
 		updatedVfxData.modified = new Date().toISOString();
-		this.setState({ vfxData: updatedVfxData, selectedComponent: component });
+		this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
+			this._animation.setEditedObject(component);
+		});
 	}
 
 	public getAllComponents(): VFXComponent[] {
