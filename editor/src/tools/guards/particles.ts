@@ -1,4 +1,4 @@
-import { ParticleSystem, GPUParticleSystem, IParticleSystem } from "babylonjs";
+import { ParticleSystem, GPUParticleSystem, IParticleSystem, SolidParticleSystem } from "babylonjs";
 
 /**
  * Returns wether or not the given object is a ParticleSystem.
@@ -14,6 +14,14 @@ export function isParticleSystem(object: any): object is ParticleSystem {
  */
 export function isGPUParticleSystem(object: any): object is GPUParticleSystem {
 	return object.getClassName?.() === "GPUParticleSystem";
+}
+
+/**
+ * Returns wether or not the given object is a SolidParticleSystem.
+ * @param object defines the reference to the object to test its class name.
+ */
+export function isSolidParticleSystem(object: any): object is SolidParticleSystem {
+	return object.getClassName?.() === "SolidParticleSystem";
 }
 
 /**
