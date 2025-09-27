@@ -109,6 +109,7 @@ export interface IVFXComponentsPanelProps {
 	onComponentSelect: (component: VFXComponent) => void;
 	onComponentRemove: (id: string) => void;
 	onComponentAdded: (component: VFXComponent) => void;
+	onComponentRemoved?: (id: string) => void; // Callback for cleanup
 }
 
 export interface IVFXPreviewPanelProps {

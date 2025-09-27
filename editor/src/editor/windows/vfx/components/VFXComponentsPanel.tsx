@@ -13,7 +13,8 @@ import { isGPUParticleSystem } from "../../../../tools/guards/particles";
 import { EditorInspectorSectionField } from "../../../layout/inspector/fields/section";
 
 export interface IVFXComponentsPanelState {
-	emitterMesh: Mesh | null;
+	emitterMesh: Mesh | null; // Root emitter mesh (parent)
+	emitterMap: Map<string, Mesh>; // Map of component ID to their individual emitter mesh
 }
 
 export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFXComponentsPanelState> {
@@ -21,6 +22,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		super(props);
 		this.state = {
 			emitterMesh: null,
+			emitterMap: new Map(),
 		};
 	}
 
@@ -77,7 +79,13 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 												</div>
 											</ContextMenuTrigger>
 											<ContextMenuContent>
-												<ContextMenuItem onClick={() => this.props.onComponentRemove(component.id)} className="text-red-500">
+												<ContextMenuItem onClick={() => {
+													this._cleanupEmitter(component.id);
+													this.props.onComponentRemove(component.id);
+													if (this.props.onComponentRemoved) {
+														this.props.onComponentRemoved(component.id);
+													}
+												}} className="text-red-500">
 													Delete
 												</ContextMenuItem>
 											</ContextMenuContent>
@@ -160,8 +168,12 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 	private _createDefaultEmitter(): void {
 		const { scene } = this.props;
 		if (!scene) return;
-		const defaultEmitter = new Mesh("VFX_Emitter_Default", scene);
-		this._updateEmitterMesh(defaultEmitter);
+		
+		// Create root emitter mesh (parent)
+		const rootEmitter = new Mesh("VFX_Emitter_Root", scene);
+		rootEmitter.isVisible = false; // Hide root mesh
+		
+		this.setState({ emitterMesh: rootEmitter });
 	}
 
 	private _renderEmitterSection(): ReactNode {
@@ -276,11 +288,15 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		}
 	}
 
-	private _updateEmitterMesh(loadedMesh: Mesh): void {
-		this.state.emitterMesh?.dispose();
-		this.setState({ emitterMesh: loadedMesh }, () => {
-			this._updateAllParticleSystemsEmitter();
+	private _updateEmitterMesh(newRootMesh: Mesh): void {
+		const { scene } = this.props;
+		if (!scene) return;
+
+		this.state.emitterMap.forEach((emitterMesh) => {
+			emitterMesh.setParent(newRootMesh);
 		});
+		this.state.emitterMesh?.dispose();
+		this.setState({ emitterMesh: newRootMesh });
 	}
 
 	private _selectEmitter(): void {
@@ -298,24 +314,29 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		}
 	}
 
-	private _updateAllParticleSystemsEmitter(): void {
-		const { vfxData } = this.props;
-		if (!vfxData || !this.state.emitterMesh) return;
+	private _createIndividualEmitter(componentId: string): Mesh | null {
+		const { scene } = this.props;
+		if (!scene || !this.state.emitterMesh) return null;
 
-		// Update CPU particle systems
-		vfxData.cpuParticles.forEach(component => {
-			if (component.babylonSystem && component.babylonSystem.emitter) {
-				component.babylonSystem.emitter = this.state.emitterMesh;
-			}
-		});
+		// Create individual emitter mesh for this component
+		const emitterMesh = new Mesh(`Emitter_${componentId}`, scene);
+		emitterMesh.isVisible = false; // Hide individual emitter
+		emitterMesh.setParent(this.state.emitterMesh); // Set root as parent
 
-		// Update GPU particle systems
-		vfxData.gpuParticles.forEach(component => {
-			if (component.babylonSystem && component.babylonSystem.emitter) {
-				component.babylonSystem.emitter = this.state.emitterMesh;
-			}
-		});
+		// Store in map
+		this.state.emitterMap.set(componentId, emitterMesh);
+
+		return emitterMesh;
 	}
+
+	private _cleanupEmitter(componentId: string): void {
+		const emitterMesh = this.state.emitterMap.get(componentId);
+		if (emitterMesh) {
+			emitterMesh.dispose();
+			this.state.emitterMap.delete(componentId);
+		}
+	}
+
 
 	private _handleDrop(ev: React.DragEvent<HTMLDivElement>): void {
 		const assets = ev.dataTransfer.getData("assets");
@@ -460,13 +481,14 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 
 		// Load particle system using existing import function
 		try {
-			// Use existing emitter (should always exist after componentDidMount)
-			if (!this.state.emitterMesh) {
-				throw new Error("No emitter mesh available");
+			// Create individual emitter for this component
+			const individualEmitter = this._createIndividualEmitter(baseComponent.id);
+			if (!individualEmitter) {
+				throw new Error("Failed to create individual emitter");
 			}
 
-			// Load particle system using the existing function
-			const particleSystem = await loadImportedParticleSystemFileFromJSON(scene, this.state.emitterMesh, absolutePath);
+			// Load particle system using the individual emitter
+			const particleSystem = await loadImportedParticleSystemFileFromJSON(scene, individualEmitter, absolutePath);
 
 			if (particleSystem) {
 				// Create properly typed component based on particle system type
@@ -512,13 +534,14 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 
 		// Load NPSS file using existing import function
 		try {
-			// Use existing emitter (should always exist after componentDidMount)
-			if (!this.state.emitterMesh) {
-				throw new Error("No emitter mesh available");
+			// Create individual emitter for this component
+			const individualEmitter = this._createIndividualEmitter(baseComponent.id);
+			if (!individualEmitter) {
+				throw new Error("Failed to create individual emitter");
 			}
 
-			// Load particle system using the existing function
-			await loadImportedParticleSystemFile(scene, this.state.emitterMesh, absolutePath);
+			// Load particle system using the individual emitter
+			await loadImportedParticleSystemFile(scene, individualEmitter, absolutePath);
 
 			// Find the created particle system
 			const particleSystem = scene.particleSystems.find((ps: any) => ps.name.includes(componentName) || ps.name.includes(fileName.replace(".npss", "")));
