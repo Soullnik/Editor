@@ -22,6 +22,9 @@ import { GridMaterial } from "babylonjs-materials";
 import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel } from "./components";
 
 import layoutModel from "./layout.json";
+import { isDarwin } from "../../../tools/os";
+import { IoCloseOutline } from "react-icons/io5";
+import { VscChromeMinimize, VscMultipleWindows } from "react-icons/vsc";
 
 export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IVFXEditorWindowState> {
 	public canvasRef: HTMLCanvasElement | null = null;
@@ -45,7 +48,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 				<VFXPreviewPanel
 					scene={this.state.scene}
 					engine={this.state.engine}
-					onCanvasRef={(canvas) => { this.canvasRef = canvas; }}
+					onCanvasRef={(canvas) => {
+						this.canvasRef = canvas;
+					}}
 				/>
 			),
 			inspector: (
@@ -85,14 +90,27 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		return (
 			<>
 				<div className="flex flex-col w-screen h-screen">
-					<div
-						className="flex items-center justify-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0"
-						style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-					>
-						<div className="flex items-center gap-1 font-semibold text-lg select-none">
+					<div className="flex items-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0">
+						<div className="flex-1 flex items-center justify-center gap-1 font-semibold text-lg select-none">
 							VFX Editor
 							<div className="text-sm font-thin">(...{this.props.filePath.substring(this.props.filePath.length - 30)})</div>
 						</div>
+
+						{(!isDarwin() || process.env.DEBUG) && (
+							<div className="flex items-center">
+								<Button variant="ghost" className="w-12 aspect-square !p-0 hover:bg-muted" onClick={() => ipcRenderer.send("window:minimize")}>
+									<VscChromeMinimize className="w-5 h-5" />
+								</Button>
+
+								<Button variant="ghost" className="w-12 aspect-square !p-0 hover:bg-muted" onClick={() => ipcRenderer.send("window:maximize")}>
+									<VscMultipleWindows className="w-5 h-5" />
+								</Button>
+
+								<Button variant="ghost" className="w-12 aspect-square !p-0 hover:bg-muted" onClick={() => ipcRenderer.send("window:close")}>
+									<IoCloseOutline className="w-5 h-5" />
+								</Button>
+							</div>
+						)}
 					</div>
 					<div className="flex justify-between items-center w-full h-10 bg-primary-foreground/95 backdrop-blur-sm border-b border-border flex-shrink-0 px-3">
 						<div className="flex gap-2 items-center">
