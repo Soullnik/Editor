@@ -2,7 +2,7 @@
  * VFX Editor Types and Interfaces
  */
 
-import { ParticleSystem, GPUParticleSystem, SolidParticleSystem, Scene, Engine, ArcRotateCamera, Mesh, Color3, Vector3 } from "babylonjs";
+import { ParticleSystem, GPUParticleSystem, SolidParticleSystem, Scene, Engine, ArcRotateCamera, Mesh } from "babylonjs";
 
 // Base component interface
 export interface IVFXComponent {
@@ -50,6 +50,16 @@ export interface ISPSAnimationSettings {
 	loop: boolean;
 	// Animation tracks for different properties
 	tracks: IAnimationTrack[];
+	// Serialized function data
+	initParticlesData?: string;
+	updateParticleData?: string;
+	// Initial particle states
+	initialParticleStates?: Array<{
+		position: { x: number; y: number; z: number };
+		rotation: { x: number; y: number; z: number };
+		scaling: { x: number; y: number; z: number };
+		color: { r: number; g: number; b: number; a: number };
+	}>;
 }
 
 // Solid Particle System Component
@@ -60,6 +70,10 @@ export interface IVFXSolidParticleSystem extends IVFXComponent {
 	size: number;
 	templateMesh?: Mesh; // Шаблон меша для создания SPS
 	animationSettings?: ISPSAnimationSettings;
+	// Animation loop properties
+	_animationFrameId?: number;
+	_animationLoop?: () => void;
+	_animationStartTime?: number;
 }
 
 // Particle System Set (group of particle systems)
@@ -128,27 +142,5 @@ export interface IVFXEditorWindow {
 	canvasRef: HTMLCanvasElement | null;
 }
 
-// Component Panel Props
-export interface IVFXComponentsPanelProps {
-	vfxData: IVFXFile | null;
-	selectedComponent: VFXComponent | null;
-	search: string;
-	scene: Scene | null;
-	onSearchChange: (search: string) => void;
-	onComponentSelect: (component: VFXComponent) => void;
-	onComponentRemove: (id: string) => void;
-	onComponentAdded: (component: VFXComponent) => void;
-	onComponentRemoved?: (id: string) => void; // Callback for cleanup
-}
 
-export interface IVFXPreviewPanelProps {
-	scene: Scene | null;
-	engine: Engine | null;
-	onCanvasRef: (canvas: HTMLCanvasElement | null) => void;
-}
 
-export interface IVFXInspectorPanelProps {
-	selectedComponent: VFXComponent | null;
-	scene: Scene | null;
-	onComponentPropertyUpdate: (component: VFXComponent) => void;
-}

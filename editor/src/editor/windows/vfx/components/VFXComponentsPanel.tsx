@@ -5,16 +5,28 @@ import { FaMagic } from "react-icons/fa";
 import { GiSparkles } from "react-icons/gi";
 import { MdOutlineQuestionMark } from "react-icons/md";
 import { toast } from "sonner";
-import { MeshBuilder, ParticleSystem, GPUParticleSystem, Mesh, Color3 } from "babylonjs";
+import { MeshBuilder, Mesh, GPUParticleSystem, ParticleSystem, Scene } from "babylonjs";
 import { loadImportedParticleSystemFile, loadImportedParticleSystemFileFromJSON } from "../../../layout/preview/import/particles";
 import { loadImportedSceneFile } from "../../../layout/preview/import/import";
-import { VFXComponent, IVFXSolidParticleSystem, IVFXComponentsPanelProps, IVFXEmitterMesh } from "../types";
+import { VFXComponent, IVFXSolidParticleSystem, IVFXEmitterMesh, IVFXFile } from "../types";
 import { isGPUParticleSystem } from "../../../../tools/guards/particles";
 import { EditorInspectorSectionField } from "../../../layout/inspector/fields/section";
 
 export interface IVFXComponentsPanelState {
 	emitterMesh: Mesh | null; // Root emitter mesh (parent)
 	emitterMap: Map<string, Mesh>; // Map of component ID to their individual emitter mesh
+}
+
+export interface IVFXComponentsPanelProps {
+	vfxData: IVFXFile | null;
+	selectedComponent: VFXComponent | null;
+	search: string;
+	scene: Scene | null;
+	onSearchChange: (search: string) => void;
+	onComponentSelect: (component: VFXComponent) => void;
+	onComponentRemove: (id: string) => void;
+	onComponentAdded: (component: VFXComponent) => void;
+	onComponentRemoved?: (id: string) => void; // Callback for cleanup
 }
 
 export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFXComponentsPanelState> {

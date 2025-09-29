@@ -1,5 +1,5 @@
 import { Component, ReactNode } from "react";
-import { IVFXInspectorPanelProps, IVFXEmitterMesh } from "../types";
+import { IVFXEmitterMesh, VFXComponent } from "../types";
 import { Input } from "../../../../ui/shadcn/ui/input";
 import { Label } from "../../../../ui/shadcn/ui/label";
 import { Switch } from "../../../../ui/shadcn/ui/switch";
@@ -9,28 +9,16 @@ import { EditorSolidParticleSystemInspector } from "../../../layout/inspector/pa
 import { EditorMeshInspector } from "../../../layout/inspector/mesh/mesh";
 import { Editor } from "../../../main";
 
+export interface IVFXInspectorPanelProps {
+	editor: Editor;
+	selectedComponent: VFXComponent | null;
+	onComponentPropertyUpdate: (component: VFXComponent) => void;
+}
+
 export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 	
 	public render(): ReactNode {
-		const { selectedComponent, scene } = this.props;
-		const mockEditor = {
-			layout: {
-				preview: {
-					scene: scene,
-				},
-				graph: {
-					refresh: () => {
-						// Mock refresh function - does nothing in VFX context
-						console.log("Graph refresh called (mock)");
-					},
-				},
-			},
-			path: null,
-			state: {
-				projectPath: null,
-			},
-		} as Editor;
-
+		const { selectedComponent } = this.props;
 		if (!selectedComponent) {
 			return (
 				<div className="flex flex-col w-full h-full">
@@ -50,7 +38,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 			return (
 				<div className="flex flex-col w-full h-full">
 					<div className="flex-1 overflow-auto">
-						<EditorGPUParticleSystemInspector editor={mockEditor} object={component.babylonSystem} />
+						<EditorGPUParticleSystemInspector editor={this.props.editor} object={component.babylonSystem} />
 					</div>
 				</div>
 			);
@@ -60,7 +48,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 			return (
 				<div className="flex flex-col w-full h-full">
 					<div className="flex-1 overflow-auto">
-						<EditorParticleSystemInspector editor={mockEditor} object={component.babylonSystem} />
+						<EditorParticleSystemInspector editor={this.props.editor} object={component.babylonSystem} />
 					</div>
 				</div>
 			);
@@ -69,7 +57,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 			return (
 				<div className="flex flex-col w-full h-full">
 					<div className="flex-1 overflow-auto">
-						<EditorSolidParticleSystemInspector editor={mockEditor} object={component} />
+						<EditorSolidParticleSystemInspector editor={this.props.editor} object={component} />
 					</div>
 				</div>
 			);
@@ -80,7 +68,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 			return (
 				<div className="flex flex-col w-full h-full">
 					<div className="flex-1 overflow-auto">
-						<EditorMeshInspector editor={mockEditor} object={emitterComponent.babylonMesh} />
+						<EditorMeshInspector editor={this.props.editor} object={emitterComponent.babylonMesh} />
 					</div>
 				</div>
 			);

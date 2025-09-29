@@ -1,5 +1,11 @@
 import { Component, ReactNode } from "react";
-import { IVFXPreviewPanelProps } from "../types";
+import { Scene, Engine } from "babylonjs";
+
+export interface IVFXPreviewPanelProps {
+	scene: Scene | null;
+	engine: Engine | null;
+	onCanvasRef: (canvas: HTMLCanvasElement | null) => void;
+}
 
 export class VFXPreviewPanel extends Component<IVFXPreviewPanelProps> {
 	public render(): ReactNode {

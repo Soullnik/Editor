@@ -14,6 +14,7 @@ import { EditorMeshInspector } from "../mesh/mesh";
 
 import { IEditorInspectorImplementationProps } from "../inspector";
 import { IVFXSolidParticleSystem } from "../../../windows/vfx/types";
+import { SPSAnimationUtility } from "../../../windows/vfx/utils/sps-animation";
 
 export interface IEditorSolidParticleSystemInspectorState {
 	started: boolean;
@@ -170,6 +171,9 @@ export class EditorSolidParticleSystemInspector extends Component<IEditorInspect
 		// Initialize particles
 		sps.babylonSPS.initParticles();
 		sps.babylonSPS.setParticles();
+
+		// Save the animation state for later playback
+		SPSAnimationUtility.saveAnimationState(sps);
 	}
 
 	private _applyShockwaveBehavior(particle: any, time: number): void {

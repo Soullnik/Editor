@@ -21,19 +21,35 @@ import { FaPlay, FaStop } from "react-icons/fa";
 import { GridMaterial } from "babylonjs-materials";
 
 import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel, VFXAnimationPanel } from "./components";
+import { ParticleAnimationManager } from "./utils/particle-animation-manager";
 
 import layoutModel from "./layout.json";
 import { isDarwin } from "../../../tools/os";
 import { IoCloseOutline } from "react-icons/io5";
 import { VscChromeMinimize, VscMultipleWindows } from "react-icons/vsc";
+import { Editor } from "../../../export";
 
 export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IVFXEditorWindowState> {
 	public canvasRef: HTMLCanvasElement | null = null;
 	private _layoutRef: Layout | null = null;
 	private _model: Model = Model.fromJson(layoutModel as unknown as IJsonModel);
 
-	private _components: VFXComponentsPanel;
-	private _preview: VFXPreviewPanel;
+	private _mockEditor = {
+		state: {
+			enableExperimentalFeatures: true,
+			projectPath: this.props.filePath,
+		},
+		layout: {
+			preview: {
+				scene: null as Scene | null,
+			},
+			inspector: {
+				forceUpdate: () => { this._inspector.forceUpdate(); },
+			},
+		},
+	} as Editor;
+	public _components: VFXComponentsPanel;
+	public _preview: VFXPreviewPanel;
 	private _inspector: VFXInspectorPanel;
 	private _animation: VFXAnimationPanel;
 
@@ -65,7 +81,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			inspector: (
 				<VFXInspectorPanel
 					selectedComponent={this.state.selectedComponent}
-					scene={this.state.scene}
+					editor={this._mockEditor}
 					onComponentPropertyUpdate={(component) => this.setSelectedComponent(component)}
 					ref={(r) => (this._inspector = r!)}
 				/>
@@ -73,6 +89,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			animation: (
 				<VFXAnimationPanel
 					selectedComponent={this.state.selectedComponent}
+					editor={this._mockEditor}
 					scene={this.state.scene}
 					onAnimationUpdate={(sps) => this.setSelectedComponent(sps)}
 					ref={(r) => (this._animation = r!)}
@@ -340,6 +357,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			scene.render();
 		});
 
+		// Update mock editor with real scene
+		this._mockEditor.layout.preview.scene = scene;
+		
 		this.setState({ engine, scene, camera });
 	}
 
@@ -412,17 +432,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		if (!this.state.vfxData) return;
 
 		this.setState({ playing: true });
-		this.state.vfxData.cpuParticles.forEach((cpuParticle) => {
-			if (cpuParticle.active && cpuParticle.babylonSystem) {
-				cpuParticle.babylonSystem.start();
-			}
-		});
-
-		this.state.vfxData.gpuParticles.forEach((gpuParticle) => {
-			if (gpuParticle.active && gpuParticle.babylonSystem) {
-				gpuParticle.babylonSystem.start();
-			}
-		});
+		
+		// Start all animations using the animation manager
+		ParticleAnimationManager.startAllAnimations(this.state.vfxData, this.state.scene);
 
 		toast.success("VFX playback started");
 	}
@@ -432,17 +444,8 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 
 		this.setState({ playing: false });
 
-		this.state.vfxData.cpuParticles.forEach((cpuParticle) => {
-			if (cpuParticle.babylonSystem) {
-				cpuParticle.babylonSystem.stop();
-			}
-		});
-
-		this.state.vfxData.gpuParticles.forEach((gpuParticle) => {
-			if (gpuParticle.babylonSystem) {
-				gpuParticle.babylonSystem.stop();
-			}
-		});
+		// Stop all animations using the animation manager
+		ParticleAnimationManager.stopAllAnimations(this.state.vfxData);
 
 		toast.info("VFX playback stopped");
 	}
