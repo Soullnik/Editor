@@ -2,40 +2,38 @@ import { Component, ReactNode } from "react";
 
 import { IoPlay, IoStop, IoRefresh } from "react-icons/io5";
 
-import { SolidParticleSystem } from "babylonjs";
+import { SolidParticleSystem, Vector3, Color4 } from "babylonjs";
 
 import { Button } from "../../../../ui/shadcn/ui/button";
 
-import { isSolidParticleSystem } from "../../../../tools/guards/particles";
 
 import { EditorInspectorStringField } from "../fields/string";
-import { EditorInspectorVectorField } from "../fields/vector";
 import { EditorInspectorNumberField } from "../fields/number";
-import { EditorInspectorSwitchField } from "../fields/switch";
 import { EditorInspectorSectionField } from "../fields/section";
-import { EditorInspectorTextureField } from "../fields/texture";
+import { EditorMeshInspector } from "../mesh/mesh";
 
 import { IEditorInspectorImplementationProps } from "../inspector";
+import { IVFXSolidParticleSystem } from "../../../windows/vfx/types";
 
 export interface IEditorSolidParticleSystemInspectorState {
 	started: boolean;
 }
 
-export class EditorSolidParticleSystemInspector extends Component<IEditorInspectorImplementationProps<SolidParticleSystem>, IEditorSolidParticleSystemInspectorState> {
+export class EditorSolidParticleSystemInspector extends Component<IEditorInspectorImplementationProps<IVFXSolidParticleSystem>, IEditorSolidParticleSystemInspectorState> {
 	/**
 	 * Returns whether or not the given object is supported by this inspector.
 	 * @param object defines the object to check.
 	 * @returns true if the object is supported by this inspector.
 	 */
 	public static IsSupported(object: unknown): boolean {
-		return isSolidParticleSystem(object);
+		return (object as any)?.type === "solid_particle_system";
 	}
 
-	public constructor(props: IEditorInspectorImplementationProps<SolidParticleSystem>) {
+	public constructor(props: IEditorInspectorImplementationProps<IVFXSolidParticleSystem>) {
 		super(props);
 
 		this.state = {
-			started: props.object.nbParticles > 0,
+			started: props.object.babylonSPS !== null,
 		};
 	}
 
@@ -69,7 +67,7 @@ export class EditorSolidParticleSystemInspector extends Component<IEditorInspect
 							{this.state.started ? <IoStop className="w-6 h-6" strokeWidth={1} color="red" /> : <IoPlay className="w-6 h-6" strokeWidth={1} color="green" />}
 						</Button>
 
-						<Button onClick={() => this.props.object.rebuildMesh(true)} className="w-10 h-10 bg-muted/50 !rounded-lg p-0.5">
+						<Button onClick={() => this.props.object.babylonSPS?.rebuildMesh(true)} className="w-10 h-10 bg-muted/50 !rounded-lg p-0.5">
 							<IoRefresh className="w-6 h-6" strokeWidth={1} color="red" />
 						</Button>
 					</div>
@@ -78,103 +76,114 @@ export class EditorSolidParticleSystemInspector extends Component<IEditorInspect
 				<EditorInspectorSectionField title="Particles">
 					<EditorInspectorNumberField
 						object={this.props.object}
-						property="nbParticles"
+						property="particleCount"
 						label="Particle Count"
 						min={0}
 					/>
 
 					<EditorInspectorNumberField
 						object={this.props.object}
-						property="counter"
-						label="Counter"
+						property="size"
+						label="Size"
 						min={0}
-					/>
-				</EditorInspectorSectionField>
-
-				<EditorInspectorSectionField title="Transforms">
-					<EditorInspectorVectorField object={this.props.object.mesh} property="position" label="Position" />
-					<EditorInspectorVectorField object={this.props.object.mesh} property="rotation" label="Rotation" />
-					<EditorInspectorVectorField object={this.props.object.mesh} property="scaling" label="Scaling" />
-				</EditorInspectorSectionField>
-
-				<EditorInspectorSectionField title="Materials">
-					<EditorInspectorTextureField hideLevel hideSize object={this.props.object.mesh} property="material.diffuseTexture" title="Diffuse Texture" />
-					<EditorInspectorTextureField hideLevel hideSize object={this.props.object.mesh} property="material.normalTexture" title="Normal Texture" />
-					<EditorInspectorTextureField hideLevel hideSize object={this.props.object.mesh} property="material.emissiveTexture" title="Emissive Texture" />
-				</EditorInspectorSectionField>
-
-				<EditorInspectorSectionField title="Visibility">
-					<EditorInspectorSwitchField object={this.props.object} property="billboard" label="Billboard" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="recomputeNormals" label="Recompute Normals" onChange={() => this.forceUpdate()} />
-					
-					<EditorInspectorNumberField
-						object={this.props.object}
-						property="isAlwaysVisible"
-						label="Always Visible"
-						min={0}
-						max={1}
-						step={1}
-						onChange={() => this.forceUpdate()}
-					/>
-
-					<EditorInspectorNumberField
-						object={this.props.object}
-						property="isVisibilityBoxLocked"
-						label="Visibility Box Locked"
-						min={0}
-						max={1}
-						step={1}
-						onChange={() => this.forceUpdate()}
-					/>
-				</EditorInspectorSectionField>
-
-				<EditorInspectorSectionField title="Performance">
-					<EditorInspectorSwitchField object={this.props.object} property="computeParticleRotation" label="Compute Particle Rotation" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="computeParticleColor" label="Compute Particle Color" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="computeParticleTexture" label="Compute Particle Texture" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="computeParticleVertex" label="Compute Particle Vertex" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="computeBoundingBox" label="Compute Bounding Box" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="depthSortParticles" label="Depth Sort Particles" onChange={() => this.forceUpdate()} />
-				</EditorInspectorSectionField>
-
-				<EditorInspectorSectionField title="Multi-Material">
-					<EditorInspectorSwitchField object={this.props.object} property="multimaterialEnabled" label="Multi-Material Enabled" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="useModelMaterial" label="Use Model Material" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="autoUpdateSubMeshes" label="Auto Update Sub-Meshes" onChange={() => this.forceUpdate()} />
-				</EditorInspectorSectionField>
-
-				<EditorInspectorSectionField title="Advanced">
-					<EditorInspectorSwitchField object={this.props.object} property="expandable" label="Expandable" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="_particlesIntersect" label="Particle Intersection" onChange={() => this.forceUpdate()} />
-					<EditorInspectorSwitchField object={this.props.object} property="_bSphereOnly" label="Bounding Sphere Only" onChange={() => this.forceUpdate()} />
-					
-					<EditorInspectorNumberField
-						object={this.props.object}
-						property="_bSphereRadiusFactor"
-						label="Bounding Sphere Radius Factor"
-						min={0.1}
-						max={2.0}
 						step={0.1}
-						onChange={() => this.forceUpdate()}
 					/>
 				</EditorInspectorSectionField>
+
+				{this.props.object.templateMesh && (
+					<EditorInspectorSectionField title="Template Mesh">
+						<div className="flex flex-col w-full h-full">
+							<div className="flex-1 overflow-auto">
+								<EditorMeshInspector editor={this.props.editor} object={this.props.object.templateMesh} />
+							</div>
+						</div>
+					</EditorInspectorSectionField>
+				)}
+
+				{this.props.object.babylonSPS && (
+					<EditorInspectorSectionField title="SPS Properties">
+						<EditorInspectorNumberField
+							object={this.props.object.babylonSPS}
+							property="nbParticles"
+							label="Active Particles"
+							min={0}
+						/>
+					</EditorInspectorSectionField>
+				)}
 			</>
 		);
 	}
 
 	private _handleStartOrStop(): void {
 		if (this.state.started) {
-			// For SPS, we can't really "stop" particles, but we can hide them
-			this.props.object.mesh.setEnabled(false);
+			// Stop SPS animation
+			if (this.props.object.babylonSPS) {
+				this.props.object.babylonSPS.dispose();
+				this.props.object.babylonSPS = null;
+			}
 			this.setState({
 				started: false,
 			});
 		} else {
-			// For SPS, we can "start" by enabling the mesh
-			this.props.object.mesh.setEnabled(true);
+			// Create and start SPS animation
+			this._createSPSAnimation();
 			this.setState({
 				started: true,
 			});
 		}
 	}
+
+	private _createSPSAnimation(): void {
+		const sps = this.props.object;
+		if (!sps.templateMesh) return;
+
+		// Create SPS if not exists
+		if (!sps.babylonSPS) {
+			sps.babylonSPS = new SolidParticleSystem(sps.name, this.props.editor.layout.preview.scene, {
+				useModelMaterial: true,
+			});
+			sps.babylonSPS.addShape(sps.templateMesh, sps.particleCount);
+			sps.babylonSPS.buildMesh();
+		}
+
+		// Initialize particles function
+		sps.babylonSPS.initParticles = () => {
+			if (!sps.babylonSPS) return;
+			
+			for (let p = 0; p < sps.babylonSPS.nbParticles; p++) {
+				const particle = sps.babylonSPS.particles[p];
+				// Initialize with default values
+				particle.position = new Vector3(0, 0.05, 0);
+				particle.scaling = new Vector3(1.0, 1.0, 1.0);
+				particle.rotation = new Vector3(0, 0, 0);
+				particle.color = new Color4(0.33, 0.49, 0.88, 1);
+			}
+		};
+
+		// Update particles function - will be controlled by EditorAnimation
+		sps.babylonSPS.updateParticle = (particle) => {
+			// Add some basic shockwave behavior
+			this._applyShockwaveBehavior(particle, Date.now() * 0.001);
+			return particle;
+		};
+
+		// Initialize particles
+		sps.babylonSPS.initParticles();
+		sps.babylonSPS.setParticles();
+	}
+
+	private _applyShockwaveBehavior(particle: any, time: number): void {
+		// Add alternating rotation speed (like in original shockwave)
+		if (particle.id % 2 === 0) {
+			particle.rotation.y += 0.06;
+		} else {
+			particle.rotation.y -= 0.06;
+		}
+		
+		// Add some wave-like movement
+		particle.position.x = Math.sin(time * Math.PI * 2 + particle.id * 0.5) * 0.1;
+		particle.position.z = Math.cos(time * Math.PI * 2 + particle.id * 0.5) * 0.1;
+	}
+
+
 }

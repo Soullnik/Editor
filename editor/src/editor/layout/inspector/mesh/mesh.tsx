@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { Component, ReactNode } from "react";
+import { readJSON } from "fs-extra";
 
 import { FaCopy, FaLink } from "react-icons/fa6";
 import { IoAddSharp, IoCloseOutline } from "react-icons/io5";
@@ -267,35 +268,46 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 		if (!this.props.object.material) {
 			return (
 				<EditorInspectorSectionField title="Material">
-					<div className="flex justify-center items-center gap-2">
-						<div className="text-center text-xl">No material</div>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="ghost" className="w-8 h-8 !rounded-lg p-0.5">
-									<AiOutlinePlus className="w-4 h-4" />
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent>
-								{getMaterialCommands(this.props.editor).map((command) => (
-									<DropdownMenuItem key={command.key} onClick={() => this._handleAddMaterial(command)}>
-										{command.text}
-									</DropdownMenuItem>
-								))}
+					<div 
+						onDragOver={(e) => this._handleMaterialDragOver(e)}
+						onDrop={(e) => this._handleMaterialDrop(e)}
+						className="min-h-[120px] border-2 border-dashed border-muted-foreground/20 rounded-lg p-4 transition-colors hover:border-muted-foreground/40 flex flex-col justify-center items-center gap-4"
+					>
+						<div className="text-center">
+							<div className="text-xl mb-2">No material</div>
+							<div className="text-sm text-muted-foreground">Drop materialfile or create material</div>
+						</div>
+						
+						<div className="flex gap-2">
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline" className="flex gap-2 items-center">
+										<AiOutlinePlus className="w-4 h-4" />
+										Create Material
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent>
+									{getMaterialCommands(this.props.editor).map((command) => (
+										<DropdownMenuItem key={command.key} onClick={() => this._handleAddMaterial(command)}>
+											{command.text}
+										</DropdownMenuItem>
+									))}
 
-								<DropdownMenuSeparator />
+									<DropdownMenuSeparator />
 
-								<DropdownMenuSub>
-									<DropdownMenuSubTrigger>Materials Library</DropdownMenuSubTrigger>
-									<DropdownMenuSubContent>
-										{getMaterialsLibraryCommands(this.props.editor).map((command) => (
-											<DropdownMenuItem key={command.key} onClick={() => this._handleAddMaterial(command)}>
-												{command.text}
-											</DropdownMenuItem>
-										))}
-									</DropdownMenuSubContent>
-								</DropdownMenuSub>
-							</DropdownMenuContent>
-						</DropdownMenu>
+									<DropdownMenuSub>
+										<DropdownMenuSubTrigger>Materials Library</DropdownMenuSubTrigger>
+										<DropdownMenuSubContent>
+											{getMaterialsLibraryCommands(this.props.editor).map((command) => (
+												<DropdownMenuItem key={command.key} onClick={() => this._handleAddMaterial(command)}>
+													{command.text}
+												</DropdownMenuItem>
+											))}
+										</DropdownMenuSubContent>
+									</DropdownMenuSub>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
 					</div>
 				</EditorInspectorSectionField>
 			);
@@ -530,5 +542,56 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 				});
 			},
 		});
+	}
+
+	private _handleMaterialDragOver(e: React.DragEvent): void {
+		e.preventDefault();
+		e.dataTransfer.dropEffect = "copy";
+	}
+
+	private async _handleMaterialDrop(e: React.DragEvent): Promise<void> {
+		e.preventDefault();
+		
+		const assets = e.dataTransfer.getData("assets");
+		if (assets) {
+			try {
+				const assetData = JSON.parse(assets);
+				if (assetData.length > 0) {
+					const asset = assetData[0];
+					// Check if it's a JSON file
+					if (asset.toLowerCase().endsWith('.json')) {
+						await this._importNodeMaterialFromFile(asset);
+					}
+				}
+			} catch (error) {
+				console.error("Failed to parse asset data:", error);
+			}
+		}
+	}
+
+	private async _importNodeMaterialFromFile(filePath: string): Promise<void> {
+		try {
+			const shaderData = await readJSON(filePath, { encoding: "utf-8" });
+			
+			// Check if it's a NodeMaterial JSON
+			if (shaderData.id === "node material" || shaderData.customType === "BABYLON.NodeMaterial") {
+				// Create NodeMaterial from JSON
+				const nodeMaterial = NodeMaterial.Parse(shaderData, this.props.object.getScene());
+				nodeMaterial.build(false);
+				console.log("NodeMaterial imported and applied to", nodeMaterial);
+				// Apply to mesh
+				this.props.object.material = nodeMaterial;
+				
+				// Force update to show the new material inspector
+				this.forceUpdate();
+				
+				toast.success(`NodeMaterial imported and applied to ${this.props.object.name}`);
+			} else {
+				toast.error("Invalid NodeMaterial JSON file");
+			}
+		} catch (error) {
+			console.error("Failed to import NodeMaterial:", error);
+			toast.error("Failed to import NodeMaterial from JSON file");
+		}
 	}
 }

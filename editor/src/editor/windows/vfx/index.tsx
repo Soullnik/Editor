@@ -74,6 +74,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 				<VFXAnimationPanel
 					selectedComponent={this.state.selectedComponent}
 					scene={this.state.scene}
+					onAnimationUpdate={(sps) => this.setSelectedComponent(sps)}
 					ref={(r) => (this._animation = r!)}
 				/>
 			),
@@ -306,11 +307,12 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			engine.resize();
 
 			if (this.state.vfxData) {
-				// this.state.vfxData.sps.forEach((sps) => {
-				// 	if (sps.babylonSPS) {
-				// 		sps.babylonSPS.setParticles();
-				// 	}
-				// });
+				// Update SPS particles for animation
+				this.state.vfxData.sps.forEach((sps) => {
+					if (sps.babylonSPS && sps.animationSettings) {
+						sps.babylonSPS.setParticles();
+					}
+				});
 				// this.state.vfxData.cpuParticles.forEach((cpuParticle) => {
 				// 	if (cpuParticle.babylonSystem) {
 				// 		const particleSystem = cpuParticle.babylonSystem;

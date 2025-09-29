@@ -65,12 +65,11 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 				</div>
 			);
 		}
-
-		if (component.type === "solid_particle_system" && component.babylonSPS) {
+		if (component.type === "solid_particle_system" && component.templateMesh) {
 			return (
 				<div className="flex flex-col w-full h-full">
 					<div className="flex-1 overflow-auto">
-						<EditorSolidParticleSystemInspector editor={mockEditor} object={component.babylonSPS} />
+						<EditorSolidParticleSystemInspector editor={mockEditor} object={component} />
 					</div>
 				</div>
 			);

@@ -5,7 +5,7 @@ import { FaMagic } from "react-icons/fa";
 import { GiSparkles } from "react-icons/gi";
 import { MdOutlineQuestionMark } from "react-icons/md";
 import { toast } from "sonner";
-import { Vector3, MeshBuilder, SolidParticleSystem, ParticleSystem, GPUParticleSystem, Mesh } from "babylonjs";
+import { MeshBuilder, ParticleSystem, GPUParticleSystem, Mesh, Color3 } from "babylonjs";
 import { loadImportedParticleSystemFile, loadImportedParticleSystemFileFromJSON } from "../../../layout/preview/import/particles";
 import { loadImportedSceneFile } from "../../../layout/preview/import/import";
 import { VFXComponent, IVFXSolidParticleSystem, IVFXComponentsPanelProps, IVFXEmitterMesh } from "../types";
@@ -409,12 +409,91 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 			name: componentName,
 			active: true,
 			filePath: absolutePath,
-			particleCount: 1,
+			particleCount: 7, // Like in original shockwave
 			size: 0.1,
-			babylonSPS: null as unknown as SolidParticleSystem,
+			babylonSPS: null, // SPS создадим при Play
+			animationSettings: {
+				duration: 5.0, // 5 seconds
+				autoReset: true,
+				loop: true,
+				tracks: [
+					{
+						property: "scaling",
+						component: "x",
+						loop: true,
+						keyframes: [
+							{ time: 0.0, value: 1.0, easing: "ease-out" },
+							{ time: 1.0, value: 4.0, easing: "ease-in" }
+						]
+					},
+					{
+						property: "scaling",
+						component: "y",
+						loop: true,
+						keyframes: [
+							{ time: 0.0, value: 0.25, easing: "ease-out" },
+							{ time: 1.0, value: 4.0, easing: "ease-in" }
+						]
+					},
+					{
+						property: "scaling",
+						component: "z",
+						loop: true,
+						keyframes: [
+							{ time: 0.0, value: 1.0, easing: "ease-out" },
+							{ time: 1.0, value: 4.0, easing: "ease-in" }
+						]
+					},
+					{
+						property: "position",
+						component: "y",
+						loop: true,
+						keyframes: [
+							{ time: 0.0, value: 0.05, easing: "ease-out" },
+							{ time: 1.0, value: 0.25, easing: "ease-in" }
+						]
+					},
+					{
+						property: "rotation",
+						component: "y",
+						loop: true,
+						keyframes: [
+							{ time: 0.0, value: 0, easing: "linear" },
+							{ time: 1.0, value: Math.PI * 4, easing: "linear" }
+						]
+					},
+					{
+						property: "color",
+						component: "r",
+						loop: true,
+						keyframes: [
+							{ time: 0.0, value: 0.33, easing: "ease-out" },
+							{ time: 1.0, value: 0.0, easing: "ease-in" }
+						]
+					},
+					{
+						property: "color",
+						component: "g",
+						loop: true,
+						keyframes: [
+							{ time: 0.0, value: 0.49, easing: "ease-out" },
+							{ time: 1.0, value: 0.0, easing: "ease-in" }
+						]
+					},
+					{
+						property: "color",
+						component: "b",
+						loop: true,
+						keyframes: [
+							{ time: 0.0, value: 0.88, easing: "ease-out" },
+							{ time: 1.0, value: 0.0, easing: "ease-in" }
+						]
+					}
+				]
+			}
 		};
 
-		// Load mesh using existing import function
+		// Только загружаем меш, SPS создадим при Play
 		try {
 			const result = await loadImportedSceneFile(scene, absolutePath);
 			console.log(result);
@@ -425,40 +504,19 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 				} else {
 					templateMesh = result.meshes[0] as Mesh;
 				}
-				templateMesh.isVisible = false; // Hide template mesh
-				// Create Solid Particle System
-				const sps = new SolidParticleSystem(componentName, scene, {
-					useModelMaterial: true,
-				});
-
-				// Add shape to SPS
-				sps.addShape(templateMesh, component.particleCount);
-				sps.buildMesh();
-
-				// Initialize particles
-				sps.initParticles = () => {
-					for (let i = 0; i < sps.nbParticles; i++) {
-						const particle = sps.particles[i];
-						particle.position = new Vector3((Math.random() - 0.5) * 2, Math.random() * 0.5, (Math.random() - 0.5) * 2);
-						particle.scaling = new Vector3(1, 1, 1);
-						particle.rotation = new Vector3(0, 0, 0);
-					}
-				};
-
-				sps.initParticles();
-				sps.setParticles();
-
-				// Store SPS in component properties
-				component.babylonSPS = sps;
-
-				toast.success(`Created SPS component: ${componentName}`);
+				templateMesh.isVisible = false; // Скрываем шаблон
+				
+				// Сохраняем шаблон меша в компоненте
+				component.templateMesh = templateMesh;
+				
+				toast.success(`Loaded mesh for SPS: ${componentName}`);
 				return component;
 			} else {
 				throw new Error("No meshes loaded from file");
 			}
 		} catch (error) {
-			console.error("Failed to create SPS from mesh:", error);
-			toast.error(`Failed to create SPS from ${fileName}`);
+			console.error("Failed to load mesh for SPS:", error);
+			toast.error(`Failed to load mesh for SPS: ${fileName}`);
 			return null;
 		}
 	}

@@ -2,7 +2,7 @@
  * VFX Editor Types and Interfaces
  */
 
-import { ParticleSystem, GPUParticleSystem, SolidParticleSystem, Scene, Engine, ArcRotateCamera, Mesh } from "babylonjs";
+import { ParticleSystem, GPUParticleSystem, SolidParticleSystem, Scene, Engine, ArcRotateCamera, Mesh, Color3, Vector3 } from "babylonjs";
 
 // Base component interface
 export interface IVFXComponent {
@@ -25,12 +25,41 @@ export interface IVFXGPUParticleSystem extends IVFXComponent {
 	babylonSystem: GPUParticleSystem;
 }
 
+// Animation property types that can be animated
+export type AnimatableProperty = "position" | "rotation" | "scaling" | "color" | "visibility";
+
+// Keyframe for animation
+export interface IAnimationKeyframe {
+	time: number; // Time in seconds (0-1 normalized or absolute)
+	value: any; // Value at this keyframe
+	easing?: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+}
+
+// Animation track for a specific property
+export interface IAnimationTrack {
+	property: AnimatableProperty;
+	component: "x" | "y" | "z" | "r" | "g" | "b" | "a" | "all"; // Which component of the property
+	keyframes: IAnimationKeyframe[];
+	loop: boolean;
+}
+
+// Animation settings with timeline
+export interface ISPSAnimationSettings {
+	duration: number; // Total duration in seconds
+	autoReset: boolean;
+	loop: boolean;
+	// Animation tracks for different properties
+	tracks: IAnimationTrack[];
+}
+
 // Solid Particle System Component
 export interface IVFXSolidParticleSystem extends IVFXComponent {
 	type: "solid_particle_system";
-	babylonSPS: SolidParticleSystem;
+	babylonSPS: SolidParticleSystem | null;
 	particleCount: number;
 	size: number;
+	templateMesh?: Mesh; // Шаблон меша для создания SPS
+	animationSettings?: ISPSAnimationSettings;
 }
 
 // Particle System Set (group of particle systems)
