@@ -24,6 +24,7 @@ import { EditorInspectorSectionField } from "../fields/section";
 import { EditorInspectorTextureField } from "../fields/texture";
 
 import { EditorMaterialInspectorUtilsComponent } from "./components/utils";
+import { EditorInspectorTextureField } from "../fields/texture";
 
 export interface IEditorNodeMaterialInspectorProps {
 	mesh?: AbstractMesh;
@@ -63,7 +64,6 @@ export class EditorNodeMaterialInspector extends Component<IEditorNodeMaterialIn
 						Edit...
 					</Button>
 				</EditorInspectorSectionField>
-
 				{this._getTextureBlocks()}
 				{this._getEditableBlocks()}
 			</>
@@ -118,16 +118,15 @@ export class EditorNodeMaterialInspector extends Component<IEditorNodeMaterialIn
 
 	private _getTextureBlocks(): ReactNode[] {
 		const result: ReactNode[] = [];
-		
+
 		const textureBlocks = this.props.material.getAllTextureBlocks();
-		console.log("Texture blocks:", textureBlocks);
-		
+
 		if (textureBlocks.length > 0) {
 			result.push(
 				<EditorInspectorSectionField key="textures" title="Textures">
 					{textureBlocks.map((block) => (
 						<EditorInspectorTextureField
-						    scene={this.props.material.getScene()}
+							scene={this.props.material.getScene()}
 							key={block.name}
 							object={block}
 							property="texture"

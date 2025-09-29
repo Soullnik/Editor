@@ -66,6 +66,7 @@ import { onProjectConfigurationChangedObservable } from "../../project/configura
 
 import { EditorGraphLabel } from "./graph/label";
 import { EditorGraphContextMenu } from "./graph/graph";
+import { getNodeCommands } from "../dialogs/command-palette/node";
 import { getMeshCommands } from "../dialogs/command-palette/mesh";
 import { getLightCommands } from "../dialogs/command-palette/light";
 import { getCameraCommands } from "../dialogs/command-palette/camera";
@@ -206,14 +207,6 @@ export class EditorGraph extends Component<IEditorGraphProps, IEditorGraphState>
 									<AiOutlinePlus className="w-5 h-5" /> Add
 								</ContextMenuSubTrigger>
 								<ContextMenuSubContent>
-									{getMeshCommands(this.props.editor).map((command) => {
-										return (
-											<ContextMenuItem key={command.key} onClick={command.action}>
-												{command.text}
-											</ContextMenuItem>
-										);
-									})}
-									<ContextMenuSeparator />
 									{getLightCommands(this.props.editor).map((command) => {
 										return (
 											<ContextMenuItem key={command.key} onClick={command.action}>
@@ -221,6 +214,29 @@ export class EditorGraph extends Component<IEditorGraphProps, IEditorGraphState>
 											</ContextMenuItem>
 										);
 									})}
+									<ContextMenuSeparator />
+									{getNodeCommands(this.props.editor).map((command) => {
+										return (
+											<ContextMenuItem key={command.key} onClick={command.action}>
+												{command.text}
+											</ContextMenuItem>
+										);
+									})}
+									<ContextMenuSeparator />
+									<ContextMenuSub>
+										<ContextMenuSubTrigger className="flex items-center gap-2">
+											<IoMdCube className="w-5 h-5" /> Meshes
+										</ContextMenuSubTrigger>
+										<ContextMenuSubContent>
+											{getMeshCommands(this.props.editor).map((command) => {
+												return (
+													<ContextMenuItem key={command.key} onClick={command.action}>
+														{command.text}
+													</ContextMenuItem>
+												);
+											})}
+										</ContextMenuSubContent>
+									</ContextMenuSub>
 									<ContextMenuSeparator />
 									{getCameraCommands(this.props.editor).map((command) => {
 										return (
@@ -317,6 +333,14 @@ export class EditorGraph extends Component<IEditorGraphProps, IEditorGraphState>
 		});
 
 		this.setState({ nodes: this.state.nodes });
+	}
+
+	/**
+	 * Returns whether or not the given node is selected in the graph.
+	 * @param nodeData defines the reference to the node data to check.
+	 */
+	public isNodeSelected(nodeData: any): boolean {
+		return this.getSelectedNodes().find((n) => n.nodeData === nodeData) !== undefined;
 	}
 
 	/**
@@ -688,7 +712,7 @@ export class EditorGraph extends Component<IEditorGraphProps, IEditorGraphState>
 			return null;
 		}
 
-		if (isTransformNode(node)) {
+		if (isTransformNode(node) || isSceneLinkNode(node)) {
 			if (!node._scene.transformNodes.includes(node)) {
 				return null;
 			}

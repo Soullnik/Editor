@@ -47,6 +47,10 @@ import { onGizmoNodeChangedObservable } from "../../preview/gizmo";
 import { EditorTransformNodeInspector } from "../transform";
 import { IEditorInspectorImplementationProps } from "../inspector";
 
+export interface IEditorMeshInspectorState {
+	dragOver: boolean;
+}
+
 import { EditorPBRMaterialInspector } from "../material/pbr";
 import { EditorSkyMaterialInspector } from "../material/sky";
 import { EditorGridMaterialInspector } from "../material/grid";
@@ -65,8 +69,11 @@ import { MeshDecalInspector } from "./decal";
 import { MeshGeometryInspector } from "./geometry";
 import { EditorMeshPhysicsInspector } from "./physics";
 import { EditorMeshCollisionInspector } from "./collision";
+import { waitNextAnimationFrame } from "../../../../tools/tools";
+import { extname } from "path/posix";
+import { applyMaterialAssetToObject } from "../../preview/import/material";
 
-export class EditorMeshInspector extends Component<IEditorInspectorImplementationProps<AbstractMesh>> {
+export class EditorMeshInspector extends Component<IEditorInspectorImplementationProps<AbstractMesh>, IEditorMeshInspectorState> {
 	/**
 	 * Returns whether or not the given object is supported by this inspector.
 	 * @param object defines the object to check.
@@ -82,6 +89,10 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 
 	public constructor(props: IEditorInspectorImplementationProps<AbstractMesh>) {
 		super(props);
+
+		this.state = {
+			dragOver: false,
+		};
 
 		this._castShadows = props.editor.layout.preview.scene.lights.some((light) => {
 			return light.getShadowGenerator()?.getShadowMap()?.renderList?.includes(props.object);
@@ -268,16 +279,17 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 		if (!this.props.object.material) {
 			return (
 				<EditorInspectorSectionField title="Material">
-					<div 
-						onDragOver={(e) => this._handleMaterialDragOver(e)}
+					<div
 						onDrop={(e) => this._handleMaterialDrop(e)}
-						className="min-h-[120px] border-2 border-dashed border-muted-foreground/20 rounded-lg p-4 transition-colors hover:border-muted-foreground/40 flex flex-col justify-center items-center gap-4"
+						onDragLeave={() => this.setState({ dragOver: false })}
+						onDragOver={(ev) => this._handleMaterialDragOver(ev)}
+						className={`flex flex-col justify-center items-center w-full p-4 rounded-lg border-[1px] border-secondary-foreground/35 border-dashed ${this.state.dragOver ? "bg-secondary-foreground/35" : ""} transition-all duration-300 ease-in-out`}
 					>
 						<div className="text-center">
 							<div className="text-xl mb-2">No material</div>
-							<div className="text-sm text-muted-foreground">Drop materialfile or create material</div>
+							<div className="text-sm text-muted-foreground mb-2">Drop materialfile or create material</div>
 						</div>
-						
+
 						<div className="flex gap-2">
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -323,6 +335,42 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 		}
 
 		return <div className="flex flex-col gap-2 relative">{inspector}</div>;
+	}
+
+	private _handleMaterialDrop(ev: React.DragEvent<HTMLDivElement>): void {
+		ev.preventDefault();
+		ev.stopPropagation();
+		this.setState({ dragOver: false });
+
+		const assets = ev.dataTransfer.getData("assets");
+		if (assets) {
+			this._handleMaterialDropped(assets);
+		}
+	}
+
+	private _handleMaterialDragOver(ev: React.DragEvent<HTMLDivElement>): void {
+		ev.preventDefault();
+		ev.stopPropagation();
+
+		this.setState({ dragOver: true });
+	}
+
+	private _handleMaterialDropped(assets: string): void {
+		const absolutePaths = JSON.parse(assets) as string[];
+
+		if (!Array.isArray(absolutePaths)) {
+			return;
+		}
+
+		absolutePaths.forEach(async (absolutePath) => {
+			await waitNextAnimationFrame();
+			const extension = extname(absolutePath).toLowerCase();
+			switch (extension) {
+				case ".material":
+					applyMaterialAssetToObject(this.props.editor, this.props.object, absolutePath);
+					break;
+			}
+		});
 	}
 
 	private _handleAddMaterial(command: ICommandPaletteType): void {
