@@ -120,7 +120,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		try {
 			const assetPaths = JSON.parse(assets) as string[];
 			for (const absolutePath of assetPaths) {
-				const component = await AssetProcessor.processAssetFile(absolutePath, this.props.vfxData!, this.props.scene!, (componentId) =>
+				const component = await AssetProcessor.processAssetFile(absolutePath, this.props.scene!, (componentId) =>
 					this._emitterManager.createIndividualEmitter(componentId, this.props.scene!)
 				);
 				if (component) {

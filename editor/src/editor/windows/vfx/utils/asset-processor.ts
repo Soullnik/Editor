@@ -1,20 +1,15 @@
 import { toast } from "sonner";
-import { GPUParticleSystem, ParticleSystem, Scene, Mesh } from "babylonjs";
+import { GPUParticleSystem, ParticleSystem, Scene, Mesh, SolidParticleSystem, Vector3, Color4 } from "babylonjs";
 import { loadImportedParticleSystemFile, loadImportedParticleSystemFileFromJSON } from "../../../layout/preview/import/particles";
 import { loadImportedSceneFile } from "../../../layout/preview/import/import";
-import { VFXComponent, IVFXSolidParticleSystem, IVFXFile } from "../types";
+import { VFXComponent, IVFXSolidParticleSystem } from "../types";
 import { isGPUParticleSystem } from "../../../../tools/guards/particles";
 
 export class AssetProcessor {
 	/**
 	 * Processes a dropped asset file and creates the appropriate VFX component
 	 */
-	public static async processAssetFile(
-		absolutePath: string,
-		vfxData: IVFXFile,
-		scene: Scene,
-		createIndividualEmitter: (componentId: string) => Mesh | null
-	): Promise<VFXComponent | null> {
+	public static async processAssetFile(absolutePath: string, _scene: Scene, createIndividualEmitter: (componentId: string) => Mesh | null): Promise<VFXComponent | null> {
 		const extension = absolutePath.toLowerCase().split(".").pop();
 		if (!extension) {
 			return null;
@@ -24,13 +19,13 @@ export class AssetProcessor {
 			switch (extension) {
 				case "glb":
 				case "babylon":
-					return await this._createSPSFromMesh(absolutePath, extension, scene);
+					return await this._createSPSFromMesh(absolutePath, extension, _scene);
 
 				case "json":
-					return await this._createParticleSystemFromJSON(absolutePath, scene, createIndividualEmitter);
+					return await this._createParticleSystemFromJSON(absolutePath, _scene, createIndividualEmitter);
 
 				case "npss":
-					return await this._createParticleSystemFromNPSS(absolutePath, scene, createIndividualEmitter);
+					return await this._createParticleSystemFromNPSS(absolutePath, _scene, createIndividualEmitter);
 
 				default:
 					toast.warning(`Unsupported file type: .${extension}`);
@@ -55,85 +50,22 @@ export class AssetProcessor {
 			name: componentName,
 			active: true,
 			filePath: absolutePath,
-			particleCount: 7,
+			particleCount: 1,
 			size: 0.1,
 			babylonSPS: null,
+			isAnimating: false,
+			currentAnimationTime: 0,
+			selectedParticleId: null,
 			animationSettings: {
-				duration: 5.0,
-				autoReset: true,
-				loop: true,
-				tracks: [
+				duration: 1.0,
+				autoReset: false,
+				loop: false,
+				particles: [
 					{
-						property: "scaling",
-						component: "x",
-						loop: true,
-						keyframes: [
-							{ time: 0.0, value: 1.0, easing: "ease-out" },
-							{ time: 1.0, value: 4.0, easing: "ease-in" },
-						],
-					},
-					{
-						property: "scaling",
-						component: "y",
-						loop: true,
-						keyframes: [
-							{ time: 0.0, value: 0.25, easing: "ease-out" },
-							{ time: 1.0, value: 4.0, easing: "ease-in" },
-						],
-					},
-					{
-						property: "scaling",
-						component: "z",
-						loop: true,
-						keyframes: [
-							{ time: 0.0, value: 1.0, easing: "ease-out" },
-							{ time: 1.0, value: 4.0, easing: "ease-in" },
-						],
-					},
-					{
-						property: "position",
-						component: "y",
-						loop: true,
-						keyframes: [
-							{ time: 0.0, value: 0.05, easing: "ease-out" },
-							{ time: 1.0, value: 0.25, easing: "ease-in" },
-						],
-					},
-					{
-						property: "rotation",
-						component: "y",
-						loop: true,
-						keyframes: [
-							{ time: 0.0, value: 0, easing: "linear" },
-							{ time: 1.0, value: Math.PI * 4, easing: "linear" },
-						],
-					},
-					{
-						property: "color",
-						component: "r",
-						loop: true,
-						keyframes: [
-							{ time: 0.0, value: 0.33, easing: "ease-out" },
-							{ time: 1.0, value: 0.0, easing: "ease-in" },
-						],
-					},
-					{
-						property: "color",
-						component: "g",
-						loop: true,
-						keyframes: [
-							{ time: 0.0, value: 0.49, easing: "ease-out" },
-							{ time: 1.0, value: 0.0, easing: "ease-in" },
-						],
-					},
-					{
-						property: "color",
-						component: "b",
-						loop: true,
-						keyframes: [
-							{ time: 0.0, value: 0.88, easing: "ease-out" },
-							{ time: 1.0, value: 0.0, easing: "ease-in" },
-						],
+						id: 0,
+						name: "Particle 1",
+						enabled: true,
+						animations: [],
 					},
 				],
 			},
@@ -151,15 +83,33 @@ export class AssetProcessor {
 				}
 				templateMesh.isVisible = false;
 
-				component.templateMesh = templateMesh;
+				const sps = new SolidParticleSystem(componentName, scene, { useModelMaterial: true });
+				sps.addShape(templateMesh, component.particleCount);
+				sps.buildMesh();
 
-				toast.success(`Loaded mesh for SPS: ${componentName}`);
+				sps.initParticles = () => {
+					for (let i = 0; i < sps.nbParticles; i++) {
+						const particle = sps.particles[i];
+						particle.position = new Vector3(0, 0, 0);
+						particle.scaling = new Vector3(1.0, 1.0, 1.0);
+						particle.rotation = new Vector3(0, 0, 0);
+						particle.color = new Color4(1.0, 1.0, 1.0, 1.0);
+					}
+				};
+
+				sps.initParticles();
+				sps.setParticles();
+				component.particleCount = sps.nbParticles;
+				component.templateMesh = templateMesh;
+				component.babylonSPS = sps;
+
+				toast.success(`Created SPS: ${componentName} with ${component.particleCount} particles`);
 				return component;
 			}
 			throw new Error("No meshes loaded from file");
 		} catch (error) {
-			console.error("Failed to load mesh for SPS:", error);
-			toast.error(`Failed to load mesh for SPS: ${fileName}`);
+			console.error("Failed to create SPS:", error);
+			toast.error(`Failed to create SPS: ${fileName}`);
 			return null;
 		}
 	}
