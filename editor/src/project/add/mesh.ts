@@ -1,4 +1,4 @@
-import { MeshBuilder, Mesh, Node } from "babylonjs";
+import { MeshBuilder, Mesh, Node, SolidParticleSystem } from "babylonjs";
 
 import { Editor } from "../../editor/main";
 
@@ -139,4 +139,18 @@ export function addEmptyMesh(editor: Editor, parent?: Node) {
 	const emptyMesh = new Mesh("New Empty Mesh", editor.layout.preview.scene);
 
 	return configureAddedMesh(editor, emptyMesh, parent);
+}
+
+export function addSPSMesh(editor: Editor, parent?: Node) {
+	const sps = new SolidParticleSystem("New SPS", editor.layout.preview.scene, { enableDepthSort: true, expandable: true });
+	const spsMesh = sps.buildMesh();
+	spsMesh.metadata = {
+		sps: sps,
+	};
+	const particle = sps.getParticleById(0);
+	if (particle) {
+		particle.props = { isDefault: true };
+	}
+	console.log(sps.particles);
+	return configureAddedMesh(editor, spsMesh, parent);
 }

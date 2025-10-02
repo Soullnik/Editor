@@ -1,6 +1,6 @@
 import { Component, ReactNode } from "react";
 
-import { Animation, IAnimatable } from "babylonjs";
+import { Animation, IAnimatable, SolidParticle } from "babylonjs";
 
 import { isNode } from "../../tools/guards/nodes";
 import { isScene } from "../../tools/guards/scene";
@@ -13,6 +13,15 @@ import { EditorAnimationToolbar } from "./animation/toolbar";
 import { EditorAnimationTracksPanel } from "./animation/tracks/tracks";
 import { EditorAnimationInspector } from "./animation/inspector/inspector";
 import { EditorAnimationTimelinePanel } from "./animation/timeline/timeline";
+import { EditorAnimationParticlesPanel } from "./animation/particles/particles";
+import { SolidParticleSystem } from "babylonjs";
+import { Mesh } from "babylonjs";
+
+export interface ICustomAnimatable extends IAnimatable {
+	metadata?: {
+		sps?: SolidParticleSystem;
+	};
+}
 
 export interface IEditorAnimationProps {
 	/**
@@ -24,8 +33,9 @@ export interface IEditorAnimationProps {
 export interface IEditorAnimationState {
 	playing: boolean;
 	focused: boolean;
-	animatable: IAnimatable | null;
+	animatable: ICustomAnimatable | null;
 	selectedAnimation: Animation | null;
+	selectedParticle: SolidParticle | null;
 }
 
 export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAnimationState> {
@@ -42,6 +52,11 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 	 */
 	public timelines!: EditorAnimationTimelinePanel;
 
+	/**
+	 * Defines the reference to the particles panel component used to display the particles.
+	 */
+	public particles!: EditorAnimationParticlesPanel;
+
 	private _playing: boolean = false;
 	private _currentTimeBeforePlay: number | null = null;
 
@@ -55,6 +70,7 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 			focused: false,
 			animatable: null,
 			selectedAnimation: null,
+			selectedParticle: null,
 		};
 	}
 
@@ -68,6 +84,12 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 				<EditorAnimationToolbar animationEditor={this} playing={this.state.playing} animatable={this.state.animatable} />
 
 				<div className="flex w-full h-10">
+					{this.state.animatable?.metadata?.sps && (
+						<>
+							<div className="flex justify-center items-center font-semibold w-96 h-full bg-secondary">Particles</div>
+							<div className="w-1 h-full bg-primary-foreground" />
+						</>
+					)}
 					<div className="flex justify-center items-center font-semibold w-96 h-full bg-secondary">Tracks</div>
 
 					<div className="w-1 h-full bg-primary-foreground" />
@@ -80,6 +102,18 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 					onMouseLeave={() => this.setState({ focused: false })}
 					className="relative flex w-full h-full overflow-x-hidden overflow-y-auto"
 				>
+					{this.state.animatable?.metadata?.sps && (
+						<>
+							<EditorAnimationParticlesPanel
+								animationEditor={this}
+								ref={(r) => (this.particles = r!)}
+								mesh={this.state.animatable as Mesh}
+								particles={this.state.animatable.metadata.sps.particles}
+							/>
+							<div className="w-1 h-full bg-primary-foreground" />
+						</>
+					)}
+
 					<EditorAnimationTracksPanel animationEditor={this} ref={(r) => (this.tracks = r!)} animatable={this.state.animatable} />
 
 					<div className="w-1 h-full bg-primary-foreground" />

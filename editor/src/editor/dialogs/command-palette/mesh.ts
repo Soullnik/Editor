@@ -13,6 +13,7 @@ import {
 	addCylinderMesh,
 	addTorusMesh,
 	addTorusKnotMesh,
+	addSPSMesh,
 } from "../../../project/add/mesh";
 
 import { meshCommandItems } from "./shared-commands";
@@ -59,6 +60,10 @@ export function getMeshCommands(editor?: Editor, parent?: Node): ICommandPalette
 		{
 			...meshCommandItems.emptyMesh,
 			action: () => editor && addEmptyMesh(editor, parent),
+		},
+		{
+			...meshCommandItems.sps,
+			action: () => editor && addSPSMesh(editor, parent),
 		},
 	];
 }
