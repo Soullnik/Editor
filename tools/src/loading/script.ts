@@ -19,10 +19,10 @@ export const scriptAssetsCache = new Map<string, any>();
  * @internal
  */
 export async function _preloadScriptsAssets(scene: Scene, rootUrl: string) {
-	const nodes = [...scene.transformNodes, ...scene.meshes, ...scene.lights, ...scene.cameras];
+	const nodes = [scene, ...scene.transformNodes, ...scene.meshes, ...scene.lights, ...scene.cameras];
 
 	const scripts = nodes
-		.filter((node) => node.metadata.scripts?.length)
+		.filter((node) => node.metadata?.scripts?.length)
 		.map((node) => node.metadata.scripts)
 		.flat();
 
