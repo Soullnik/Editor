@@ -74,7 +74,6 @@ import { AssetBrowserCinematicItem } from "./assets-browser/items/cinematic-item
 import { AssetsBrowserItem, IAssetsBrowserItemProps } from "./assets-browser/items/item";
 import { AssetBrowserParticleSystemItem } from "./assets-browser/items/particle-system-item";
 import { AssetBrowserVFXItem } from "./assets-browser/items/vfx-item";
-import { IVFXFile } from "./assets-browser/items/vfx-types";
 
 import { listenGuiAssetsEvents } from "./assets-browser/events/gui";
 import { listenSceneAssetsEvents } from "./assets-browser/events/scene";
@@ -89,6 +88,7 @@ import { EditorAssetsTreeLabel } from "./assets-browser/label";
 import "babylonjs-loaders";
 
 import "../../loader/assimpjs";
+import { IVFXFile } from "../windows/vfx/types";
 
 const HDRSelectable = createSelectable(AssetBrowserHDRItem);
 const GuiSelectable = createSelectable(AssetBrowserGUIItem);
@@ -1115,8 +1115,10 @@ export class EditorAssetsBrowser extends Component<IEditorAssetsBrowserProps, IE
 			name: "New VFX",
 			version: "1.0.0",
 			description: "A new VFX effect",
-			nodes: [],
-			connections: [],
+			cpuParticles: [],
+			gpuParticles: [],
+			sps: [],
+			particleSystemSets: [],
 			settings: {
 				duration: 5000,
 				loop: false,
