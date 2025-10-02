@@ -2,10 +2,7 @@ import { Component, ReactNode } from "react";
 
 import { IoPlay, IoStop, IoRefresh } from "react-icons/io5";
 
-import { SolidParticleSystem, Vector3, Color4 } from "babylonjs";
-
 import { Button } from "../../../../ui/shadcn/ui/button";
-
 
 import { EditorInspectorStringField } from "../fields/string";
 import { EditorInspectorNumberField } from "../fields/number";
@@ -14,7 +11,6 @@ import { EditorMeshInspector } from "../mesh/mesh";
 
 import { IEditorInspectorImplementationProps } from "../inspector";
 import { IVFXSolidParticleSystem } from "../../../windows/vfx/types";
-import { SPSAnimationUtility } from "../../../windows/vfx/utils/sps-animation";
 
 export interface IEditorSolidParticleSystemInspectorState {
 	started: boolean;
@@ -47,12 +43,7 @@ export class EditorSolidParticleSystemInspector extends Component<IEditorInspect
 						<div className="text-white/50">SolidParticleSystem</div>
 					</div>
 
-					<EditorInspectorStringField
-						label="Name"
-						object={this.props.object}
-						property="name"
-						onChange={() => this.forceUpdate()}
-					/>
+					<EditorInspectorStringField label="Name" object={this.props.object} property="name" onChange={() => this.forceUpdate()} />
 				</EditorInspectorSectionField>
 
 				<EditorInspectorSectionField title="Actions">
@@ -75,20 +66,9 @@ export class EditorSolidParticleSystemInspector extends Component<IEditorInspect
 				</EditorInspectorSectionField>
 
 				<EditorInspectorSectionField title="Particles">
-					<EditorInspectorNumberField
-						object={this.props.object}
-						property="particleCount"
-						label="Particle Count"
-						min={0}
-					/>
+					<EditorInspectorNumberField object={this.props.object} property="particleCount" label="Particle Count" min={0} />
 
-					<EditorInspectorNumberField
-						object={this.props.object}
-						property="size"
-						label="Size"
-						min={0}
-						step={0.1}
-					/>
+					<EditorInspectorNumberField object={this.props.object} property="size" label="Size" min={0} step={0.1} />
 				</EditorInspectorSectionField>
 
 				{this.props.object.templateMesh && (
@@ -103,12 +83,7 @@ export class EditorSolidParticleSystemInspector extends Component<IEditorInspect
 
 				{this.props.object.babylonSPS && (
 					<EditorInspectorSectionField title="SPS Properties">
-						<EditorInspectorNumberField
-							object={this.props.object.babylonSPS}
-							property="nbParticles"
-							label="Active Particles"
-							min={0}
-						/>
+						<EditorInspectorNumberField object={this.props.object.babylonSPS} property="nbParticles" label="Active Particles" min={0} />
 					</EditorInspectorSectionField>
 				)}
 			</>
@@ -117,77 +92,13 @@ export class EditorSolidParticleSystemInspector extends Component<IEditorInspect
 
 	private _handleStartOrStop(): void {
 		if (this.state.started) {
-			// Stop SPS animation
-			if (this.props.object.babylonSPS) {
-				this.props.object.babylonSPS.dispose();
-				this.props.object.babylonSPS = null;
-			}
 			this.setState({
 				started: false,
 			});
 		} else {
-			// Create and start SPS animation
-			this._createSPSAnimation();
 			this.setState({
 				started: true,
 			});
 		}
 	}
-
-	private _createSPSAnimation(): void {
-		const sps = this.props.object;
-		if (!sps.templateMesh) return;
-
-		// Create SPS if not exists
-		if (!sps.babylonSPS) {
-			sps.babylonSPS = new SolidParticleSystem(sps.name, this.props.editor.layout.preview.scene, {
-				useModelMaterial: true,
-			});
-			sps.babylonSPS.addShape(sps.templateMesh, sps.particleCount);
-			sps.babylonSPS.buildMesh();
-		}
-
-		// Initialize particles function
-		sps.babylonSPS.initParticles = () => {
-			if (!sps.babylonSPS) return;
-			
-			for (let p = 0; p < sps.babylonSPS.nbParticles; p++) {
-				const particle = sps.babylonSPS.particles[p];
-				// Initialize with default values
-				particle.position = new Vector3(0, 0.05, 0);
-				particle.scaling = new Vector3(1.0, 1.0, 1.0);
-				particle.rotation = new Vector3(0, 0, 0);
-				particle.color = new Color4(0.33, 0.49, 0.88, 1);
-			}
-		};
-
-		// Update particles function - will be controlled by EditorAnimation
-		sps.babylonSPS.updateParticle = (particle) => {
-			// Add some basic shockwave behavior
-			this._applyShockwaveBehavior(particle, Date.now() * 0.001);
-			return particle;
-		};
-
-		// Initialize particles
-		sps.babylonSPS.initParticles();
-		sps.babylonSPS.setParticles();
-
-		// Save the animation state for later playback
-		SPSAnimationUtility.saveAnimationState(sps);
-	}
-
-	private _applyShockwaveBehavior(particle: any, time: number): void {
-		// Add alternating rotation speed (like in original shockwave)
-		if (particle.id % 2 === 0) {
-			particle.rotation.y += 0.06;
-		} else {
-			particle.rotation.y -= 0.06;
-		}
-		
-		// Add some wave-like movement
-		particle.position.x = Math.sin(time * Math.PI * 2 + particle.id * 0.5) * 0.1;
-		particle.position.z = Math.cos(time * Math.PI * 2 + particle.id * 0.5) * 0.1;
-	}
-
-
 }

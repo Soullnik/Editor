@@ -26,23 +26,23 @@ export interface IVFXComponentsPanelProps {
 }
 
 export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFXComponentsPanelState> {
-	private emitterManager: EmitterManager;
+	private _emitterManager: EmitterManager;
 
 	public constructor(props: IVFXComponentsPanelProps) {
 		super(props);
-		this.emitterManager = new EmitterManager();
+		this._emitterManager = new EmitterManager();
 	}
 
 	public componentDidUpdate(prevProps: IVFXComponentsPanelProps): void {
 		// Create default emitter when scene becomes available
-		if (!prevProps.scene && this.props.scene && !this.emitterManager.getEmitterMesh()) {
-			this.emitterManager.createDefaultEmitter(this.props.scene);
+		if (!prevProps.scene && this.props.scene && !this._emitterManager.getEmitterMesh()) {
+			this._emitterManager.createDefaultEmitter(this.props.scene);
 			this.forceUpdate();
 		}
 	}
 
 	public componentWillUnmount(): void {
-		this.emitterManager.dispose();
+		this._emitterManager.dispose();
 	}
 
 	public render(): ReactNode {
@@ -53,19 +53,14 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 			<div className="flex flex-col w-full h-full">
 				{/* Search */}
 				<div className="p-3 border-b border-border">
-					<Input 
-						placeholder="Search components..." 
-						value={search} 
-						onChange={(e) => this.props.onSearchChange(e.target.value)} 
-						className="h-8 text-xs" 
-					/>
+					<Input placeholder="Search components..." value={search} onChange={(e) => this.props.onSearchChange(e.target.value)} className="h-8 text-xs" />
 				</div>
 
 				{/* Emitter Section */}
 				<div className="p-3 border-b border-border">
 					<div className="text-xs font-medium text-muted-foreground mb-2">Emitter</div>
 					<VFXEmitterSection
-						emitterMesh={this.emitterManager.getEmitterMesh()}
+						emitterMesh={this._emitterManager.getEmitterMesh()}
 						onEmitterSelect={() => this._selectEmitter()}
 						onEmitterUpdate={(newMesh) => this._updateEmitterMesh(newMesh)}
 						scene={this.props.scene}
@@ -86,12 +81,12 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 	}
 
 	private _updateEmitterMesh(newRootMesh: Mesh): void {
-		this.emitterManager.updateEmitterMesh(newRootMesh);
+		this._emitterManager.updateEmitterMesh(newRootMesh);
 		this.forceUpdate();
 	}
 
 	private _selectEmitter(): void {
-		const emitterMesh = this.emitterManager.getEmitterMesh();
+		const emitterMesh = this._emitterManager.getEmitterMesh();
 		if (emitterMesh) {
 			const emitterComponent: IVFXEmitterMesh = {
 				id: "emitter-mesh",
@@ -106,14 +101,13 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 	}
 
 	private _handleComponentRemove(componentId: string): void {
-		this.emitterManager.cleanupEmitter(componentId);
+		this._emitterManager.cleanupEmitter(componentId);
 		this.props.onComponentRemove(componentId);
 	}
 
-
 	private _handleDrop(ev: React.DragEvent<HTMLDivElement>): void {
 		const assets = ev.dataTransfer.getData("assets");
-		if (assets && this.emitterManager.getEmitterMesh()) {
+		if (assets && this._emitterManager.getEmitterMesh()) {
 			this._handleAssetsDropped(ev);
 		}
 	}
@@ -126,11 +120,8 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		try {
 			const assetPaths = JSON.parse(assets) as string[];
 			for (const absolutePath of assetPaths) {
-				const component = await AssetProcessor.processAssetFile(
-					absolutePath,
-					this.props.vfxData!,
-					this.props.scene!,
-					(componentId) => this.emitterManager.createIndividualEmitter(componentId, this.props.scene!)
+				const component = await AssetProcessor.processAssetFile(absolutePath, this.props.vfxData!, this.props.scene!, (componentId) =>
+					this._emitterManager.createIndividualEmitter(componentId, this.props.scene!)
 				);
 				if (component) {
 					this.props.onComponentAdded(component);
@@ -141,5 +132,4 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 			toast.error("Failed to process dropped assets");
 		}
 	}
-
 }

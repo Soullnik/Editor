@@ -24,7 +24,6 @@ import { EditorInspectorSectionField } from "../fields/section";
 import { EditorInspectorTextureField } from "../fields/texture";
 
 import { EditorMaterialInspectorUtilsComponent } from "./components/utils";
-import { EditorInspectorTextureField } from "../fields/texture";
 
 export interface IEditorNodeMaterialInspectorProps {
 	mesh?: AbstractMesh;

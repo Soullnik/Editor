@@ -1,8 +1,5 @@
 import { Component, ReactNode } from "react";
-import { IVFXEmitterMesh, VFXComponent } from "../types";
-import { Input } from "../../../../ui/shadcn/ui/input";
-import { Label } from "../../../../ui/shadcn/ui/label";
-import { Switch } from "../../../../ui/shadcn/ui/switch";
+import { VFXComponent } from "../types";
 import { EditorParticleSystemInspector } from "../../../layout/inspector/particles/particle-system";
 import { EditorGPUParticleSystemInspector } from "../../../layout/inspector/particles/gpu-particle-system";
 import { EditorSolidParticleSystemInspector } from "../../../layout/inspector/particles/solid-particle-system";
@@ -16,7 +13,6 @@ export interface IVFXInspectorPanelProps {
 }
 
 export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
-
 	public getInspector(): ReactNode {
 		switch (this.props.selectedComponent?.type) {
 			case "gpu_particle_system":
@@ -40,7 +36,7 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 				);
 		}
 	}
-	
+
 	public render(): ReactNode {
 		if (!this.props.selectedComponent) {
 			return (

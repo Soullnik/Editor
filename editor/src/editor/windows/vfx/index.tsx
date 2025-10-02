@@ -21,7 +21,7 @@ import { FaPlay, FaStop } from "react-icons/fa";
 import { GridMaterial } from "babylonjs-materials";
 
 import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel, VFXAnimationPanel } from "./components";
-import { ParticleAnimationManager } from "./utils/particle-animation-manager";
+import { VFXAnimationManager } from "./utils/vfx-animation-manager";
 
 import layoutModel from "./layout.json";
 import { isDarwin } from "../../../tools/os";
@@ -44,7 +44,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 				scene: null as Scene | null,
 			},
 			inspector: {
-				forceUpdate: () => { this._inspector.forceUpdate(); },
+				forceUpdate: () => {
+					this._inspector.forceUpdate();
+				},
 			},
 		},
 	} as Editor;
@@ -198,32 +200,39 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			toast.error("VFX file does not exist");
 			this.close();
 			return;
-		} else {
-			try {
-				const vfxData = await readJSON(this.props.filePath);
-				if (!vfxData.cpuParticles) vfxData.cpuParticles = [];
-				if (!vfxData.gpuParticles) vfxData.gpuParticles = [];
-				if (!vfxData.sps) vfxData.sps = [];
-				if (!vfxData.particleSystemSets) vfxData.particleSystemSets = [];
-				if (!vfxData.connections) {
-					vfxData.connections = [];
-				}
-				if (!vfxData.settings) {
-					vfxData.settings = {
-						duration: 5000,
-						loop: false,
-						preview: true,
-						quality: "medium",
-					};
-				}
-
-				this.setState({ vfxData });
-			} catch (error) {
-				console.error("Failed to load VFX data:", error);
-				toast.error("Failed to load VFX file");
-				this.close();
-				return;
+		}
+		try {
+			const vfxData = await readJSON(this.props.filePath);
+			if (!vfxData.cpuParticles) {
+				vfxData.cpuParticles = [];
 			}
+			if (!vfxData.gpuParticles) {
+				vfxData.gpuParticles = [];
+			}
+			if (!vfxData.sps) {
+				vfxData.sps = [];
+			}
+			if (!vfxData.particleSystemSets) {
+				vfxData.particleSystemSets = [];
+			}
+			if (!vfxData.connections) {
+				vfxData.connections = [];
+			}
+			if (!vfxData.settings) {
+				vfxData.settings = {
+					duration: 5000,
+					loop: false,
+					preview: true,
+					quality: "medium",
+				};
+			}
+
+			this.setState({ vfxData });
+		} catch (error) {
+			console.error("Failed to load VFX data:", error);
+			toast.error("Failed to load VFX file");
+			this.close();
+			return;
 		}
 
 		this._initializeScene();
@@ -283,7 +292,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	}
 
 	private _initializeScene(): void {
-		if (!this.canvasRef) return;
+		if (!this.canvasRef) {
+			return;
+		}
 
 		const engine = new Engine(this.canvasRef, true);
 		const scene = new Scene(engine);
@@ -326,7 +337,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		});
 
 		this._mockEditor.layout.preview.scene = scene;
-		
+
 		this.setState({ engine, scene, camera });
 	}
 
@@ -342,7 +353,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	}
 
 	public removeComponent(id: string): void {
-		if (!this.state.vfxData) return;
+		if (!this.state.vfxData) {
+			return;
+		}
 
 		const updatedVfxData = {
 			...this.state.vfxData,
@@ -353,18 +366,23 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			modified: new Date().toISOString(),
 		};
 
-		this.setState({
-			vfxData: updatedVfxData,
-			selectedComponent: this.state.selectedComponent?.id === id ? null : this.state.selectedComponent,
-		}, () => {
-			this._animation.setEditedObject(null);
-		});
+		this.setState(
+			{
+				vfxData: updatedVfxData,
+				selectedComponent: this.state.selectedComponent?.id === id ? null : this.state.selectedComponent,
+			},
+			() => {
+				this._animation.setEditedObject(null);
+			}
+		);
 
 		toast.info("Component removed");
 	}
 
 	private _addComponent(component: VFXComponent): void {
-		if (!this.state.vfxData) return;
+		if (!this.state.vfxData) {
+			return;
+		}
 
 		const updatedVfxData = { ...this.state.vfxData };
 
@@ -391,28 +409,34 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	}
 
 	public getAllComponents(): VFXComponent[] {
-		if (!this.state.vfxData) return [];
+		if (!this.state.vfxData) {
+			return [];
+		}
 		return [...this.state.vfxData.cpuParticles, ...this.state.vfxData.gpuParticles, ...this.state.vfxData.sps, ...this.state.vfxData.particleSystemSets];
 	}
 
 	public play(): void {
-		if (!this.state.vfxData) return;
+		if (!this.state.vfxData) {
+			return;
+		}
 
 		this.setState({ playing: true });
-		
+
 		// Start all animations using the animation manager
-		ParticleAnimationManager.startAllAnimations(this.state.vfxData, this.state.scene);
+		VFXAnimationManager.start(this.state.vfxData);
 
 		toast.success("VFX playback started");
 	}
 
 	public stop(): void {
-		if (!this.state.vfxData) return;
+		if (!this.state.vfxData) {
+			return;
+		}
 
 		this.setState({ playing: false });
 
 		// Stop all animations using the animation manager
-		ParticleAnimationManager.stopAllAnimations(this.state.vfxData);
+		VFXAnimationManager.stop(this.state.vfxData);
 
 		toast.info("VFX playback stopped");
 	}

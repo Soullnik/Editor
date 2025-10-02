@@ -141,6 +141,3 @@ export interface IVFXEditorWindow {
 	save: () => Promise<void>;
 	canvasRef: HTMLCanvasElement | null;
 }
-
-
-

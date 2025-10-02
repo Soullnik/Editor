@@ -14,7 +14,9 @@ export interface IVFXEmitterSectionProps {
 
 export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 	public render(): ReactNode {
-		if (!this.props.emitterMesh) return null;
+		if (!this.props.emitterMesh) {
+			return null;
+		}
 
 		return (
 			<ContextMenu>
@@ -35,18 +37,10 @@ export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 					</div>
 				</ContextMenuTrigger>
 				<ContextMenuContent>
-					<ContextMenuItem onClick={() => this._createEmitterMesh("empty")}>
-						Replace with Empty Mesh
-					</ContextMenuItem>
-					<ContextMenuItem onClick={() => this._createEmitterMesh("box")}>
-						Replace with Box Mesh
-					</ContextMenuItem>
-					<ContextMenuItem onClick={() => this._createEmitterMesh("sphere")}>
-						Replace with Sphere Mesh
-					</ContextMenuItem>
-					<ContextMenuItem onClick={() => this._createEmitterMesh("plane")}>
-						Replace with Plane Mesh
-					</ContextMenuItem>
+					<ContextMenuItem onClick={() => this._createEmitterMesh("empty")}>Replace with Empty Mesh</ContextMenuItem>
+					<ContextMenuItem onClick={() => this._createEmitterMesh("box")}>Replace with Box Mesh</ContextMenuItem>
+					<ContextMenuItem onClick={() => this._createEmitterMesh("sphere")}>Replace with Sphere Mesh</ContextMenuItem>
+					<ContextMenuItem onClick={() => this._createEmitterMesh("plane")}>Replace with Plane Mesh</ContextMenuItem>
 				</ContextMenuContent>
 			</ContextMenu>
 		);
@@ -54,7 +48,9 @@ export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 
 	private _createEmitterMesh(type: "empty" | "box" | "sphere" | "plane"): void {
 		const { scene } = this.props;
-		if (!scene) return;
+		if (!scene) {
+			return;
+		}
 
 		let newMesh: Mesh;
 		switch (type) {
@@ -78,14 +74,13 @@ export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 
 	private _handleEmitterDrop(ev: React.DragEvent<HTMLDivElement>): void {
 		const assets = ev.dataTransfer.getData("assets");
-		if (!assets) return;
+		if (!assets) {
+			return;
+		}
 
 		try {
 			const assetPaths = JSON.parse(assets) as string[];
-			const meshPath = assetPaths.find(path => 
-				path.toLowerCase().endsWith('.glb') || 
-				path.toLowerCase().endsWith('.babylon')
-			);
+			const meshPath = assetPaths.find((path) => path.toLowerCase().endsWith(".glb") || path.toLowerCase().endsWith(".babylon"));
 
 			if (meshPath) {
 				this._loadEmitterFromFile(meshPath);
@@ -100,14 +95,16 @@ export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 
 	private async _loadEmitterFromFile(absolutePath: string): Promise<void> {
 		const { scene } = this.props;
-		if (!scene) return;
+		if (!scene) {
+			return;
+		}
 
 		try {
 			const result = await loadImportedSceneFile(scene, absolutePath);
 			if (result && result.meshes.length > 0) {
 				const loadedMesh = result.meshes[0] as Mesh;
 				loadedMesh.name = "VFX_Emitter_Imported";
-				
+
 				this.props.onEmitterUpdate(loadedMesh);
 
 				const fileName = absolutePath.split("/").pop() || "mesh";

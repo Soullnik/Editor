@@ -22,11 +22,7 @@ export class VFXComponentList extends Component<IVFXComponentListProps> {
 				{/* Components */}
 				<div className="flex-shrink-0 space-y-2">
 					{Object.entries(this.props.components).map(([type, components]) => (
-						<EditorInspectorSectionField 
-							key={type} 
-							title={this._getTypeDisplayName(type)}
-							label={`${components.length}`}
-						>
+						<EditorInspectorSectionField key={type} title={this._getTypeDisplayName(type)} label={`${components.length}`}>
 							<div className="space-y-1">
 								{components.map((component) => (
 									<ContextMenu key={component.id}>
@@ -47,12 +43,15 @@ export class VFXComponentList extends Component<IVFXComponentListProps> {
 											</div>
 										</ContextMenuTrigger>
 										<ContextMenuContent>
-											<ContextMenuItem onClick={() => {
-												this.props.onComponentRemove(component.id);
-												if (this.props.onComponentRemoved) {
-													this.props.onComponentRemoved(component.id);
-												}
-											}} className="text-red-500">
+											<ContextMenuItem
+												onClick={() => {
+													this.props.onComponentRemove(component.id);
+													if (this.props.onComponentRemoved) {
+														this.props.onComponentRemoved(component.id);
+													}
+												}}
+												className="text-red-500"
+											>
 												Delete
 											</ContextMenuItem>
 										</ContextMenuContent>
@@ -106,7 +105,7 @@ export class VFXComponentList extends Component<IVFXComponentListProps> {
 			case "particle_system_set":
 				return "Particle System Sets";
 			default:
-				return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) + 's';
+				return type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) + "s";
 		}
 	}
 }

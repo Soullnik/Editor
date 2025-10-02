@@ -17,7 +17,6 @@ export class VFXAnimationPanel extends Component<IVFXAnimationPanelProps> {
 		super(props);
 	}
 
-
 	public setEditedObject(object: VFXComponent | null): void {
 		this._animation.setEditedObject(object);
 	}
@@ -25,10 +24,7 @@ export class VFXAnimationPanel extends Component<IVFXAnimationPanelProps> {
 	public render(): ReactNode {
 		return (
 			<div className="flex flex-col w-full h-full">
-				<EditorAnimation 
-					editor={this.props.editor} 
-					ref={(r) => (this._animation = r!)} 
-				/>
+				<EditorAnimation editor={this.props.editor} ref={(r) => (this._animation = r!)} />
 			</div>
 		);
 	}

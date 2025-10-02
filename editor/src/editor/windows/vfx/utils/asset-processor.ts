@@ -16,7 +16,9 @@ export class AssetProcessor {
 		createIndividualEmitter: (componentId: string) => Mesh | null
 	): Promise<VFXComponent | null> {
 		const extension = absolutePath.toLowerCase().split(".").pop();
-		if (!extension) return null;
+		if (!extension) {
+			return null;
+		}
 
 		try {
 			switch (extension) {
@@ -41,11 +43,7 @@ export class AssetProcessor {
 		}
 	}
 
-	private static async _createSPSFromMesh(
-		absolutePath: string,
-		extension: string,
-		scene: Scene
-	): Promise<IVFXSolidParticleSystem | null> {
+	private static async _createSPSFromMesh(absolutePath: string, extension: string, scene: Scene): Promise<IVFXSolidParticleSystem | null> {
 		console.log("createSPSFromMesh", absolutePath);
 
 		const fileName = absolutePath.split("/").pop() || "mesh";
@@ -71,8 +69,8 @@ export class AssetProcessor {
 						loop: true,
 						keyframes: [
 							{ time: 0.0, value: 1.0, easing: "ease-out" },
-							{ time: 1.0, value: 4.0, easing: "ease-in" }
-						]
+							{ time: 1.0, value: 4.0, easing: "ease-in" },
+						],
 					},
 					{
 						property: "scaling",
@@ -80,8 +78,8 @@ export class AssetProcessor {
 						loop: true,
 						keyframes: [
 							{ time: 0.0, value: 0.25, easing: "ease-out" },
-							{ time: 1.0, value: 4.0, easing: "ease-in" }
-						]
+							{ time: 1.0, value: 4.0, easing: "ease-in" },
+						],
 					},
 					{
 						property: "scaling",
@@ -89,8 +87,8 @@ export class AssetProcessor {
 						loop: true,
 						keyframes: [
 							{ time: 0.0, value: 1.0, easing: "ease-out" },
-							{ time: 1.0, value: 4.0, easing: "ease-in" }
-						]
+							{ time: 1.0, value: 4.0, easing: "ease-in" },
+						],
 					},
 					{
 						property: "position",
@@ -98,8 +96,8 @@ export class AssetProcessor {
 						loop: true,
 						keyframes: [
 							{ time: 0.0, value: 0.05, easing: "ease-out" },
-							{ time: 1.0, value: 0.25, easing: "ease-in" }
-						]
+							{ time: 1.0, value: 0.25, easing: "ease-in" },
+						],
 					},
 					{
 						property: "rotation",
@@ -107,8 +105,8 @@ export class AssetProcessor {
 						loop: true,
 						keyframes: [
 							{ time: 0.0, value: 0, easing: "linear" },
-							{ time: 1.0, value: Math.PI * 4, easing: "linear" }
-						]
+							{ time: 1.0, value: Math.PI * 4, easing: "linear" },
+						],
 					},
 					{
 						property: "color",
@@ -116,8 +114,8 @@ export class AssetProcessor {
 						loop: true,
 						keyframes: [
 							{ time: 0.0, value: 0.33, easing: "ease-out" },
-							{ time: 1.0, value: 0.0, easing: "ease-in" }
-						]
+							{ time: 1.0, value: 0.0, easing: "ease-in" },
+						],
 					},
 					{
 						property: "color",
@@ -125,8 +123,8 @@ export class AssetProcessor {
 						loop: true,
 						keyframes: [
 							{ time: 0.0, value: 0.49, easing: "ease-out" },
-							{ time: 1.0, value: 0.0, easing: "ease-in" }
-						]
+							{ time: 1.0, value: 0.0, easing: "ease-in" },
+						],
 					},
 					{
 						property: "color",
@@ -134,11 +132,11 @@ export class AssetProcessor {
 						loop: true,
 						keyframes: [
 							{ time: 0.0, value: 0.88, easing: "ease-out" },
-							{ time: 1.0, value: 0.0, easing: "ease-in" }
-						]
-					}
-				]
-			}
+							{ time: 1.0, value: 0.0, easing: "ease-in" },
+						],
+					},
+				],
+			},
 		};
 
 		try {
@@ -146,20 +144,19 @@ export class AssetProcessor {
 			console.log(result);
 			if (result && result.meshes.length > 0) {
 				let templateMesh: Mesh;
-				if (extension === 'glb') {
+				if (extension === "glb") {
 					templateMesh = result.meshes[1] as Mesh;
 				} else {
 					templateMesh = result.meshes[0] as Mesh;
 				}
 				templateMesh.isVisible = false;
-				
+
 				component.templateMesh = templateMesh;
-				
+
 				toast.success(`Loaded mesh for SPS: ${componentName}`);
 				return component;
-			} else {
-				throw new Error("No meshes loaded from file");
 			}
+			throw new Error("No meshes loaded from file");
 		} catch (error) {
 			console.error("Failed to load mesh for SPS:", error);
 			toast.error(`Failed to load mesh for SPS: ${fileName}`);
@@ -214,9 +211,8 @@ export class AssetProcessor {
 
 				toast.success(`Created particle system: ${componentName}`);
 				return finalComponent;
-			} else {
-				throw new Error("Particle system not found after loading");
 			}
+			throw new Error("Particle system not found after loading");
 		} catch (error) {
 			console.error("Failed to create particle system from JSON:", error);
 			toast.error(`Failed to create particle system from ${fileName}`);
@@ -242,9 +238,7 @@ export class AssetProcessor {
 
 			await loadImportedParticleSystemFile(scene, individualEmitter, absolutePath);
 
-			const particleSystem = scene.particleSystems.find((ps: any) => 
-				ps.name.includes(componentName) || ps.name.includes(fileName.replace(".npss", ""))
-			);
+			const particleSystem = scene.particleSystems.find((ps: any) => ps.name.includes(componentName) || ps.name.includes(fileName.replace(".npss", "")));
 
 			if (particleSystem) {
 				const isGPU = isGPUParticleSystem(particleSystem);
@@ -265,9 +259,8 @@ export class AssetProcessor {
 
 				toast.success(`Created NPSS particle system: ${componentName}`);
 				return finalComponent;
-			} else {
-				throw new Error("Particle system not found after loading");
 			}
+			throw new Error("Particle system not found after loading");
 		} catch (error) {
 			console.error("Failed to create NPSS particle system:", error);
 			toast.error(`Failed to create NPSS particle system from ${fileName}`);

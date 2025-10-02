@@ -1,21 +1,21 @@
 import { Mesh, Scene } from "babylonjs";
 
 export class EmitterManager {
-	private emitterMesh: Mesh | null = null;
-	private emitterMap: Map<string, Mesh> = new Map();
+	private _emitterMesh: Mesh | null = null;
+	private _emitterMap: Map<string, Mesh> = new Map();
 
 	/**
 	 * Creates the default root emitter mesh
 	 */
 	public createDefaultEmitter(scene: Scene): Mesh {
-		if (this.emitterMesh) {
-			return this.emitterMesh;
+		if (this._emitterMesh) {
+			return this._emitterMesh;
 		}
 
 		const rootEmitter = new Mesh("VFX_Emitter_Root", scene);
 		rootEmitter.isVisible = false;
-		
-		this.emitterMesh = rootEmitter;
+
+		this._emitterMesh = rootEmitter;
 		return rootEmitter;
 	}
 
@@ -23,7 +23,7 @@ export class EmitterManager {
 	 * Gets the current root emitter mesh
 	 */
 	public getEmitterMesh(): Mesh | null {
-		return this.emitterMesh;
+		return this._emitterMesh;
 	}
 
 	/**
@@ -31,32 +31,32 @@ export class EmitterManager {
 	 */
 	public updateEmitterMesh(newRootMesh: Mesh): void {
 		// Reparent all individual emitters to the new root
-		this.emitterMap.forEach((emitterMesh) => {
+		this._emitterMap.forEach((emitterMesh) => {
 			emitterMesh.setParent(newRootMesh);
 		});
 
 		// Dispose old root mesh
-		this.emitterMesh?.dispose();
-		
+		this._emitterMesh?.dispose();
+
 		// Set new root mesh
-		this.emitterMesh = newRootMesh;
+		this._emitterMesh = newRootMesh;
 	}
 
 	/**
 	 * Creates an individual emitter mesh for a specific component
 	 */
 	public createIndividualEmitter(componentId: string, scene: Scene): Mesh | null {
-		if (!this.emitterMesh) {
+		if (!this._emitterMesh) {
 			return null;
 		}
 
 		// Create individual emitter mesh for this component
 		const emitterMesh = new Mesh(`Emitter_${componentId}`, scene);
 		emitterMesh.isVisible = false;
-		emitterMesh.setParent(this.emitterMesh);
+		emitterMesh.setParent(this._emitterMesh);
 
 		// Store in map
-		this.emitterMap.set(componentId, emitterMesh);
+		this._emitterMap.set(componentId, emitterMesh);
 
 		return emitterMesh;
 	}
@@ -65,10 +65,10 @@ export class EmitterManager {
 	 * Cleans up an individual emitter mesh
 	 */
 	public cleanupEmitter(componentId: string): void {
-		const emitterMesh = this.emitterMap.get(componentId);
+		const emitterMesh = this._emitterMap.get(componentId);
 		if (emitterMesh) {
 			emitterMesh.dispose();
-			this.emitterMap.delete(componentId);
+			this._emitterMap.delete(componentId);
 		}
 	}
 
@@ -77,13 +77,13 @@ export class EmitterManager {
 	 */
 	public dispose(): void {
 		// Clean up all individual emitters
-		this.emitterMap.forEach((emitterMesh) => {
+		this._emitterMap.forEach((emitterMesh) => {
 			emitterMesh.dispose();
 		});
-		this.emitterMap.clear();
+		this._emitterMap.clear();
 
 		// Clean up root emitter
-		this.emitterMesh?.dispose();
-		this.emitterMesh = null;
+		this._emitterMesh?.dispose();
+		this._emitterMesh = null;
 	}
 }

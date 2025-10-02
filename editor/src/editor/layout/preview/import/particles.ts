@@ -1,7 +1,6 @@
 import { readJSON } from "fs-extra";
 
-import { Scene, ParticleSystemSet, AbstractMesh, NodeParticleSystemSet } from "babylonjs";
-import { ParticleSystem } from "babylonjs";
+import { Scene, ParticleSystemSet, AbstractMesh, NodeParticleSystemSet, ParticleSystem } from "babylonjs";
 
 export async function loadImportedParticleSystemFile(scene: Scene, targetMesh: AbstractMesh, absolutePath: string): Promise<ParticleSystemSet | null> {
 	const data = await readJSON(absolutePath);
