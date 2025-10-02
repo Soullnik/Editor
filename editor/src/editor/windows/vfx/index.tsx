@@ -322,42 +322,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 
 		engine.runRenderLoop(() => {
 			engine.resize();
-
-			if (this.state.vfxData) {
-				// Update SPS particles for animation
-				this.state.vfxData.sps.forEach((sps) => {
-					if (sps.babylonSPS && sps.animationSettings) {
-						sps.babylonSPS.setParticles();
-					}
-				});
-				// this.state.vfxData.cpuParticles.forEach((cpuParticle) => {
-				// 	if (cpuParticle.babylonSystem) {
-				// 		const particleSystem = cpuParticle.babylonSystem;
-				// 		if (particleSystem.isStarted() &&
-				// 			particleSystem.getActiveCount() === 0 &&
-				// 			particleSystem.targetStopDuration > 0) {
-				// 				console.log(`Auto-stopped CPU particle system: ${cpuParticle.name}`);
-				// 				particleSystem.stop();
-				// 		}
-				// 	}
-				// });
-				// this.state.vfxData.gpuParticles.forEach((gpuParticle) => {
-				// 	if (gpuParticle.babylonSystem) {
-				// 		const particleSystem = gpuParticle.babylonSystem;
-				// 		if (particleSystem.isStarted() &&
-				// 			particleSystem.getActiveCount() === 0 &&
-				// 			particleSystem.targetStopDuration > 0) {
-				// 			particleSystem.stop();
-				// 			console.log(`Auto-stopped GPU particle system: ${gpuParticle.name}`);
-				// 		}
-				// 	}
-				// });
-			}
-
 			scene.render();
 		});
 
-		// Update mock editor with real scene
 		this._mockEditor.layout.preview.scene = scene;
 		
 		this.setState({ engine, scene, camera });
@@ -404,13 +371,13 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		// Add component to appropriate array based on type
 		switch (component.type) {
 			case "cpu_particle_system":
-				updatedVfxData.cpuParticles = [...this.state.vfxData.cpuParticles, component as any];
+				updatedVfxData.cpuParticles = [...this.state.vfxData.cpuParticles, component];
 				break;
 			case "gpu_particle_system":
-				updatedVfxData.gpuParticles = [...this.state.vfxData.gpuParticles, component as any];
+				updatedVfxData.gpuParticles = [...this.state.vfxData.gpuParticles, component];
 				break;
 			case "solid_particle_system":
-				updatedVfxData.sps = [...this.state.vfxData.sps, component as any];
+				updatedVfxData.sps = [...this.state.vfxData.sps, component];
 				break;
 			default:
 				console.warn(`Unknown component type: ${component.type}`);
