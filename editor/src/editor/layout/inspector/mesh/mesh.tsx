@@ -2,7 +2,6 @@ import { extname } from "path/posix";
 
 import { toast } from "sonner";
 import { Component, ReactNode } from "react";
-import { readJSON } from "fs-extra";
 
 import { FaCopy, FaLink } from "react-icons/fa6";
 import { IoAddSharp, IoCloseOutline } from "react-icons/io5";
@@ -74,9 +73,6 @@ import { MeshDecalInspector } from "./decal";
 import { MeshGeometryInspector } from "./geometry";
 import { EditorMeshPhysicsInspector } from "./physics";
 import { EditorMeshCollisionInspector } from "./collision";
-import { waitNextAnimationFrame } from "../../../../tools/tools";
-import { extname } from "path/posix";
-import { applyMaterialAssetToObject } from "../../preview/import/material";
 
 export interface IEditorMeshInspectorState {
 	dragOver: boolean;
