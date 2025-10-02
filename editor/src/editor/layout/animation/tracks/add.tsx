@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import { IAnimatable } from "babylonjs";
-
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../../../../ui/shadcn/ui/command";
 import {
 	AlertDialog,
@@ -16,13 +14,15 @@ import {
 } from "../../../../ui/shadcn/ui/alert-dialog";
 
 import { getAllAnimatableProperties } from "../tools/properties";
+import { ICustomAnimatable } from "../types";
+import { SolidParticle } from "babylonjs";
 
 export interface IEditorAnimationAddTrackPromptProps {
-	animatable: IAnimatable;
+	target: ICustomAnimatable | SolidParticle;
 	onSelectProperty: (property: string | null) => void;
 }
 
-export function showAddTrackPrompt(animatable: IAnimatable): Promise<string | null> {
+export function showAddTrackPrompt(target: ICustomAnimatable | SolidParticle): Promise<string | null> {
 	return new Promise<string | null>((resolve) => {
 		const div = document.createElement("div");
 		document.body.appendChild(div);
@@ -30,7 +30,7 @@ export function showAddTrackPrompt(animatable: IAnimatable): Promise<string | nu
 		const root = createRoot(div);
 		root.render(
 			<EditorAnimationAddTrackPrompt
-				animatable={animatable}
+				target={target}
 				onSelectProperty={(property) => {
 					resolve(property);
 
@@ -47,7 +47,7 @@ export function EditorAnimationAddTrackPrompt(props: IEditorAnimationAddTrackPro
 	const [properties, setProperties] = useState<string[]>([]);
 
 	useEffect(() => {
-		setProperties(getAllAnimatableProperties(props.animatable));
+		setProperties(getAllAnimatableProperties(props.target));
 	}, []);
 
 	return (

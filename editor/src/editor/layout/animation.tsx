@@ -1,6 +1,6 @@
 import { Component, ReactNode } from "react";
 
-import { Animation, IAnimatable, SolidParticle } from "babylonjs";
+import { Animation, SolidParticle, Mesh } from "babylonjs";
 
 import { isNode } from "../../tools/guards/nodes";
 import { isScene } from "../../tools/guards/scene";
@@ -14,14 +14,7 @@ import { EditorAnimationTracksPanel } from "./animation/tracks/tracks";
 import { EditorAnimationInspector } from "./animation/inspector/inspector";
 import { EditorAnimationTimelinePanel } from "./animation/timeline/timeline";
 import { EditorAnimationParticlesPanel } from "./animation/particles/particles";
-import { SolidParticleSystem } from "babylonjs";
-import { Mesh } from "babylonjs";
-
-export interface ICustomAnimatable extends IAnimatable {
-	metadata?: {
-		sps?: SolidParticleSystem;
-	};
-}
+import { ICustomAnimatable } from "./animation/types";
 
 export interface IEditorAnimationProps {
 	/**
@@ -114,11 +107,22 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 						</>
 					)}
 
-					<EditorAnimationTracksPanel animationEditor={this} ref={(r) => (this.tracks = r!)} animatable={this.state.animatable} />
+					<EditorAnimationTracksPanel
+						animationEditor={this}
+						ref={(r) => (this.tracks = r!)}
+						animatable={this.state.animatable}
+						selectedParticle={this.state.selectedParticle}
+					/>
 
 					<div className="w-1 h-full bg-primary-foreground" />
 
-					<EditorAnimationTimelinePanel animationEditor={this} editor={this.props.editor} ref={(r) => (this.timelines = r!)} animatable={this.state.animatable} />
+					<EditorAnimationTimelinePanel
+						animationEditor={this}
+						editor={this.props.editor}
+						ref={(r) => (this.timelines = r!)}
+						animatable={this.state.animatable}
+						selectedParticle={this.state.selectedParticle}
+					/>
 
 					<EditorAnimationInspector animationEditor={this} ref={(r) => (this.inspector = r!)} />
 				</div>

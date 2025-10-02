@@ -2,13 +2,14 @@ import { readJSON } from "fs-extra";
 
 import { toast } from "sonner";
 
-import { Animation, IAnimatable } from "babylonjs";
+import { Animation } from "babylonjs";
+import { ICustomAnimatable } from "../types";
 
 import { openSingleFileDialog } from "../../../../tools/dialog";
 
 import { EditorAnimation } from "../../animation";
 
-export async function importAnimationsFrom(animationEditor: EditorAnimation, animatable: IAnimatable | null) {
+export async function importAnimationsFrom(animationEditor: EditorAnimation, animatable: ICustomAnimatable | null) {
 	const filePath = openSingleFileDialog({
 		title: "Import Animations",
 		filters: [{ name: "Animations", extensions: ["animations"] }],

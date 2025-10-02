@@ -158,8 +158,7 @@ export class MeshSPSInspector extends Component<IMeshSPSInspectorProps, IMeshSPS
 			this.state.sps.addShape(mesh, state.count);
 			const particle = this.state.sps.particles.find((p) => p.props?.isDefault);
 			if (particle) {
-				const removed = this.state.sps.removeParticles(particle.idx, particle.idx);
-				console.log(removed);
+				this.state.sps.removeParticles(particle.idx, particle.idx);
 			}
 			this.state.sps.buildMesh();
 			if (disposedMesh) {
