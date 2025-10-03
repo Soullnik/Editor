@@ -17,7 +17,6 @@ import { EditorAnimation } from "../../animation";
 import { EditorAnimationTracker } from "./tracker";
 import { EditorAnimationTimelineItem } from "./track";
 import { ICustomAnimatable } from "../types";
-import { CustomSolidParticle } from "../../../../project/add/mesh";
 
 export interface IEditorAnimationTimelinePanelProps {
 	editor: Editor;
@@ -181,15 +180,42 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 
 		this.setState({ currentTime });
 
-		if (this.props.animatable.getClassName?.() === "CustomSolidParticle") {
+		if (this.props.animatable?.getClassName?.() === "CustomSolidParticle") {
+			// Для SPS частиц запускаем анимации и устанавливаем время
 			const spsManager = this.props.animationEditor.getSPSAnimationManager();
-			spsManager?.setCurrentTime(currentTime);
-			spsManager?.play();
-		} else {
 			this.props.animatable.animations.forEach((animation) => {
 				const keys = animation.getKeys();
 				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
-
+				spsManager?.beginDirectAnimation(this.props.animatable, [animation], frame, frame, false, 1.0);
+			});
+			spsManager?.setCurrentTime(currentTime, this.props.animatable);
+		} else if (this.props.animatable?.metadata?.sps) {
+			// Для меша с SPS: запускаем анимации меша + анимации всех частиц SPS
+			const spsManager = this.props.animationEditor.getSPSAnimationManager();
+			
+			// Анимации самого меша
+			this.props.animatable.animations.forEach((animation) => {
+				const keys = animation.getKeys();
+				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
+				this.props.editor.layout.preview.scene.beginDirectAnimation(this.props.animatable, [animation], frame, frame, false, 1.0);
+			});
+			
+			// Анимации всех частиц SPS
+			this.props.animatable.metadata.sps.particles.forEach((particle) => {
+				if (particle.animations && particle.animations.length > 0) {
+					particle.animations.forEach((animation) => {
+						const keys = animation.getKeys();
+						const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
+						spsManager?.beginDirectAnimation(particle, [animation], frame, frame, false, 1.0);
+					});
+				}
+			});
+			spsManager?.setCurrentTime(currentTime);
+		} else {
+			// Для обычных объектов используем стандартную анимацию
+			this.props.animatable.animations.forEach((animation) => {
+				const keys = animation.getKeys();
+				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
 				this.props.editor.layout.preview.scene.beginDirectAnimation(this.props.animatable, [animation], frame, frame, false, 1.0);
 			});
 		}
@@ -262,6 +288,7 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 
 		const scene = this.props.editor.layout.preview.scene;
 		const engine = this.props.editor.layout.preview.engine;
+		const spsManager = this.props.animationEditor.getSPSAnimationManager();
 
 		const currentTime = this.state.currentTime;
 		const maxFrame = this._getMaxFrameForTimeline();
@@ -272,19 +299,45 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 		]);
 
 		scene.stopAnimation(this.props.animatable);
+		spsManager?.stop();
 
-		if (this.props.animatable.getClassName?.() === "CustomSolidParticle") {
-			const spsManager = this.props.animationEditor.getSPSAnimationManager();
-			spsManager?.startSolidParticleAnimation(this.props.animatable as CustomSolidParticle, currentTime, maxFrame, false, 1.0);
-			spsManager?.play();
-		} else {
+		if (this.props.animatable?.getClassName?.() === "CustomSolidParticle") {
+			// Для SPS частиц
+			this.props.animatable.animations.forEach((animation) => {
+				const keys = animation.getKeys();
+				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
+				spsManager?.beginDirectAnimation(this.props.animatable, [animation], frame, maxFrame, false, 1.0);
+			});
+		} else if (this.props.animatable?.metadata?.sps) {
+			// Для меша с SPS: запускаем анимации меша + анимации всех частиц SPS
+			
+			// Анимации самого меша
 			this.props.animatable.animations.forEach((animation) => {
 				const keys = animation.getKeys();
 				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
 				this.props.editor.layout.preview.scene.beginDirectAnimation(this.props.animatable, [animation], frame, maxFrame, false, 1.0);
 			});
-			this.props.editor.layout.preview.scene.beginDirectAnimation(this, [this._animation], currentTime, maxFrame, false, 1.0);
+			
+			// Анимации всех частиц SPS
+			this.props.animatable.metadata.sps.particles.forEach((particle) => {
+				if (particle.animations && particle.animations.length > 0) {
+					particle.animations.forEach((animation) => {
+						const keys = animation.getKeys();
+						const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
+						spsManager?.beginDirectAnimation(particle, [animation], frame, maxFrame, false, 1.0);
+					});
+				}
+			});
+		} else {
+			// Для обычных объектов
+			this.props.animatable.animations.forEach((animation) => {
+				const keys = animation.getKeys();
+				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
+				this.props.editor.layout.preview.scene.beginDirectAnimation(this.props.animatable, [animation], frame, maxFrame, false, 1.0);
+			});
 		}
+
+		this.props.editor.layout.preview.scene.beginDirectAnimation(this, [this._animation], currentTime, maxFrame, false, 1.0);
 
 		if (this._renderLoop) {
 			engine.stopRenderLoop(this._renderLoop);
@@ -293,6 +346,11 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 		engine.runRenderLoop(
 			(this._renderLoop = () => {
 				this.setState({ currentTime: this._animatedCurrentTime });
+				if (this.props.animatable?.getClassName?.() === "CustomSolidParticle") {
+					spsManager?.setCurrentTime(this._animatedCurrentTime, this.props.animatable);
+				} else if (this.props.animatable?.metadata?.sps) {
+					spsManager?.setCurrentTime(this._animatedCurrentTime);
+				}
 			})
 		);
 	}
@@ -303,6 +361,7 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 	public stop(): void {
 		const scene = this.props.editor.layout.preview.scene;
 		const engine = this.props.editor.layout.preview.engine;
+		const spsManager = this.props.animationEditor.getSPSAnimationManager();
 
 		if (this._renderLoop) {
 			engine.stopRenderLoop(this._renderLoop);
@@ -310,9 +369,11 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 		}
 
 		if (this.props.animatable?.getClassName?.() === "CustomSolidParticle") {
-			const spsManager = this.props.animationEditor.getSPSAnimationManager();
-			spsManager?.stopParticleAnimation(this.props.animatable as CustomSolidParticle);
-			spsManager?.stop();
+			spsManager?.stopAnimation(this.props.animatable);
+		} else if (this.props.animatable?.metadata?.sps) {
+			// Для меша с SPS: останавливаем анимации меша + анимации всех частиц SPS
+			scene.stopAnimation(this.props.animatable);
+			spsManager?.stopAllAnimations();
 		} else {
 			scene.stopAnimation(this.props.animatable);
 		}

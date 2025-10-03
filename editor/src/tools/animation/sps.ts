@@ -1,30 +1,13 @@
-import { Scene, SolidParticle } from "babylonjs";
-import { CustomSolidParticle, CustomSolidParticleSystem } from "../../project/add/mesh";
-
-/**
- * Interface for individual particle animation data
- */
-export interface IParticleAnimationData {
-	particle: CustomSolidParticle;
-	from: number;
-	to: number;
-	loop: boolean;
-	speedRatio: number;
-	isPlaying: boolean;
-}
+import { Scene, Animation } from "babylonjs";
 
 /**
  * Interface for SPS animation manager
  */
 export interface ISPSAnimationManager {
-	registerSPS(sps: CustomSolidParticleSystem): void;
-	unregisterSPS(sps: CustomSolidParticleSystem): void;
-	startSolidParticleAnimation(particle: CustomSolidParticle, from: number, to: number, loop?: boolean, speedRatio?: number): void;
-	startSolidParticleSystemAnimation(sps: CustomSolidParticleSystem, from: number, to: number, loop?: boolean, speedRatio?: number): void;
-	stopParticleAnimation(particle: CustomSolidParticle): void;
-	stopAllParticleAnimations(particle: CustomSolidParticle): void;
-	stopAllSPSAnimations(sps: CustomSolidParticleSystem): void;
-	setCurrentTime(time: number): void;
+	beginDirectAnimation(animatable: any, animations: Animation[], from: number, to: number, loop?: boolean, speedRatio?: number): void;
+	stopAnimation(animatable: any): void;
+	stopAllAnimations(): void;
+	setCurrentTime(time: number, animatable?: any): void;
 	play(): void;
 	stop(): void;
 	dispose(): void;
@@ -35,133 +18,177 @@ export interface ISPSAnimationManager {
  */
 export class SPSAnimationManager implements ISPSAnimationManager {
 	private _scene: Scene;
-	private _particleAnimations: Map<number, IParticleAnimationData> = new Map();
-	private _spsSystems: Map<number, CustomSolidParticleSystem> = new Map();
+	private _activeAnimations: Map<string, { animatable: any; from: number; to: number; loop: boolean; speedRatio: number }> = new Map();
 	private _onBeforeRenderObserver: any = null;
 	private _currentTime: number = 0;
 	private _isPlaying: boolean = false;
+	private _lastUpdateTime: number = 0;
+	private _updateThrottle: number = 16; // 60 FPS = 16ms между обновлениями
 
 	constructor(scene: Scene) {
 		this._scene = scene;
 		this._setupRenderLoop();
 	}
 
-	public registerSPS(sps: CustomSolidParticleSystem): void {
-		this._spsSystems.set(sps.mesh.uniqueId, sps);
-	}
-
-	public unregisterSPS(sps: CustomSolidParticleSystem): void {
-		const spsId = sps.mesh.uniqueId;
-		this._spsSystems.delete(spsId);
-
-		sps.particles.forEach((particle) => {
-			this._particleAnimations.delete(particle.id);
-		});
-	}
-
-	public startSolidParticleAnimation(particle: CustomSolidParticle, from: number, to: number, loop: boolean = false, speedRatio: number = 1.0): void {
-		if (!particle.animations || particle.animations.length === 0) {
-			console.warn("Particle has no animations to play");
-			return;
+	public beginDirectAnimation(animatable: any, _animations: Animation[], from: number, to: number, loop: boolean = false, speedRatio: number = 1.0): void {
+		if (animatable.getClassName?.() === "CustomSolidParticle") {
+			const key = this._getAnimationKey(animatable);
+			this._activeAnimations.set(key, { animatable, from, to, loop, speedRatio });
+			
+			// Устанавливаем updateParticle функцию для SPS системы
+			if (animatable._sps && animatable._sps.updateParticle) {
+				this._setupUpdateParticle(animatable._sps);
+			}
 		}
-
-		const animationData: IParticleAnimationData = {
-			particle,
-			from,
-			to,
-			loop,
-			speedRatio,
-			isPlaying: true,
-		};
-
-		this._particleAnimations.set(particle.id, animationData);
 	}
 
-	public startSolidParticleSystemAnimation(sps: CustomSolidParticleSystem, from: number, to: number, loop: boolean = false, speedRatio: number = 1.0): void {
-		sps.particles.forEach((particle) => {
-			this.startSolidParticleAnimation(particle, from, to, loop, speedRatio);
-		});
+	public stopAnimation(animatable: any): void {
+		const key = this._getAnimationKey(animatable);
+		this._activeAnimations.delete(key);
+		
+		// Сбрасываем анимации частицы к начальному состоянию
+		if (animatable.getClassName?.() === "CustomSolidParticle" && animatable.animations) {
+			animatable.animations.forEach((animation: Animation) => {
+				const keys = animation.getKeys();
+				if (keys.length > 0) {
+					// Берем значение из первого ключа (начальное состояние)
+					const initialValue = keys[0].value;
+					this._setParticleProperty(animatable, animation.targetProperty, initialValue);
+				}
+			});
+			
+			// Обновляем SPS систему
+			if (animatable._sps && animatable._sps.setParticles) {
+				animatable._sps.setParticles();
+			}
+		}
 	}
 
-	public stopParticleAnimation(particle: CustomSolidParticle): void {
-		this._particleAnimations.delete(particle.id);
-	}
-
-	public stopAllParticleAnimations(particle: CustomSolidParticle): void {
-		this._particleAnimations.delete(particle.id);
-	}
-
-	public stopAllSPSAnimations(sps: CustomSolidParticleSystem): void {
-		sps.particles.forEach((particle) => {
-			this.stopAllParticleAnimations(particle);
-		});
-	}
-
-	public setCurrentTime(time: number): void {
+	public setCurrentTime(time: number, animatable?: any): void {
 		this._currentTime = time;
+		
+		// Throttle updates to improve performance
+		const now = performance.now();
+		if (now - this._lastUpdateTime >= this._updateThrottle) {
+			this._lastUpdateTime = now;
+			this._updateAnimations();
+		}
 	}
 
 	public play(): void {
 		this._isPlaying = true;
 	}
 
+	public stopAllAnimations(): void {
+		// Сбрасываем все активные анимации к начальному состоянию
+		this._activeAnimations.forEach((animationData) => {
+			const animatable = animationData.animatable;
+			if (animatable.getClassName?.() === "CustomSolidParticle" && animatable.animations) {
+				animatable.animations.forEach((animation: Animation) => {
+					const keys = animation.getKeys();
+					if (keys.length > 0) {
+						const initialValue = keys[0].value;
+						this._setParticleProperty(animatable, animation.targetProperty, initialValue);
+					}
+				});
+				
+				// Обновляем SPS систему
+				if (animatable._sps && animatable._sps.setParticles) {
+					animatable._sps.setParticles();
+				}
+			}
+		});
+		
+		this._activeAnimations.clear();
+	}
+
 	public stop(): void {
 		this._isPlaying = false;
 	}
 
-	private _setupRenderLoop(): void {
-		this._onBeforeRenderObserver = this._scene.onBeforeRenderObservable.add(() => {
-			if (this._isPlaying) {
-				this._updateAnimations();
-			}
-		});
+	private _getAnimationKey(animatable: any): string {
+		if (animatable.getClassName?.() === "CustomSolidParticle") {
+			return `particle_${animatable.id}`;
+		}
+		return `unknown_${Math.random()}`;
 	}
 
-	private _updateAnimations(): void {
-		this._particleAnimations.forEach((animationData) => {
-			if (!animationData.isPlaying) {
-				return;
+	private _setupUpdateParticle(sps: any): void {
+		// Сохраняем оригинальную функцию updateParticle если она есть
+		const originalUpdateParticle = sps.updateParticle;
+		
+		sps.updateParticle = (particle: any) => {
+			// Вызываем оригинальную функцию если она есть
+			if (originalUpdateParticle) {
+				originalUpdateParticle(particle);
 			}
-			this._updateParticleAnimation(animationData, this._currentTime);
-		});
-
-		this._spsSystems.forEach((sps) => {
-			sps.setParticles();
-		});
+			
+			// Применяем анимации к частице
+			this._applyAnimationsToParticle(particle);
+		};
 	}
 
-	private _updateParticleAnimation(animationData: IParticleAnimationData, currentTime: number): void {
-		const { particle, from, to, loop, speedRatio } = animationData;
-
+	private _applyAnimationsToParticle(particle: any): void {
 		if (!particle.animations || particle.animations.length === 0) {
 			return;
 		}
 
-		const animationTime = (currentTime - from) * speedRatio;
+		// Проверяем есть ли активная анимация для этой частицы
+		const key = this._getAnimationKey(particle);
+		const animationData = this._activeAnimations.get(key);
+		
+		if (!animationData) {
+			return;
+		}
+
+		const { from, to, loop, speedRatio } = animationData;
+		const animationTime = (this._currentTime - from) * speedRatio;
 		const animationDuration = to - from;
 
-		let targetTime = currentTime;
+		let targetTime = this._currentTime;
 
 		if (animationTime < 0 || animationTime > animationDuration) {
 			if (loop) {
 				const loopedTime = animationTime % animationDuration;
 				targetTime = from + loopedTime;
 			} else {
-				return;
+				if (animationTime < 0) {
+					targetTime = from;
+				} else {
+					targetTime = to;
+				}
 			}
 		} else {
 			targetTime = from + animationTime;
 		}
 
-		particle.animations.forEach((animation) => {
-			const value = animation._getKeyValue(targetTime);
+		particle.animations.forEach((animation: Animation) => {
+			const value = animation.evaluate(targetTime);
 			if (value !== undefined) {
 				this._setParticleProperty(particle, animation.targetProperty, value);
 			}
 		});
 	}
 
-	private _setParticleProperty(particle: SolidParticle, property: string, value: any): void {
+	private _setupRenderLoop(): void {
+		this._onBeforeRenderObserver = this._scene.onBeforeRenderObservable.add(() => {
+			if (this._isPlaying) {
+				this._currentTime += 1 / 60; // 60 FPS
+				this._updateAnimations();
+			}
+		});
+	}
+
+	private _updateAnimations(): void {
+		// Обновляем все SPS системы которые имеют активные анимации
+		this._activeAnimations.forEach((animationData) => {
+			if (animationData.animatable._sps && animationData.animatable._sps.setParticles) {
+				animationData.animatable._sps.setParticles();
+			}
+		});
+	}
+
+	private _setParticleProperty(particle: any, property: string, value: any): void {
 		(particle as any)[property] = value;
 	}
 
@@ -169,7 +196,7 @@ export class SPSAnimationManager implements ISPSAnimationManager {
 		if (this._onBeforeRenderObserver) {
 			this._scene.onBeforeRenderObservable.remove(this._onBeforeRenderObserver);
 		}
-		this._particleAnimations.clear();
-		this._spsSystems.clear();
+		this._activeAnimations.clear();
 	}
 }
+
