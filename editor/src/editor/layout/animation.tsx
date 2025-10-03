@@ -1,11 +1,12 @@
 import { Component, ReactNode } from "react";
 
-import { Animation, SolidParticle, Mesh, IAnimatable } from "babylonjs";
+import { Animation, Mesh, IAnimatable } from "babylonjs";
 
 import { isNode } from "../../tools/guards/nodes";
 import { isScene } from "../../tools/guards/scene";
 import { isDomElementFocusable } from "../../tools/dom";
 import { isAnyParticleSystem } from "../../tools/guards/particles";
+import { SPSAnimationManager } from "../../tools/animation/sps";
 
 import { Editor } from "../main";
 
@@ -52,6 +53,7 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 
 	private _playing: boolean = false;
 	private _currentTimeBeforePlay: number | null = null;
+	private _spsAnimationManager: SPSAnimationManager | null = null;
 
 	private _onKeyUpListener: (event: KeyboardEvent) => void;
 
@@ -120,6 +122,8 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 	}
 
 	public componentDidMount(): void {
+		this._initializeSPSAnimationManager();
+
 		window.addEventListener(
 			"keyup",
 			(this._onKeyUpListener = (ev) => {
@@ -140,6 +144,11 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 
 	public componentWillUnmount(): void {
 		window.removeEventListener("keyup", this._onKeyUpListener);
+
+		// Cleanup SPS animation manager
+		if (this._spsAnimationManager) {
+			this._spsAnimationManager.dispose();
+		}
 	}
 
 	/**
@@ -209,5 +218,22 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 			this.timelines.setCurrentTime(this._currentTimeBeforePlay);
 			this._currentTimeBeforePlay = null;
 		}
+	}
+
+	private _initializeSPSAnimationManager(): void {
+		if (this.props.editor.layout.preview.scene) {
+			this._spsAnimationManager = new SPSAnimationManager(this.props.editor.layout.preview.scene);
+		}
+	}
+
+	private _ensureSPSAnimationManager(): void {
+		if (!this._spsAnimationManager && this.props.editor.layout.preview.scene) {
+			this._spsAnimationManager = new SPSAnimationManager(this.props.editor.layout.preview.scene);
+		}
+	}
+
+	public getSPSAnimationManager(): SPSAnimationManager | null {
+		this._ensureSPSAnimationManager();
+		return this._spsAnimationManager;
 	}
 }

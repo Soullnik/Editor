@@ -5,4 +5,5 @@ export interface ICustomAnimatable extends IAnimatable {
 	metadata?: {
 		sps?: CustomSolidParticleSystem;
 	};
+	getClassName?(): string;
 }
