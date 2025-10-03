@@ -145,6 +145,9 @@ export function addEmptyMesh(editor: Editor, parent?: Node) {
 
 export class CustomSolidParticle extends SolidParticle {
 	animations: Nullable<Array<Animation>>;
+	getClassName(): string {
+		return "CustomSolidParticle";
+	}
 }
 
 export class CustomSolidParticleSystem extends SolidParticleSystem {
@@ -162,6 +165,7 @@ export class CustomSolidParticleSystem extends SolidParticleSystem {
 	): SolidParticle {
 		const particle = super._addParticle(idx, id, idxpos, idxind, model, shapeId, idxInShape, bInfo, storage) as CustomSolidParticle;
 		particle.animations = [];
+		particle.getClassName = () => "CustomSolidParticle";
 		return particle;
 	}
 }

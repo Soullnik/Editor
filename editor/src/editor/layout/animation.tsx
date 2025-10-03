@@ -100,7 +100,7 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 							<EditorAnimationParticlesPanel
 								animationEditor={this}
 								ref={(r) => (this.particles = r!)}
-								mesh={this.state.animatable as Mesh}
+								mesh={this.state.rootAnimatable as Mesh}
 								particles={this.state.rootAnimatable.metadata.sps.particles}
 							/>
 							<div className="w-1 h-full bg-primary-foreground" />
@@ -161,6 +161,7 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 	}
 
 	public setChildEditedObject(object: unknown): void {
+		console.log("setChildEditedObject", object);
 		if (!object) {
 			return this.setState({ animatable: null });
 		}
