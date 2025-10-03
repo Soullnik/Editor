@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react";
 import { extname } from "path/posix";
 
-import { Mesh, SolidParticleSystem } from "babylonjs";
+import { Mesh } from "babylonjs";
 
 import { EditorInspectorNumberField } from "../fields/number";
 import { EditorInspectorSectionField } from "../fields/section";
@@ -9,13 +9,14 @@ import { waitNextAnimationFrame } from "../../../../tools/tools";
 import { showConfirm } from "../../../../ui/dialog";
 import { isMesh } from "../../../../tools/guards/nodes";
 import { loadImportedSceneFile } from "../../preview/import/import";
+import { CustomSolidParticleSystem } from "../../../../project/add/mesh";
 
 export interface IMeshSPSInspectorProps {
 	object: Mesh;
 }
 
 export interface IMeshSPSInspectorState {
-	sps: SolidParticleSystem;
+	sps: CustomSolidParticleSystem;
 	dragOver: boolean;
 }
 
@@ -24,7 +25,7 @@ export class MeshSPSInspector extends Component<IMeshSPSInspectorProps, IMeshSPS
 		super(props);
 
 		this.state = {
-			sps: props.object.metadata.sps as SolidParticleSystem,
+			sps: props.object.metadata.sps as CustomSolidParticleSystem,
 			dragOver: false,
 		};
 	}

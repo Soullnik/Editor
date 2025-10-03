@@ -85,10 +85,14 @@ export class SPSAnimationManager {
 	private _updateAnimations(): void {
 		this._activeAnimations.forEach((animations, spsId) => {
 			const sps = this._spsSystems.get(spsId);
-			if (!sps) {return;}
+			if (!sps) {
+				return;
+			}
 
 			animations.forEach((animationData) => {
-				if (!animationData.isPlaying) {return;}
+				if (!animationData.isPlaying) {
+					return;
+				}
 				this._updateParticleAnimation(sps, animationData, this._currentTime);
 			});
 
@@ -99,7 +103,9 @@ export class SPSAnimationManager {
 
 	private _updateParticleAnimation(sps: SolidParticleSystem, animationData: ISPSAnimationData, currentTime: number): void {
 		const particle = sps.getParticleById(animationData.particleId);
-		if (!particle) {return;}
+		if (!particle) {
+			return;
+		}
 
 		const { animation, startFrame, endFrame, speedRatio } = animationData;
 
@@ -127,7 +133,9 @@ export class SPSAnimationManager {
 
 	private _applyAnimationToParticle(particle: SolidParticle, animation: CustomAnimations, time: number): void {
 		const keys = animation.getKeys();
-		if (keys.length === 0) {return;}
+		if (keys.length === 0) {
+			return;
+		}
 
 		// Find the appropriate keyframes
 		let keyIndex = 0;

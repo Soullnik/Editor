@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react";
 import { AiOutlinePlus } from "react-icons/ai";
 
-import { Animation, SolidParticle } from "babylonjs";
+import { Animation } from "babylonjs";
 import { getAnimationTypeForObject } from "babylonjs-editor-tools";
 
 import { showAlert } from "../../../../ui/dialog";
@@ -15,18 +15,17 @@ import { EditorAnimation } from "../../animation";
 
 import { showAddTrackPrompt } from "./add";
 import { EditorAnimationTrackItem } from "./item";
-import { CustomAnimations, ICustomAnimatable } from "../types";
+import { ICustomAnimatable } from "../types";
 
 export interface IEditorAnimationTracksPanelProps {
 	animatable: ICustomAnimatable | null;
 	animationEditor: EditorAnimation;
-	selectedParticle: SolidParticle | null;
 }
 
 export class EditorAnimationTracksPanel extends Component<IEditorAnimationTracksPanelProps> {
 	public render(): ReactNode {
 		if (this.props.animatable) {
-			return this._getAnimationsList(this.props.animatable.animations!, this.props.selectedParticle);
+			return this._getAnimationsList(this.props.animatable.animations!);
 		}
 
 		return this._getEmpty();
@@ -36,21 +35,11 @@ export class EditorAnimationTracksPanel extends Component<IEditorAnimationTracks
 		return <div className="flex justify-center items-center text-center font-semibold text-xl w-96 h-full">No object selected.</div>;
 	}
 
-	private _getFilteredAnimations(animations: CustomAnimations[], selectedParticle: SolidParticle | null): CustomAnimations[] {
-		return animations.filter((animation) => {
-			if (selectedParticle) {
-				return animation.particleId === selectedParticle.id;
-			}
-			return true;
-		});
-	}
-
-	private _getAnimationsList(animations: CustomAnimations[], selectedParticle: SolidParticle | null): ReactNode {
-		const filteredAnimations = this._getFilteredAnimations(animations, selectedParticle);
+	private _getAnimationsList(animations: Animation[]): ReactNode {
 		return (
 			<div className="flex flex-col w-96 h-full">
 				<div className="flex justify-between items-center w-full h-10 p-2">
-					<div className="font-thin text-muted-foreground">({filteredAnimations.length} tracks)</div>
+					<div className="font-thin text-muted-foreground">({animations.length} tracks)</div>
 
 					<Button variant="ghost" className="w-8 h-8 p-1" onClick={() => this.addTrack()}>
 						<AiOutlinePlus className="w-5 h-5" />
@@ -58,7 +47,7 @@ export class EditorAnimationTracksPanel extends Component<IEditorAnimationTracks
 				</div>
 
 				<div className="flex flex-col w-full">
-					{filteredAnimations.map((animation, index) => (
+					{animations.map((animation, index) => (
 						<EditorAnimationTrackItem
 							key={`${animation.targetProperty}${index}`}
 							animation={animation}
@@ -80,32 +69,18 @@ export class EditorAnimationTracksPanel extends Component<IEditorAnimationTracks
 		if (!animatable) {
 			return;
 		}
-		let target: ICustomAnimatable | SolidParticle | null = null;
-		let isSPS = false;
-		if (this.props.animatable.metadata?.sps && this.props.selectedParticle) {
-			target = this.props.animatable.metadata.sps.getParticleById(this.props.selectedParticle.idx);
-			isSPS = true;
-		} else {
-			target = animatable;
-		}
 
-		if (!target) {
-			return;
-		}
-
-		const property = await showAddTrackPrompt(target);
+		const property = await showAddTrackPrompt(animatable);
 		if (!property) {
 			return;
 		}
 
-		const value = getInspectorPropertyValue(target, property);
+		const value = getInspectorPropertyValue(animatable, property);
 		if (value === null || value === undefined) {
 			return showAlert("Property not found", `The property to animate "${property}" was not found on the object.`);
 		}
 
-		const existingAnimation = isSPS
-			? animatable.animations?.find((a) => a.particleId === this.props.selectedParticle?.id && a.targetProperty === property)
-			: animatable.animations?.find((a) => a.targetProperty === property);
+		const existingAnimation = animatable.animations?.find((a) => a.targetProperty === property);
 		if (existingAnimation) {
 			return showAlert("Property already animated", `The property "${property}" is already animated and cannot be animated twice.`);
 		}
@@ -131,12 +106,7 @@ export class EditorAnimationTracksPanel extends Component<IEditorAnimationTracks
 			);
 		}
 
-		let animation: Animation;
-		if (this.props.animatable.metadata?.sps && this.props.selectedParticle?.id) {
-			animation = new CustomAnimations(property, property, 60, animationType, 0, this.props.selectedParticle.id);
-		} else {
-			animation = new Animation(property, property, 60, animationType, 0);
-		}
+		const animation = new Animation(property, property, 60, animationType, 0);
 
 		animation.setKeys([
 			{ frame: 0, value: value.clone?.() ?? value },

@@ -1,7 +1,7 @@
 import { AiOutlinePlus } from "react-icons/ai";
 import { Component, MouseEvent, ReactNode } from "react";
 
-import { Animation, IAnimationKey, SolidParticle } from "babylonjs";
+import { Animation, IAnimationKey } from "babylonjs";
 
 import { Button } from "../../../../ui/shadcn/ui/button";
 
@@ -16,14 +16,12 @@ import { EditorAnimation } from "../../animation";
 
 import { EditorAnimationTracker } from "./tracker";
 import { EditorAnimationTimelineItem } from "./track";
-import { CustomAnimations, ICustomAnimatable } from "../types";
-import { SPSAnimationManager } from "../tools/sps-animation-manager";
+import { ICustomAnimatable } from "../types";
 
 export interface IEditorAnimationTimelinePanelProps {
 	editor: Editor;
 	animatable: ICustomAnimatable | null;
 	animationEditor: EditorAnimation;
-	selectedParticle: SolidParticle | null;
 }
 
 export interface IEditorAnimationTimelinePanelState {
@@ -37,15 +35,14 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 	 * This class acts as an ICustomAnimatable. This is used to animate the currentTime value on the state
 	 * and be synchronized with the animations being edited and played by Babylon.js.
 	 */
-	public animations: CustomAnimations[] = [];
+	public animations: Animation[] = [];
 	/**
 	 * Defines the list of all available track items in the timeline.
 	 */
 	public tracks: (EditorAnimationTimelineItem | null)[] = [];
 
-	private _animation!: CustomAnimations;
+	private _animation!: Animation;
 	private _animatedCurrentTime: number = 0;
-	private _spsAnimationManager!: SPSAnimationManager;
 	private _renderLoop: (() => void) | null = null;
 
 	private _divRef: HTMLDivElement | null = null;
@@ -58,7 +55,6 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 			moving: false,
 			currentTime: 0,
 		};
-		this._spsAnimationManager = new SPSAnimationManager(this.props.editor.layout.preview.scene);
 	}
 
 	public render(): ReactNode {
@@ -67,7 +63,7 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 				return this._getEmptyAnimations();
 			}
 
-			return this._getAnimationsList(this.props.animatable.animations!, this.props.selectedParticle);
+			return this._getAnimationsList(this.props.animatable.animations!);
 		}
 
 		return this._getEmpty();
@@ -93,16 +89,10 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 		);
 	}
 
-	private _getAnimationsList(animations: CustomAnimations[], selectedParticle: SolidParticle | null): ReactNode {
+	private _getAnimationsList(animations: Animation[]): ReactNode {
 		const width = this._getMaxWidthForTimeline();
-		const filteredAnimations = animations.filter((animation) => {
-			if (selectedParticle) {
-				return animation.particleId === selectedParticle.id;
-			}
-			return true;
-		});
 		this.tracks.splice(0, this.tracks.length);
-		this.tracks.length = filteredAnimations.length;
+		this.tracks.length = animations.length;
 
 		return (
 			<div
@@ -133,7 +123,7 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 					}}
 					className="flex flex-col min-w-full"
 				>
-					{filteredAnimations.map((animation, index) => (
+					{animations.map((animation, index) => (
 						<EditorAnimationTimelineItem
 							ref={(r) => (this.tracks[index] = r)}
 							key={`${animation.targetProperty}${index}`}
@@ -276,18 +266,10 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 
 		scene.stopAnimation(this.props.animatable);
 
-		if (this.props.animatable.metadata?.sps) {
-			this._spsAnimationManager.registerSPS(this.props.animatable.metadata.sps);
-		}
-
 		this.props.animatable.animations.forEach((animation) => {
 			const keys = animation.getKeys();
 			const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
-			if (this.props.animatable?.metadata?.sps && animation.particleId) {
-				this._spsAnimationManager.startParticleAnimation(this.props.animatable.metadata.sps, animation.particleId, animation, frame, maxFrame, animation.loopMode, 1.0);
-			} else {
-				this.props.editor.layout.preview.scene.beginDirectAnimation(this.props.animatable, [animation], frame, maxFrame, false, 1.0);
-			}
+			this.props.editor.layout.preview.scene.beginDirectAnimation(this.props.animatable, [animation], frame, maxFrame, false, 1.0);
 		});
 
 		this.props.editor.layout.preview.scene.beginDirectAnimation(this, [this._animation], currentTime, maxFrame, false, 1.0);
@@ -299,7 +281,6 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 		engine.runRenderLoop(
 			(this._renderLoop = () => {
 				this.setState({ currentTime: this._animatedCurrentTime });
-				this._spsAnimationManager.setCurrentTime(this._animatedCurrentTime);
 			})
 		);
 	}

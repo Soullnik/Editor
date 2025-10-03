@@ -1,6 +1,6 @@
 import { Component, ReactNode } from "react";
 
-import { Animation, SolidParticle, Mesh } from "babylonjs";
+import { Animation, SolidParticle, Mesh, IAnimatable } from "babylonjs";
 
 import { isNode } from "../../tools/guards/nodes";
 import { isScene } from "../../tools/guards/scene";
@@ -26,9 +26,9 @@ export interface IEditorAnimationProps {
 export interface IEditorAnimationState {
 	playing: boolean;
 	focused: boolean;
-	animatable: ICustomAnimatable | null;
+	animatable: IAnimatable | null;
+	rootAnimatable: ICustomAnimatable | null;
 	selectedAnimation: Animation | null;
-	selectedParticle: SolidParticle | null;
 }
 
 export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAnimationState> {
@@ -62,8 +62,8 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 			playing: false,
 			focused: false,
 			animatable: null,
+			rootAnimatable: null,
 			selectedAnimation: null,
-			selectedParticle: null,
 		};
 	}
 
@@ -77,7 +77,7 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 				<EditorAnimationToolbar animationEditor={this} playing={this.state.playing} animatable={this.state.animatable} />
 
 				<div className="flex w-full h-10">
-					{this.state.animatable?.metadata?.sps && (
+					{this.state.rootAnimatable?.metadata?.sps && (
 						<>
 							<div className="flex justify-center items-center font-semibold w-96 h-full bg-secondary">Particles</div>
 							<div className="w-1 h-full bg-primary-foreground" />
@@ -95,34 +95,23 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 					onMouseLeave={() => this.setState({ focused: false })}
 					className="relative flex w-full h-full overflow-x-hidden overflow-y-auto"
 				>
-					{this.state.animatable?.metadata?.sps && (
+					{this.state.rootAnimatable?.metadata?.sps && (
 						<>
 							<EditorAnimationParticlesPanel
 								animationEditor={this}
 								ref={(r) => (this.particles = r!)}
 								mesh={this.state.animatable as Mesh}
-								particles={this.state.animatable.metadata.sps.particles}
+								particles={this.state.rootAnimatable.metadata.sps.particles}
 							/>
 							<div className="w-1 h-full bg-primary-foreground" />
 						</>
 					)}
 
-					<EditorAnimationTracksPanel
-						animationEditor={this}
-						ref={(r) => (this.tracks = r!)}
-						animatable={this.state.animatable}
-						selectedParticle={this.state.selectedParticle}
-					/>
+					<EditorAnimationTracksPanel animationEditor={this} ref={(r) => (this.tracks = r!)} animatable={this.state.animatable} />
 
 					<div className="w-1 h-full bg-primary-foreground" />
 
-					<EditorAnimationTimelinePanel
-						animationEditor={this}
-						editor={this.props.editor}
-						ref={(r) => (this.timelines = r!)}
-						animatable={this.state.animatable}
-						selectedParticle={this.state.selectedParticle}
-					/>
+					<EditorAnimationTimelinePanel animationEditor={this} editor={this.props.editor} ref={(r) => (this.timelines = r!)} animatable={this.state.animatable} />
 
 					<EditorAnimationInspector animationEditor={this} ref={(r) => (this.inspector = r!)} />
 				</div>
@@ -158,6 +147,20 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 	 * @param object defines the reference to the object that has been selected somewhere in the graph or the preview.
 	 */
 	public setEditedObject(object: unknown): void {
+		if (!object) {
+			return this.setState({ animatable: null, rootAnimatable: null });
+		}
+
+		if (isNode(object) || isScene(object) || isAnyParticleSystem(object)) {
+			if (!object.animations) {
+				object.animations = [];
+			}
+
+			this.setState({ animatable: object, rootAnimatable: object });
+		}
+	}
+
+	public setChildEditedObject(object: unknown): void {
 		if (!object) {
 			return this.setState({ animatable: null });
 		}
