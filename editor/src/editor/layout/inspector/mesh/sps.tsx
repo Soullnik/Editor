@@ -9,14 +9,13 @@ import { waitNextAnimationFrame } from "../../../../tools/tools";
 import { showConfirm } from "../../../../ui/dialog";
 import { isMesh } from "../../../../tools/guards/nodes";
 import { loadImportedSceneFile } from "../../preview/import/import";
-import { CustomSolidParticleSystem } from "../../../../project/add/mesh";
+import { CustomSolidParticleSystem } from "../../../../project/add/particles";
 
 export interface IMeshSPSInspectorProps {
-	object: Mesh;
+	object: CustomSolidParticleSystem;
 }
 
 export interface IMeshSPSInspectorState {
-	sps: CustomSolidParticleSystem;
 	dragOver: boolean;
 }
 
@@ -25,19 +24,18 @@ export class MeshSPSInspector extends Component<IMeshSPSInspectorProps, IMeshSPS
 		super(props);
 
 		this.state = {
-			sps: props.object.metadata.sps as CustomSolidParticleSystem,
 			dragOver: false,
 		};
 	}
 
 	public render(): ReactNode {
-		if (!this.state.sps) {
+		if (!this.props.object) {
 			return null;
 		}
 
 		return (
 			<EditorInspectorSectionField title="SPS">
-				<EditorInspectorNumberField readOnly object={this.state.sps} property="nbParticles" label="Particle Count" />
+				<EditorInspectorNumberField readOnly object={this.props.object} property="nbParticles" label="Particle Count" />
 
 				<div
 					onDrop={(e) => this._handleMeshDrop(e)}
@@ -114,7 +112,7 @@ export class MeshSPSInspector extends Component<IMeshSPSInspectorProps, IMeshSPS
 
 	private async _loadMeshFromAsset(absolutePath: string): Promise<void> {
 		try {
-			const result = await loadImportedSceneFile(this.props.object.getScene(), absolutePath);
+			const result = await loadImportedSceneFile(this.props.object.mesh.getScene(), absolutePath);
 			console.log(result);
 			if (result && result.meshes.length > 0) {
 				const disposedMesh = result.meshes[0] as Mesh;
@@ -127,7 +125,7 @@ export class MeshSPSInspector extends Component<IMeshSPSInspectorProps, IMeshSPS
 	}
 
 	private async _loadMeshFromNode(nodeId: string): Promise<void> {
-		const scene = this.props.object.getScene();
+		const scene = this.props.object.mesh.getScene();
 		const node = scene.getNodeById(nodeId);
 
 		if (isMesh(node)) {
@@ -156,12 +154,12 @@ export class MeshSPSInspector extends Component<IMeshSPSInspectorProps, IMeshSPS
 		);
 
 		if (confirm) {
-			this.state.sps.addShape(mesh, state.count);
-			const particle = this.state.sps.particles.find((p) => p.props?.isDefault);
+			this.props.object.addShape(mesh, state.count);
+			const particle = this.props.object.particles.find((p) => p.props?.isDefault);
 			if (particle) {
-				this.state.sps.removeParticles(particle.idx, particle.idx);
+				this.props.object.removeParticles(particle.idx, particle.idx);
 			}
-			this.state.sps.buildMesh();
+			this.props.object.buildMesh();
 			if (disposedMesh) {
 				disposedMesh.dispose();
 			}

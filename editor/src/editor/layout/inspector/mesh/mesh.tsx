@@ -74,19 +74,22 @@ import { MeshGeometryInspector } from "./geometry";
 import { EditorMeshPhysicsInspector } from "./physics";
 import { EditorMeshCollisionInspector } from "./collision";
 import { MeshSPSInspector } from "./sps";
+import { isCustomSolidParticleSystem } from "../../../../tools/guards/particles";
+import { CustomSolidParticleSystem } from "../../../../project/add/particles";
 
 export interface IEditorMeshInspectorState {
+	mesh: AbstractMesh;
 	dragOver: boolean;
 }
 
-export class EditorMeshInspector extends Component<IEditorInspectorImplementationProps<AbstractMesh>, IEditorMeshInspectorState> {
+export class EditorMeshInspector extends Component<IEditorInspectorImplementationProps<AbstractMesh | CustomSolidParticleSystem>, IEditorMeshInspectorState> {
 	/**
 	 * Returns whether or not the given object is supported by this inspector.
 	 * @param object defines the object to check.
 	 * @returns true if the object is supported by this inspector.
 	 */
 	public static IsSupported(object: unknown): boolean {
-		return isAbstractMesh(object);
+		return isAbstractMesh(object) || isCustomSolidParticleSystem(object);
 	}
 
 	private _castShadows: boolean;
@@ -95,8 +98,14 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 
 	public constructor(props: IEditorInspectorImplementationProps<AbstractMesh>) {
 		super(props);
-
+		let mesh: AbstractMesh;
+		if (isCustomSolidParticleSystem(props.object)) {
+			mesh = props.object.mesh;
+		} else {
+			mesh = props.object;
+		}
 		this.state = {
+			mesh: mesh,
 			dragOver: false,
 		};
 
@@ -113,13 +122,13 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 						<div className="w-1/2">Type</div>
 
 						<div className="flex justify-between items-center w-full">
-							<div className="text-white/50">{this.props.object.getClassName()}</div>
+							<div className="text-white/50">{this.state.mesh.getClassName()}</div>
 
-							{isInstancedMesh(this.props.object) && (
+							{isInstancedMesh(this.state.mesh) && (
 								<Button
 									variant="ghost"
 									onClick={() => {
-										const instance = this.props.object as InstancedMesh;
+										const instance = this.state.mesh as InstancedMesh;
 										this.props.editor.layout.preview.gizmo.setAttachedNode(instance.sourceMesh);
 										this.props.editor.layout.graph.setSelectedNode(instance.sourceMesh);
 										this.props.editor.layout.inspector.setEditedObject(instance.sourceMesh);
@@ -130,18 +139,13 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 							)}
 						</div>
 					</div>
-					<EditorInspectorStringField
-						label="Name"
-						object={this.props.object}
-						property="name"
-						onChange={() => onNodeModifiedObservable.notifyObservers(this.props.object)}
-					/>
-					{this.props.object.geometry && (
+					<EditorInspectorStringField label="Name" object={this.state.mesh} property="name" onChange={() => onNodeModifiedObservable.notifyObservers(this.state.mesh)} />
+					{this.state.mesh.geometry && (
 						<>
-							<EditorInspectorSwitchField label="Pickable" object={this.props.object} property="isPickable" />
+							<EditorInspectorSwitchField label="Pickable" object={this.state.mesh} property="isPickable" />
 							<EditorInspectorSwitchField
 								label="Visible"
-								object={this.props.object}
+								object={this.state.mesh}
 								property="isVisible"
 								onChange={() => updateAllLights(this.props.editor.layout.preview.scene)}
 							/>
@@ -152,27 +156,27 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 				<EditorInspectorSectionField title="Transforms">
 					<EditorInspectorVectorField
 						label={<div className="w-14">Position</div>}
-						object={this.props.object}
+						object={this.state.mesh}
 						property="position"
 						onFinishChange={() => this._handleTransformsUpdated()}
 					/>
-					{EditorTransformNodeInspector.GetRotationInspector(this.props.object, () => this._handleTransformsUpdated())}
+					{EditorTransformNodeInspector.GetRotationInspector(this.state.mesh, () => this._handleTransformsUpdated())}
 					<EditorInspectorVectorField
 						label={<div className="w-14">Scaling</div>}
-						object={this.props.object}
+						object={this.state.mesh}
 						property="scaling"
 						onFinishChange={() => this._handleTransformsUpdated()}
 					/>
 				</EditorInspectorSectionField>
 
-				{this.props.object.geometry && (
+				{this.state.mesh.geometry && (
 					<>
-						<EditorMeshCollisionInspector {...this.props} />
-						<EditorMeshPhysicsInspector mesh={this.props.object} />
+						<EditorMeshCollisionInspector {...this.props} object={this.state.mesh} />
+						<EditorMeshPhysicsInspector mesh={this.state.mesh} />
 					</>
 				)}
 
-				{this.props.editor.layout.preview.scene.lights.length > 0 && this.props.object.geometry && (
+				{this.props.editor.layout.preview.scene.lights.length > 0 && this.state.mesh.geometry && (
 					<EditorInspectorSectionField title="Shadows">
 						<EditorInspectorSwitchField
 							label="Cast Shadows"
@@ -181,17 +185,17 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 							noUndoRedo
 							onChange={() => this._handleCastShadowsChanged(this._castShadows)}
 						/>
-						<EditorInspectorSwitchField label="Receive Shadows" object={this.props.object} property="receiveShadows" />
+						<EditorInspectorSwitchField label="Receive Shadows" object={this.state.mesh} property="receiveShadows" />
 					</EditorInspectorSectionField>
 				)}
 
-				<ScriptInspectorComponent editor={this.props.editor} object={this.props.object} />
+				<ScriptInspectorComponent editor={this.props.editor} object={this.state.mesh} />
 
-				{isMesh(this.props.object) && (
+				{isMesh(this.state.mesh) && (
 					<>
-						<MeshGeometryInspector object={this.props.object} editor={this.props.editor} />
-						<MeshDecalInspector object={this.props.object} />
-						{this.props.object.metadata?.sps && <MeshSPSInspector object={this.props.object} />}
+						<MeshGeometryInspector object={this.state.mesh} editor={this.props.editor} />
+						<MeshDecalInspector object={this.state.mesh} />
+						{isCustomSolidParticleSystem(this.state.mesh) && <MeshSPSInspector object={this.state.mesh} />}
 						{this._getLODsComponent()}
 					</>
 				)}
@@ -200,9 +204,9 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 				{this._getSkeletonComponent()}
 				{this._getMorphTargetManagerComponent()}
 
-				{this.props.object.geometry && (
+				{this.state.mesh.geometry && (
 					<EditorInspectorSectionField title="Misc">
-						<EditorInspectorSwitchField label="Infinite Distance" object={this.props.object} property="infiniteDistance" />
+						<EditorInspectorSwitchField label="Infinite Distance" object={this.state.mesh} property="infiniteDistance" />
 					</EditorInspectorSectionField>
 				)}
 			</>
@@ -213,7 +217,7 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 
 	public componentDidMount(): void {
 		this._gizmoObserver = onGizmoNodeChangedObservable.add((node) => {
-			if (node === this.props.object) {
+			if (node === this.state.mesh) {
 				this.props.editor.layout.inspector.forceUpdate();
 			}
 		});
@@ -230,13 +234,13 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 	}
 
 	private _handleTransformsUpdated(): void {
-		if (isMesh(this.props.object)) {
-			updateIblShadowsRenderPipeline(this.props.object.getScene());
+		if (isMesh(this.state.mesh)) {
+			updateIblShadowsRenderPipeline(this.state.mesh.getScene());
 		}
 	}
 
 	private _getLODsComponent(): ReactNode {
-		const mesh = this.props.object as Mesh;
+		const mesh = this.state.mesh as Mesh;
 
 		const lods = mesh.getLODLevels();
 		if (!lods.length) {
@@ -279,11 +283,11 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 	}
 
 	private _getMaterialComponent(): ReactNode {
-		if (!this.props.object.geometry) {
+		if (!this.state.mesh.geometry) {
 			return;
 		}
 
-		if (!this.props.object.material) {
+		if (!this.state.mesh.material) {
 			return (
 				<EditorInspectorSectionField title="Material">
 					<div
@@ -336,11 +340,11 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 			);
 		}
 
-		const inspector = this._getMaterialInspectorComponent(this.props.object.material);
+		const inspector = this._getMaterialInspectorComponent(this.state.mesh.material);
 		if (!inspector) {
 			return (
 				<EditorInspectorSectionField title="Material">
-					<div className="text-center text-yellow-500">Unsupported material type: {this.props.object.material.getClassName()}</div>
+					<div className="text-center text-yellow-500">Unsupported material type: {this.state.mesh.material.getClassName()}</div>
 				</EditorInspectorSectionField>
 			);
 		}
@@ -383,7 +387,7 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 			const extension = extname(absolutePath).toLowerCase();
 			switch (extension) {
 				case ".material":
-					applyMaterialAssetToObject(this.props.editor, this.props.object, absolutePath);
+					applyMaterialAssetToObject(this.props.editor, this.state.mesh, absolutePath);
 					break;
 			}
 		});
@@ -399,8 +403,8 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 		registerUndoRedo({
 			executeRedo: true,
 			onLost: () => material.dispose(),
-			undo: () => (this.props.object.material = null),
-			redo: () => (this.props.object.material = material),
+			undo: () => (this.state.mesh.material = null),
+			redo: () => (this.state.mesh.material = material),
 		});
 
 		this.forceUpdate();
@@ -409,60 +413,60 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 	private _getMaterialInspectorComponent(material: Material): ReactNode {
 		switch (material.getClassName()) {
 			case "PBRMaterial":
-				return <EditorPBRMaterialInspector mesh={this.props.object} material={this.props.object.material as PBRMaterial} />;
+				return <EditorPBRMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as PBRMaterial} />;
 
 			case "StandardMaterial":
-				return <EditorStandardMaterialInspector mesh={this.props.object} material={this.props.object.material as StandardMaterial} />;
+				return <EditorStandardMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as StandardMaterial} />;
 
 			case "NodeMaterial":
-				return <EditorNodeMaterialInspector mesh={this.props.object} material={this.props.object.material as NodeMaterial} />;
+				return <EditorNodeMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as NodeMaterial} />;
 
 			case "MultiMaterial":
-				return <EditorMultiMaterialInspector material={this.props.object.material as MultiMaterial} />;
+				return <EditorMultiMaterialInspector material={this.state.mesh.material as MultiMaterial} />;
 
 			case "SkyMaterial":
-				return <EditorSkyMaterialInspector mesh={this.props.object} material={this.props.object.material as SkyMaterial} />;
+				return <EditorSkyMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as SkyMaterial} />;
 
 			case "GridMaterial":
-				return <EditorGridMaterialInspector mesh={this.props.object} material={this.props.object.material as GridMaterial} />;
+				return <EditorGridMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as GridMaterial} />;
 
 			case "NormalMaterial":
-				return <EditorNormalMaterialInspector mesh={this.props.object} material={this.props.object.material as NormalMaterial} />;
+				return <EditorNormalMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as NormalMaterial} />;
 
 			case "WaterMaterial":
-				return <EditorWaterMaterialInspector mesh={this.props.object} material={this.props.object.material as WaterMaterial} />;
+				return <EditorWaterMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as WaterMaterial} />;
 
 			case "LavaMaterial":
-				return <EditorLavaMaterialInspector mesh={this.props.object} material={this.props.object.material as LavaMaterial} />;
+				return <EditorLavaMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as LavaMaterial} />;
 
 			case "TriPlanarMaterial":
-				return <EditorTriPlanarMaterialInspector mesh={this.props.object} material={this.props.object.material as TriPlanarMaterial} />;
+				return <EditorTriPlanarMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as TriPlanarMaterial} />;
 
 			case "CellMaterial":
-				return <EditorCellMaterialInspector mesh={this.props.object} material={this.props.object.material as CellMaterial} />;
+				return <EditorCellMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as CellMaterial} />;
 
 			case "FireMaterial":
-				return <EditorFireMaterialInspector mesh={this.props.object} material={this.props.object.material as FireMaterial} />;
+				return <EditorFireMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as FireMaterial} />;
 
 			case "GradientMaterial":
-				return <EditorGradientMaterialInspector mesh={this.props.object} material={this.props.object.material as GradientMaterial} />;
+				return <EditorGradientMaterialInspector mesh={this.state.mesh} material={this.state.mesh.material as GradientMaterial} />;
 		}
 	}
 
 	private _getSkeletonComponent(): ReactNode {
-		if (!this.props.object.skeleton) {
+		if (!this.state.mesh.skeleton) {
 			return null;
 		}
 
 		return (
 			<EditorInspectorSectionField title="Skeleton">
-				<EditorInspectorSwitchField label="Need Initial Skin Matrix" object={this.props.object.skeleton} property="needInitialSkinMatrix" />
+				<EditorInspectorSwitchField label="Need Initial Skin Matrix" object={this.state.mesh.skeleton} property="needInitialSkinMatrix" />
 
 				<Separator />
 
 				<div className="px-[10px] text-lg text-center">Animation Ranges</div>
 
-				{this.props.object.skeleton
+				{this.state.mesh.skeleton
 					.getAnimationRanges()
 					.filter((range) => range)
 					.map((range, index) => (
@@ -478,8 +482,8 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 									}
 								}}
 								onClick={() => {
-									this.props.object._scene.stopAnimation(this.props.object.skeleton);
-									this.props.object.skeleton?.beginAnimation(range!.name, true, 1.0);
+									this.state.mesh._scene.stopAnimation(this.state.mesh.skeleton);
+									this.state.mesh.skeleton?.beginAnimation(range!.name, true, 1.0);
 								}}
 							>
 								{range!.name}
@@ -490,16 +494,16 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 									object={range}
 									property="from"
 									onChange={() => {
-										this.props.editor.layout.preview.scene.stopAnimation(this.props.object.skeleton);
-										this.props.editor.layout.preview.scene.beginAnimation(this.props.object.skeleton, range!.from, range!.from, true, 1.0);
+										this.props.editor.layout.preview.scene.stopAnimation(this.state.mesh.skeleton);
+										this.props.editor.layout.preview.scene.beginAnimation(this.state.mesh.skeleton, range!.from, range!.from, true, 1.0);
 									}}
 								/>
 								<EditorInspectorNumberField
 									object={range}
 									property="to"
 									onChange={() => {
-										this.props.editor.layout.preview.scene.stopAnimation(this.props.object.skeleton);
-										this.props.editor.layout.preview.scene.beginAnimation(this.props.object.skeleton, range!.to, range!.to, true, 1.0);
+										this.props.editor.layout.preview.scene.stopAnimation(this.state.mesh.skeleton);
+										this.props.editor.layout.preview.scene.beginAnimation(this.state.mesh.skeleton, range!.to, range!.to, true, 1.0);
 									}}
 								/>
 
@@ -522,7 +526,7 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 									variant="secondary"
 									className="p-2"
 									onClick={() => {
-										this.props.object.skeleton?.deleteAnimationRange(range!.name, false);
+										this.state.mesh.skeleton?.deleteAnimationRange(range!.name, false);
 										this.forceUpdate();
 									}}
 								>
@@ -538,7 +542,7 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 					onClick={async () => {
 						const name = await showPrompt("Add Animation Range", "Enter the name of the new animation range");
 						if (name) {
-							this.props.object.skeleton?.createAnimationRange(name, 0, 100);
+							this.state.mesh.skeleton?.createAnimationRange(name, 0, 100);
 							this.forceUpdate();
 						}
 					}}
@@ -550,13 +554,13 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 	}
 
 	private _getMorphTargetManagerComponent(): ReactNode {
-		if (!this.props.object.morphTargetManager) {
+		if (!this.state.mesh.morphTargetManager) {
 			return null;
 		}
 
 		const targets: MorphTarget[] = [];
-		for (let i = 0, len = this.props.object.morphTargetManager.numTargets; i < len; ++i) {
-			targets.push(this.props.object.morphTargetManager.getTarget(i));
+		for (let i = 0, len = this.state.mesh.morphTargetManager.numTargets; i < len; ++i) {
+			targets.push(this.state.mesh.morphTargetManager.getTarget(i));
 		}
 
 		return (
@@ -578,12 +582,12 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 			undo: () => {
 				lightsWithShadows.forEach((light) => {
 					if (enabled) {
-						const index = light.getShadowGenerator()?.getShadowMap()?.renderList?.indexOf(this.props.object);
+						const index = light.getShadowGenerator()?.getShadowMap()?.renderList?.indexOf(this.state.mesh);
 						if (index !== undefined && index !== -1) {
 							light.getShadowGenerator()?.getShadowMap()?.renderList?.splice(index, 1);
 						}
 					} else {
-						light.getShadowGenerator()?.getShadowMap()?.renderList?.push(this.props.object);
+						light.getShadowGenerator()?.getShadowMap()?.renderList?.push(this.state.mesh);
 					}
 
 					updateLightShadowMapRefreshRate(light);
@@ -593,9 +597,9 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 			redo: () => {
 				lightsWithShadows.forEach((light) => {
 					if (enabled) {
-						light.getShadowGenerator()?.getShadowMap()?.renderList?.push(this.props.object);
+						light.getShadowGenerator()?.getShadowMap()?.renderList?.push(this.state.mesh);
 					} else {
-						const index = light.getShadowGenerator()?.getShadowMap()?.renderList?.indexOf(this.props.object);
+						const index = light.getShadowGenerator()?.getShadowMap()?.renderList?.indexOf(this.state.mesh);
 						if (index !== undefined && index !== -1) {
 							light.getShadowGenerator()?.getShadowMap()?.renderList?.splice(index, 1);
 						}

@@ -6,8 +6,13 @@ import { VFXComponent, IVFXFile, IVFXComponent, IVFXEmitterMesh } from "../types
 import { VFXEmitterSection } from "./VFXEmitterSection";
 import { VFXComponentList } from "./VFXComponentList";
 import { extname } from "path";
-import { createBaseVFXComponent, createParticleSystemFromCPUPS, createParticleSystemFromGPUPS, createParticleSystemFromNPSS, createSolidParticleSystemFromMesh } from "../utils/create";
-
+import {
+	createBaseVFXComponent,
+	createParticleSystemFromCPUPS,
+	createParticleSystemFromGPUPS,
+	createParticleSystemFromNPSS,
+	createSolidParticleSystemFromMesh,
+} from "../utils/create";
 
 export interface IVFXComponentsPanelState {
 	search: string;
@@ -34,7 +39,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 
 	public componentDidUpdate(prevProps: IVFXComponentsPanelProps): void {
 		if (!prevProps.scene && this.props.scene && !this._rootEmitterComponent) {
-			this.createRootEmitterComponent();
+			this._createRootEmitterComponent();
 			this.forceUpdate();
 		}
 	}
@@ -78,12 +83,12 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		);
 	}
 
-	private createRootEmitterComponent(): void {
+	private _createRootEmitterComponent(): void {
 		const rootMesh = new Mesh("VFX_Emitter_Root", this.props.scene);
 		this._rootEmitterComponent = createBaseVFXComponent(rootMesh.name, rootMesh.name, "emitter_mesh") as IVFXEmitterMesh;
 		this._rootEmitterComponent.babylonSystem = rootMesh;
 		this._rootEmitterComponent.babylonSystem.isVisible = false;
-		this.props.onAdd(this._rootEmitterComponent);
+		this.props.onSelect(this._rootEmitterComponent);
 	}
 
 	private _updateEmitterMesh(newRootMesh: Mesh): void {
@@ -108,7 +113,6 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		this._rootEmitterComponent.babylonSystem = newRootMesh;
 		this.forceUpdate();
 	}
-
 
 	private _handleComponentRemove(component: VFXComponent): void {
 		this.props.onRemove(component);
@@ -139,7 +143,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 						component = await createParticleSystemFromGPUPS(absolutePath, this.props.scene, this._rootEmitterComponent.babylonSystem);
 						break;
 					case ".cpups":
-					component = await createParticleSystemFromCPUPS(absolutePath, this.props.scene, this._rootEmitterComponent.babylonSystem);
+						component = await createParticleSystemFromCPUPS(absolutePath, this.props.scene, this._rootEmitterComponent.babylonSystem);
 						break;
 					case ".npss":
 						component = await createParticleSystemFromNPSS(absolutePath, this.props.scene, this._rootEmitterComponent.babylonSystem);

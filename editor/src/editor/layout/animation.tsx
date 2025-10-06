@@ -1,11 +1,11 @@
 import { Component, ReactNode } from "react";
 
-import { Animation, Mesh, IAnimatable } from "babylonjs";
+import { Animation, IAnimatable } from "babylonjs";
 
 import { isNode } from "../../tools/guards/nodes";
 import { isScene } from "../../tools/guards/scene";
 import { isDomElementFocusable } from "../../tools/dom";
-import { isAnyParticleSystem } from "../../tools/guards/particles";
+import { isAnyParticleSystem, isCustomSolidParticleSystem } from "../../tools/guards/particles";
 import { SPSAnimationManager } from "../../tools/animation/sps";
 
 import { Editor } from "../main";
@@ -79,7 +79,7 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 				<EditorAnimationToolbar animationEditor={this} playing={this.state.playing} animatable={this.state.animatable} />
 
 				<div className="flex w-full h-10">
-					{this.state.rootAnimatable?.metadata?.sps && (
+					{isCustomSolidParticleSystem(this.state.rootAnimatable) && (
 						<>
 							<div className="flex justify-center items-center font-semibold w-96 h-full bg-secondary">Particles</div>
 							<div className="w-1 h-full bg-primary-foreground" />
@@ -97,13 +97,13 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 					onMouseLeave={() => this.setState({ focused: false })}
 					className="relative flex w-full h-full overflow-x-hidden overflow-y-auto"
 				>
-					{this.state.rootAnimatable?.metadata?.sps && (
+					{isCustomSolidParticleSystem(this.state.rootAnimatable) && (
 						<>
 							<EditorAnimationParticlesPanel
 								animationEditor={this}
 								ref={(r) => (this.particles = r!)}
-								mesh={this.state.rootAnimatable as Mesh}
-								particles={this.state.rootAnimatable.metadata.sps.particles}
+								mesh={this.state.rootAnimatable.mesh}
+								particles={this.state.rootAnimatable.particles}
 							/>
 							<div className="w-1 h-full bg-primary-foreground" />
 						</>
@@ -170,7 +170,6 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 	}
 
 	public setChildEditedObject(object: unknown): void {
-		console.log("setChildEditedObject", object);
 		if (!object) {
 			return this.setState({ animatable: null, rootAnimatable: null });
 		}
@@ -180,7 +179,7 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 				object.animations = [];
 			}
 
-			this.setState({ animatable: object, rootAnimatable: object });
+			this.setState({ animatable: object });
 		}
 	}
 

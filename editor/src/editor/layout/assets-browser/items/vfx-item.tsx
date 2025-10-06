@@ -53,12 +53,7 @@ export class AssetBrowserVFXItem extends AssetsBrowserItem {
 	 */
 	protected getSubtitle(): string {
 		if (this._vfxData) {
-			const cpuCount = this._vfxData.cpuParticles?.length || 0;
-			const gpuCount = this._vfxData.gpuParticles?.length || 0;
-			const spsCount = this._vfxData.sps?.length || 0;
-			const setCount = this._vfxData.particleSystemSets?.length || 0;
-			const totalComponents = cpuCount + gpuCount + spsCount + setCount;
-			return `${totalComponents} components`;
+			return `${this._vfxData.components.length} components`;
 		}
 		return "VFX Effect";
 	}

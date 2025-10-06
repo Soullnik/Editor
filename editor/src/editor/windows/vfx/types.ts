@@ -2,9 +2,8 @@
  * VFX Editor Types and Interfaces
  */
 
-import { ParticleSystem, GPUParticleSystem, ParticleSystemSet } from "babylonjs";
+import { ParticleSystem, GPUParticleSystem, ParticleSystemSet, Mesh } from "babylonjs";
 import { CustomSolidParticleSystem } from "../../../project/add/particles";
-import { Mesh } from "babylonjs";
 
 // Base component interface
 export interface IVFXComponent {
@@ -57,7 +56,7 @@ export interface IVFXFile {
 		duration: number;
 		loop: boolean;
 		preview: boolean;
-	},
+	};
 	metadata: {
 		created: string;
 		modified: string;

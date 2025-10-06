@@ -64,8 +64,8 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	} as Editor;
 	public _components: VFXComponentsPanel;
 	public _preview: VFXPreviewPanel;
-	private _inspector: VFXInspectorPanel;
-	private _animation: VFXAnimationPanel;
+	public _inspector: VFXInspectorPanel;
+	public _animation: VFXAnimationPanel;
 
 	private _getComponents(): Record<string, React.ReactNode> {
 		return {
@@ -98,12 +98,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					ref={(r) => (this._inspector = r!)}
 				/>
 			),
-			animation: (
-				<VFXAnimationPanel
-					editor={this._mockEditor}
-					ref={(r) => (this._animation = r!)}
-				/>
-			),
+			animation: <VFXAnimationPanel selectedComponent={this.state.selectedComponent} editor={this._mockEditor} ref={(r) => (this._animation = r!)} />,
 		};
 	}
 
@@ -325,9 +320,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	}
 
 	public setSelectedComponent(component: VFXComponent): void {
-		this.setState({ selectedComponent: component }, () => {
-			this._animation.setEditedObject(component);
-		});
+		this.setState({ selectedComponent: component });
 	}
 
 	public removeComponent(component: VFXComponent): void {
@@ -345,10 +338,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 				vfxData: updatedVfxData,
 				selectedComponent: this.state.selectedComponent?.id === component.id ? null : this.state.selectedComponent,
 			},
-			() => {
-				this._animation.setEditedObject(this.state.selectedComponent);
-				toast.info("Component removed");
-			}
+			() => toast.info("Component removed")
 		);
 	}
 
@@ -356,14 +346,11 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		if (!this.state.vfxData) {
 			return;
 		}
-		const updatedVfxData = { 
+		const updatedVfxData = {
 			...this.state.vfxData,
 			components: [...this.state.vfxData.components, component],
-		 };
-		this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
-			this._animation.setEditedObject(component);
-			toast.info("Component added");
-		});
+		};
+		this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => toast.info("Component added"));
 	}
 
 	public play(): void {

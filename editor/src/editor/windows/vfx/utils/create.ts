@@ -6,7 +6,6 @@ import { VFXComponent, IVFXSolidParticleSystem, IVFXGPUParticleSystem, IVFXCPUPa
 import { CustomSolidParticleSystem } from "../../../../project/add/particles";
 import { UniqueNumber } from "../../../../tools/tools";
 
-
 export function createBaseVFXComponent(absolutePath: string, componentName: string, type: VFXComponent["type"]): IVFXComponent {
 	return {
 		id: `${componentName}_${Date.now()}`,
@@ -19,70 +18,70 @@ export function createBaseVFXComponent(absolutePath: string, componentName: stri
 
 export async function createParticleSystemFromNPSS(absolutePath: string, scene: Scene, targetMesh: AbstractMesh): Promise<IVFXNodeParticleSystem | null> {
 	const fileName = absolutePath.split("/").pop() || "particles";
-		const componentName = fileName.replace(".json", "");
+	const componentName = fileName.replace(".npss", "");
 
-		const baseComponent = createBaseVFXComponent(absolutePath, componentName, "node_particle_system") as IVFXNodeParticleSystem;
-		try {
-			const particleSystem = await loadImportedParticleSystemFile(scene, targetMesh, absolutePath) as ParticleSystemSet;
-			if (!particleSystem) {
-				throw new Error("Particle system not found after loading");
-			}
-			baseComponent.babylonSystem = particleSystem;
-			baseComponent.name = componentName;
-			particleSystem.systems.forEach((particleSystem) => {
-				particleSystem.stop();
-			});
-			return baseComponent;	
-		} catch (error) {
-			toast.error(`Failed to create particle system from ${fileName}`);
-			return null;
+	const baseComponent = createBaseVFXComponent(absolutePath, componentName, "node_particle_system") as IVFXNodeParticleSystem;
+	try {
+		const particleSystem = (await loadImportedParticleSystemFile(scene, targetMesh, absolutePath)) as ParticleSystemSet;
+		if (!particleSystem) {
+			throw new Error("Particle system not found after loading");
 		}
+		baseComponent.babylonSystem = particleSystem;
+		baseComponent.name = componentName;
+		particleSystem.systems.forEach((particleSystem) => {
+			particleSystem.stop();
+		});
+		return baseComponent;
+	} catch (error) {
+		toast.error(`Failed to create particle system from ${fileName}`);
+		return null;
+	}
 }
 
 export async function createParticleSystemFromGPUPS(absolutePath: string, scene: Scene, targetMesh: AbstractMesh): Promise<IVFXGPUParticleSystem | null> {
 	const fileName = absolutePath.split("/").pop() || "particles";
-		const componentName = fileName.replace(".json", "");
+	const componentName = fileName.replace(".gpups", "");
 
-		const baseComponent = createBaseVFXComponent(absolutePath, componentName, "gpu_particle_system") as IVFXGPUParticleSystem;
-		try {
-			const particleSystem = await loadImportedParticleSystemFile(scene, targetMesh, absolutePath) as GPUParticleSystem;
-			if (!particleSystem) {
-				throw new Error("Particle system not found after loading");
-			}
-			baseComponent.babylonSystem = particleSystem ;
-			baseComponent.name = particleSystem.name || componentName;
-			particleSystem.stop();
-			return baseComponent;	
-		} catch (error) {
-			toast.error(`Failed to create particle system from ${fileName}`);
-			return null;
+	const baseComponent = createBaseVFXComponent(absolutePath, componentName, "gpu_particle_system") as IVFXGPUParticleSystem;
+	try {
+		const particleSystem = (await loadImportedParticleSystemFile(scene, targetMesh, absolutePath)) as GPUParticleSystem;
+		if (!particleSystem) {
+			throw new Error("Particle system not found after loading");
 		}
+		baseComponent.babylonSystem = particleSystem;
+		baseComponent.name = particleSystem.name || componentName;
+		particleSystem.stop();
+		return baseComponent;
+	} catch (error) {
+		toast.error(`Failed to create particle system from ${fileName}`);
+		return null;
+	}
 }
 
 export async function createParticleSystemFromCPUPS(absolutePath: string, scene: Scene, targetMesh: AbstractMesh): Promise<IVFXCPUParticleSystem | null> {
 	const fileName = absolutePath.split("/").pop() || "cpu_particles";
-		const componentName = fileName.replace(".json", "");
+	const componentName = fileName.replace(".cpups", "");
 
-		const baseComponent = createBaseVFXComponent(absolutePath, componentName, "cpu_particle_system") as IVFXCPUParticleSystem;
+	const baseComponent = createBaseVFXComponent(absolutePath, componentName, "cpu_particle_system") as IVFXCPUParticleSystem;
 
-		try {
-			const particleSystem = await loadImportedParticleSystemFile(scene, targetMesh, absolutePath) as ParticleSystem;
-				if (!particleSystem) {
-					throw new Error("Particle system not found after loading");
-				}
-				baseComponent.babylonSystem = particleSystem ;
-				baseComponent.name = particleSystem.name || componentName;
-				particleSystem.stop();
-				return baseComponent;	
-		} catch (error) {
-			toast.error(`Failed to create particle system from ${fileName}`);
-			return null;
+	try {
+		const particleSystem = (await loadImportedParticleSystemFile(scene, targetMesh, absolutePath)) as ParticleSystem;
+		if (!particleSystem) {
+			throw new Error("Particle system not found after loading");
 		}
+		baseComponent.babylonSystem = particleSystem;
+		baseComponent.name = particleSystem.name || componentName;
+		particleSystem.stop();
+		return baseComponent;
+	} catch (error) {
+		toast.error(`Failed to create particle system from ${fileName}`);
+		return null;
+	}
 }
 
 export async function createSolidParticleSystemFromMesh(absolutePath: string, scene: Scene, targetMesh: AbstractMesh): Promise<IVFXSolidParticleSystem | null> {
 	const fileName = absolutePath.split("/").pop() || "mesh";
-	const componentName = fileName.replace(/\.(glb)$/i, "");
+	const componentName = fileName.replace(".glb", "");
 
 	const component = createBaseVFXComponent(absolutePath, componentName, "solid_particle_system") as IVFXSolidParticleSystem;
 

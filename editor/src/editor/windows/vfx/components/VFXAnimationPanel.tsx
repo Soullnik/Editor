@@ -5,6 +5,7 @@ import { VFXComponent } from "../types";
 
 export interface IVFXAnimationPanelProps {
 	editor: Editor;
+	selectedComponent: VFXComponent | null;
 }
 
 export class VFXAnimationPanel extends Component<IVFXAnimationPanelProps> {
@@ -14,8 +15,11 @@ export class VFXAnimationPanel extends Component<IVFXAnimationPanelProps> {
 		super(props);
 	}
 
-	public setEditedObject(object: VFXComponent | null): void {
-		this._animation?.setEditedObject(object);
+	public componentDidUpdate(prevProps: IVFXAnimationPanelProps): void {
+		if (prevProps.selectedComponent !== this.props.selectedComponent) {
+			this._animation.setEditedObject(this.props.selectedComponent);
+			this._animation.forceUpdate()
+		}
 	}
 
 	public render(): ReactNode {
