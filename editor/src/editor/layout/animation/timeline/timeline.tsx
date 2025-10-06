@@ -17,6 +17,7 @@ import { EditorAnimation } from "../../animation";
 import { EditorAnimationTracker } from "./tracker";
 import { EditorAnimationTimelineItem } from "./track";
 import { ICustomAnimatable } from "../types";
+import { CustomSolidParticle } from "../../../../project/add/mesh";
 
 export interface IEditorAnimationTimelinePanelProps {
 	editor: Editor;
@@ -181,38 +182,27 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 		this.setState({ currentTime });
 
 		if (this.props.animatable?.getClassName?.() === "CustomSolidParticle") {
-			// Для SPS частиц запускаем анимации и устанавливаем время
 			const spsManager = this.props.animationEditor.getSPSAnimationManager();
+
 			this.props.animatable.animations.forEach((animation) => {
 				const keys = animation.getKeys();
-				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
-				spsManager?.beginDirectAnimation(this.props.animatable, [animation], frame, frame, false, 1.0);
+				const fromFrame = keys[0].frame;
+				const toFrame = keys[keys.length - 1].frame;
+				spsManager?.beginDirectAnimation(this.props.animatable as CustomSolidParticle, [animation], fromFrame, toFrame, false, 1.0);
 			});
-			spsManager?.setCurrentTime(currentTime, this.props.animatable);
+			spsManager?.setCurrentTime(currentTime, this.props.animatable as CustomSolidParticle);
 		} else if (this.props.animatable?.metadata?.sps) {
-			// Для меша с SPS: запускаем анимации меша + анимации всех частиц SPS
 			const spsManager = this.props.animationEditor.getSPSAnimationManager();
-			
-			// Анимации самого меша
+			spsManager?.registerMeshWithSPS(this.props.animatable, this.props.animatable.metadata.sps);
 			this.props.animatable.animations.forEach((animation) => {
 				const keys = animation.getKeys();
 				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
 				this.props.editor.layout.preview.scene.beginDirectAnimation(this.props.animatable, [animation], frame, frame, false, 1.0);
 			});
-			
-			// Анимации всех частиц SPS
-			this.props.animatable.metadata.sps.particles.forEach((particle) => {
-				if (particle.animations && particle.animations.length > 0) {
-					particle.animations.forEach((animation) => {
-						const keys = animation.getKeys();
-						const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
-						spsManager?.beginDirectAnimation(particle, [animation], frame, frame, false, 1.0);
-					});
-				}
-			});
+
+			spsManager?.beginMeshSPSAnimation(this.props.animatable, currentTime, currentTime);
 			spsManager?.setCurrentTime(currentTime);
 		} else {
-			// Для обычных объектов используем стандартную анимацию
 			this.props.animatable.animations.forEach((animation) => {
 				const keys = animation.getKeys();
 				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
@@ -305,31 +295,20 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 			// Для SPS частиц
 			this.props.animatable.animations.forEach((animation) => {
 				const keys = animation.getKeys();
-				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
-				spsManager?.beginDirectAnimation(this.props.animatable, [animation], frame, maxFrame, false, 1.0);
+				const fromFrame = keys[0].frame;
+				spsManager?.beginDirectAnimation(this.props.animatable as CustomSolidParticle, [animation], fromFrame, maxFrame, false, 1.0);
 			});
 		} else if (this.props.animatable?.metadata?.sps) {
-			// Для меша с SPS: запускаем анимации меша + анимации всех частиц SPS
-			
-			// Анимации самого меша
+			spsManager?.registerMeshWithSPS(this.props.animatable, this.props.animatable.metadata.sps);
+
 			this.props.animatable.animations.forEach((animation) => {
 				const keys = animation.getKeys();
 				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
 				this.props.editor.layout.preview.scene.beginDirectAnimation(this.props.animatable, [animation], frame, maxFrame, false, 1.0);
 			});
-			
-			// Анимации всех частиц SPS
-			this.props.animatable.metadata.sps.particles.forEach((particle) => {
-				if (particle.animations && particle.animations.length > 0) {
-					particle.animations.forEach((animation) => {
-						const keys = animation.getKeys();
-						const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
-						spsManager?.beginDirectAnimation(particle, [animation], frame, maxFrame, false, 1.0);
-					});
-				}
-			});
+
+			spsManager?.beginMeshSPSAnimation(this.props.animatable, currentTime, maxFrame);
 		} else {
-			// Для обычных объектов
 			this.props.animatable.animations.forEach((animation) => {
 				const keys = animation.getKeys();
 				const frame = keys[keys.length - 1].frame < currentTime ? keys[keys.length - 1].frame : currentTime;
@@ -347,7 +326,7 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 			(this._renderLoop = () => {
 				this.setState({ currentTime: this._animatedCurrentTime });
 				if (this.props.animatable?.getClassName?.() === "CustomSolidParticle") {
-					spsManager?.setCurrentTime(this._animatedCurrentTime, this.props.animatable);
+					spsManager?.setCurrentTime(this._animatedCurrentTime, this.props.animatable as CustomSolidParticle);
 				} else if (this.props.animatable?.metadata?.sps) {
 					spsManager?.setCurrentTime(this._animatedCurrentTime);
 				}
@@ -369,9 +348,8 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 		}
 
 		if (this.props.animatable?.getClassName?.() === "CustomSolidParticle") {
-			spsManager?.stopAnimation(this.props.animatable);
+			spsManager?.stopAnimation(this.props.animatable as CustomSolidParticle);
 		} else if (this.props.animatable?.metadata?.sps) {
-			// Для меша с SPS: останавливаем анимации меша + анимации всех частиц SPS
 			scene.stopAnimation(this.props.animatable);
 			spsManager?.stopAllAnimations();
 		} else {
