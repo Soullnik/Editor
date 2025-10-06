@@ -9,7 +9,6 @@ import { isAnyParticleSystem } from "../../tools/guards/particles";
 import { SPSAnimationManager } from "../../tools/animation/sps";
 
 import { Editor } from "../main";
-import { ISpsAnimatable } from "../windows/vfx/types";
 
 import { EditorAnimationToolbar } from "./animation/toolbar";
 import { EditorAnimationTracksPanel } from "./animation/tracks/tracks";
@@ -67,7 +66,6 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 			animatable: null,
 			rootAnimatable: null,
 			selectedAnimation: null,
-			selectedParticleId: null,
 		};
 	}
 
@@ -183,21 +181,6 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 			}
 
 			this.setState({ animatable: object, rootAnimatable: object });
-		}
-	}
-
-	public setChildEditedObject(object: unknown): void {
-		console.log("setChildEditedObject", object);
-		if (!object) {
-			return this.setState({ animatable: null });
-		}
-		// Handle standard animatable objects
-		if (isNode(object) || isScene(object) || isAnyParticleSystem(object) || isAnimatableSolidParticleSystem(object)) {
-			if (!object.animations) {
-				object.animations = [];
-			}
-
-			this.setState({ animatable: object });
 		}
 	}
 

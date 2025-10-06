@@ -243,7 +243,7 @@ export class SPSAnimationManager implements ISPSAnimationManager {
 	}
 
 	private _setParticleProperty(particle: CustomSolidParticle, property: string, value: any): void {
-		(particle as any)[property] = value;
+		particle[property] = value;
 	}
 
 	private _getTotalActiveParticles(): number {
