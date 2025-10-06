@@ -2,7 +2,6 @@ import { Component, ReactNode } from "react";
 import { VFXComponent } from "../types";
 import { EditorParticleSystemInspector } from "../../../layout/inspector/particles/particle-system";
 import { EditorGPUParticleSystemInspector } from "../../../layout/inspector/particles/gpu-particle-system";
-import { EditorSolidParticleSystemInspector } from "../../../layout/inspector/particles/solid-particle-system";
 import { EditorMeshInspector } from "../../../layout/inspector/mesh/mesh";
 import { Editor } from "../../../main";
 
@@ -20,9 +19,9 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 			case "cpu_particle_system":
 				return <EditorParticleSystemInspector editor={this.props.editor} object={this.props.selectedComponent.babylonSystem} />;
 			case "solid_particle_system":
-				return <EditorSolidParticleSystemInspector editor={this.props.editor} object={this.props.selectedComponent} />;
+				return <EditorMeshInspector editor={this.props.editor} object={this.props.selectedComponent.babylonSystem.mesh} />;
 			case "emitter_mesh":
-				return <EditorMeshInspector editor={this.props.editor} object={this.props.selectedComponent.babylonMesh} />;
+				return <EditorMeshInspector editor={this.props.editor} object={this.props.selectedComponent.babylonSystem} />;
 			default:
 				return (
 					<div className="flex flex-col w-full h-full">

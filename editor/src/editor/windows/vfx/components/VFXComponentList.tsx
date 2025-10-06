@@ -9,9 +9,8 @@ import { EditorInspectorSectionField } from "../../../layout/inspector/fields/se
 export interface IVFXComponentListProps {
 	components: { [key: string]: VFXComponent[] };
 	selectedComponent: VFXComponent | null;
-	onComponentSelect: (component: VFXComponent) => void;
-	onComponentRemove: (id: string) => void;
-	onComponentRemoved?: (id: string) => void;
+	onSelect: (component: VFXComponent) => void;
+	onRemove: (component: VFXComponent) => void;
 	onDrop: (ev: React.DragEvent<HTMLDivElement>) => void;
 }
 
@@ -32,7 +31,7 @@ export class VFXComponentList extends Component<IVFXComponentListProps> {
 													flex items-center gap-2 p-2 cursor-pointer hover:bg-primary/10 transition-colors duration-200 rounded
 													${this.props.selectedComponent?.id === component.id ? "bg-primary/20" : ""}
 												`}
-												onClick={() => this.props.onComponentSelect(component)}
+												onClick={() => this.props.onSelect(component)}
 											>
 												<div className={`w-3 h-3 rounded-full ${component.active ? "bg-green-500" : "bg-gray-400"}`} />
 												{this._getComponentIcon(component.type)}
@@ -45,10 +44,7 @@ export class VFXComponentList extends Component<IVFXComponentListProps> {
 										<ContextMenuContent>
 											<ContextMenuItem
 												onClick={() => {
-													this.props.onComponentRemove(component.id);
-													if (this.props.onComponentRemoved) {
-														this.props.onComponentRemoved(component.id);
-													}
+													this.props.onRemove(component);
 												}}
 												className="text-red-500"
 											>

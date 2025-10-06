@@ -1,7 +1,6 @@
-import { ParticleSystem, GPUParticleSystem, Tools, AbstractMesh } from "babylonjs";
+import { ParticleSystem, GPUParticleSystem, Tools, AbstractMesh, SolidParticle, Nullable, SolidParticleSystem, ModelShape, BoundingInfo, Node, Animation  } from "babylonjs";
 
-import { UniqueNumber } from "../../tools/tools";
-
+import { UniqueNumber } from "../../tools/tools"
 import { Editor } from "../../editor/main";
 
 export function addParticleSystem(editor: Editor, emitter: AbstractMesh) {
@@ -58,4 +57,55 @@ export function addGPUParticleSystem(editor: Editor, emitter: AbstractMesh) {
 
 	editor.layout.inspector.setEditedObject(particleSystem);
 	editor.layout.preview.gizmo.setAttachedNode(particleSystem.emitter);
+}
+
+
+export class CustomSolidParticle extends SolidParticle {
+	animations: Nullable<Array<Animation>>;
+	getClassName(): string {
+		return "CustomSolidParticle";
+	}
+}
+
+export class CustomSolidParticleSystem extends SolidParticleSystem {
+	declare particles: CustomSolidParticle[];
+	protected _addParticle(
+		idx: number,
+		id: number,
+		idxpos: number,
+		idxind: number,
+		model: ModelShape,
+		shapeId: number,
+		idxInShape: number,
+		bInfo?: Nullable<BoundingInfo>,
+		storage?: Nullable<[]>
+	): SolidParticle {
+		const particle = super._addParticle(idx, id, idxpos, idxind, model, shapeId, idxInShape, bInfo, storage) as CustomSolidParticle;
+		particle.animations = [];
+		particle.getClassName = () => "CustomSolidParticle";
+		return particle;
+	}
+}
+
+export function addSolidParticleSystem(editor: Editor, parent?: Node) {
+	const sps = new CustomSolidParticleSystem("New SPS Mesh", editor.layout.preview.scene, { expandable: true });
+	const mesh = sps.buildMesh();
+	mesh.receiveShadows = false;
+	mesh.id = Tools.RandomId();
+	mesh.uniqueId = UniqueNumber.Get();
+	mesh.parent = parent ?? null;
+	mesh.metadata = {
+		sps: sps,
+	};
+	const particle = sps.getParticleById(0);
+	if (particle) {
+		particle.props = { isDefault: true };
+	}
+
+	editor.layout.graph.refresh().then(() => {
+		editor.layout.graph.setSelectedNode(mesh);
+	});
+
+	editor.layout.inspector.setEditedObject(mesh);
+	editor.layout.preview.gizmo.setAttachedNode(mesh);
 }

@@ -1114,21 +1114,19 @@ export class EditorAssetsBrowser extends Component<IEditorAssetsBrowserProps, IE
 		const vfxData: IVFXFile = {
 			name: "New VFX",
 			version: "1.0.0",
-			description: "A new VFX effect",
-			cpuParticles: [],
-			gpuParticles: [],
-			sps: [],
-			particleSystemSets: [],
+			components: [],
 			settings: {
 				duration: 5000,
 				loop: false,
 				preview: true,
-				quality: "medium",
 			},
-			created: new Date().toISOString(),
-			modified: new Date().toISOString(),
-			author: "Editor",
-			tags: ["vfx", "effect"],
+			metadata: {
+				created: new Date().toISOString(),
+				modified: new Date().toISOString(),
+				author: "Editor",
+				description: "VFX from Babylonjs Editor",
+				tags: ["vfx", "effect"],
+			},
 		};
 
 		await writeJSON(join(this.state.browsedPath, name), vfxData, {

@@ -1,5 +1,5 @@
 import { Scene, Animation, AbstractEngine, Observer } from "babylonjs";
-import { CustomSolidParticle, CustomSolidParticleSystem } from "../../project/add/mesh";
+import { CustomSolidParticle, CustomSolidParticleSystem } from "../../project/add/particles";
 
 interface IAnimationData {
 	animatable: CustomSolidParticle;

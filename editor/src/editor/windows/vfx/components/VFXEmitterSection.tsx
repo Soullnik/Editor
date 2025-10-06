@@ -4,17 +4,18 @@ import { GiSparkles } from "react-icons/gi";
 import { toast } from "sonner";
 import { MeshBuilder, Mesh, Scene } from "babylonjs";
 import { loadImportedSceneFile } from "../../../layout/preview/import/import";
+import { IVFXEmitterMesh } from "../types";
 
 export interface IVFXEmitterSectionProps {
-	emitterMesh: Mesh | null;
-	onEmitterSelect: () => void;
-	onEmitterUpdate: (newMesh: Mesh) => void;
+	component: IVFXEmitterMesh | null;
+	onSelect: (component: IVFXEmitterMesh) => void;
+	onUpdate: (newMesh: Mesh) => void;
 	scene: Scene | null;
 }
 
 export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 	public render(): ReactNode {
-		if (!this.props.emitterMesh) {
+		if (!this.props.component) {
 			return null;
 		}
 
@@ -25,12 +26,12 @@ export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 						className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
 						onDragOver={(ev) => ev.preventDefault()}
 						onDrop={(ev) => this._handleEmitterDrop(ev)}
-						onClick={() => this.props.onEmitterSelect()}
+						onClick={() => this.props.component && this.props.onSelect(this.props.component)}
 					>
 						<div className="flex items-center gap-2">
 							<GiSparkles className="w-4 h-4 text-green-500" />
 							<div>
-								<div className="text-sm font-medium">{this.props.emitterMesh.name}</div>
+								<div className="text-sm font-medium">{this.props.component.name}</div>
 								<div className="text-xs text-muted-foreground">Emitter Mesh</div>
 							</div>
 						</div>
@@ -68,7 +69,7 @@ export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 				break;
 		}
 
-		this.props.onEmitterUpdate(newMesh);
+		this.props.onUpdate(newMesh);
 		toast.success(`Created ${type} emitter`);
 	}
 
@@ -105,7 +106,7 @@ export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 				const loadedMesh = result.meshes[0] as Mesh;
 				loadedMesh.name = "VFX_Emitter_Imported";
 
-				this.props.onEmitterUpdate(loadedMesh);
+				this.props.onUpdate(loadedMesh);
 
 				const fileName = absolutePath.split("/").pop() || "mesh";
 				toast.success(`Loaded emitter from ${fileName}`);

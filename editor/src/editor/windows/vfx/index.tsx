@@ -1,5 +1,6 @@
-import { ipcRenderer } from "electron";
 import "babylonjs-loaders";
+import { ipcRenderer } from "electron";
+
 import { readJSON, writeJSON, pathExists } from "fs-extra";
 
 import { toast } from "sonner";
@@ -14,20 +15,31 @@ import { Toaster } from "../../../ui/shadcn/ui/sonner";
 
 import { waitNextAnimationFrame } from "../../../tools/tools";
 
-import { VFXComponent, IVFXEditorWindowProps, IVFXEditorWindowState } from "./types";
+import { VFXComponent, IVFXFile } from "./types";
 import { projectConfiguration } from "../../../project/configuration";
 
 import { FaPlay, FaStop } from "react-icons/fa";
 import { GridMaterial } from "babylonjs-materials";
 
 import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel, VFXAnimationPanel } from "./components";
-import { VFXAnimationManager } from "./utils/vfx-animation-manager";
 
 import layoutModel from "./layout.json";
 import { isDarwin } from "../../../tools/os";
 import { IoCloseOutline } from "react-icons/io5";
 import { VscChromeMinimize, VscMultipleWindows } from "react-icons/vsc";
 import { Editor } from "../../../export";
+
+interface IVFXEditorWindowProps {
+	filePath: string;
+}
+interface IVFXEditorWindowState {
+	vfxData: IVFXFile | null;
+	selectedComponent: VFXComponent | null;
+	playing: boolean;
+	scene: Scene | null;
+	engine: Engine | null;
+	camera: ArcRotateCamera | null;
+}
 
 export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IVFXEditorWindowState> {
 	public canvasRef: HTMLCanvasElement | null = null;
@@ -61,12 +73,10 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 				<VFXComponentsPanel
 					vfxData={this.state.vfxData}
 					selectedComponent={this.state.selectedComponent}
-					search={this.state.search}
 					scene={this.state.scene}
-					onSearchChange={(search) => this.setState({ search })}
-					onComponentSelect={(component) => this.setSelectedComponent(component)}
-					onComponentRemove={(id) => this.removeComponent(id)}
-					onComponentAdded={(component) => this._addComponent(component)}
+					onSelect={(component) => this.setSelectedComponent(component)}
+					onRemove={(component) => this.removeComponent(component)}
+					onAdd={(component) => this._addComponent(component)}
 					ref={(r) => (this._components = r!)}
 				/>
 			),
@@ -90,10 +100,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			),
 			animation: (
 				<VFXAnimationPanel
-					selectedComponent={this.state.selectedComponent}
 					editor={this._mockEditor}
-					scene={this.state.scene}
-					onAnimationUpdate={(sps) => this.setSelectedComponent(sps)}
 					ref={(r) => (this._animation = r!)}
 				/>
 			),
@@ -110,7 +117,6 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			scene: null,
 			engine: null,
 			camera: null,
-			search: "",
 		};
 
 		try {
@@ -164,7 +170,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 							</Button>
 						</div>
 						<div className="text-xs text-muted-foreground">
-							{this.getAllComponents().length} components
+							{this.state.vfxData?.components.length} components
 							{this.state.vfxData && ` (${this.state.vfxData.name})`}
 						</div>
 					</div>
@@ -187,15 +193,10 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	}
 
 	public async componentDidMount(): Promise<void> {
-		// Force dark theme
 		if (!document.body.classList.contains("dark")) {
 			document.body.classList.add("dark");
 		}
-
-		// Set project configuration path for texture handling
 		projectConfiguration.path = this.props.filePath;
-
-		// Load VFX data
 		if (!(await pathExists(this.props.filePath))) {
 			toast.error("VFX file does not exist");
 			this.close();
@@ -203,30 +204,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		}
 		try {
 			const vfxData = await readJSON(this.props.filePath);
-			if (!vfxData.cpuParticles) {
-				vfxData.cpuParticles = [];
+			if (!vfxData.components) {
+				vfxData.components = [];
 			}
-			if (!vfxData.gpuParticles) {
-				vfxData.gpuParticles = [];
-			}
-			if (!vfxData.sps) {
-				vfxData.sps = [];
-			}
-			if (!vfxData.particleSystemSets) {
-				vfxData.particleSystemSets = [];
-			}
-			if (!vfxData.connections) {
-				vfxData.connections = [];
-			}
-			if (!vfxData.settings) {
-				vfxData.settings = {
-					duration: 5000,
-					loop: false,
-					preview: true,
-					quality: "medium",
-				};
-			}
-
 			this.setState({ vfxData });
 		} catch (error) {
 			console.error("Failed to load VFX data:", error);
@@ -268,7 +248,6 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			return <div>Error, see console...</div>;
 		}
 
-		// Add resize listener for preview panel
 		if (componentName === "preview") {
 			node.setEventListener("resize", () => {
 				waitNextAnimationFrame().then(() => {
@@ -347,72 +326,44 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 
 	public setSelectedComponent(component: VFXComponent): void {
 		this.setState({ selectedComponent: component }, () => {
-			// @ts-ignore
-			this._animation.setEditedObject(component?.babylonMesh || component?.babylonSystem || component?.babylonSPS || component?.babylonParticleSystemSet);
+			this._animation.setEditedObject(component);
 		});
 	}
 
-	public removeComponent(id: string): void {
+	public removeComponent(component: VFXComponent): void {
 		if (!this.state.vfxData) {
 			return;
 		}
 
 		const updatedVfxData = {
 			...this.state.vfxData,
-			cpuParticles: this.state.vfxData.cpuParticles.filter((c) => c.id !== id),
-			gpuParticles: this.state.vfxData.gpuParticles.filter((c) => c.id !== id),
-			sps: this.state.vfxData.sps.filter((c) => c.id !== id),
-			particleSystemSets: this.state.vfxData.particleSystemSets.filter((c) => c.id !== id),
-			modified: new Date().toISOString(),
+			components: this.state.vfxData.components.filter((c) => c.id !== component.id),
 		};
 
 		this.setState(
 			{
 				vfxData: updatedVfxData,
-				selectedComponent: this.state.selectedComponent?.id === id ? null : this.state.selectedComponent,
+				selectedComponent: this.state.selectedComponent?.id === component.id ? null : this.state.selectedComponent,
 			},
 			() => {
-				this._animation.setEditedObject(null);
+				this._animation.setEditedObject(this.state.selectedComponent);
+				toast.info("Component removed");
 			}
 		);
-
-		toast.info("Component removed");
 	}
 
 	private _addComponent(component: VFXComponent): void {
 		if (!this.state.vfxData) {
 			return;
 		}
-
-		const updatedVfxData = { ...this.state.vfxData };
-
-		// Add component to appropriate array based on type
-		switch (component.type) {
-			case "cpu_particle_system":
-				updatedVfxData.cpuParticles = [...this.state.vfxData.cpuParticles, component];
-				break;
-			case "gpu_particle_system":
-				updatedVfxData.gpuParticles = [...this.state.vfxData.gpuParticles, component];
-				break;
-			case "solid_particle_system":
-				updatedVfxData.sps = [...this.state.vfxData.sps, component];
-				break;
-			default:
-				console.warn(`Unknown component type: ${component.type}`);
-				return;
-		}
-
-		updatedVfxData.modified = new Date().toISOString();
+		const updatedVfxData = { 
+			...this.state.vfxData,
+			components: [...this.state.vfxData.components, component],
+		 };
 		this.setState({ vfxData: updatedVfxData, selectedComponent: component }, () => {
 			this._animation.setEditedObject(component);
+			toast.info("Component added");
 		});
-	}
-
-	public getAllComponents(): VFXComponent[] {
-		if (!this.state.vfxData) {
-			return [];
-		}
-		return [...this.state.vfxData.cpuParticles, ...this.state.vfxData.gpuParticles, ...this.state.vfxData.sps, ...this.state.vfxData.particleSystemSets];
 	}
 
 	public play(): void {
@@ -421,10 +372,6 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		}
 
 		this.setState({ playing: true });
-
-		// Start all animations using the animation manager
-		VFXAnimationManager.start(this.state.vfxData);
-
 		toast.success("VFX playback started");
 	}
 
@@ -434,10 +381,6 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		}
 
 		this.setState({ playing: false });
-
-		// Stop all animations using the animation manager
-		VFXAnimationManager.stop(this.state.vfxData);
-
 		toast.info("VFX playback stopped");
 	}
 
