@@ -25,6 +25,8 @@ export interface IEditorInspectorNumberFieldProps extends IEditorInspectorFieldP
 
 	grayLabel?: boolean;
 
+	readOnly?: boolean;
+
 	onChange?: (value: number) => void;
 	onFinishChange?: (value: number, oldValue: number) => void;
 }
@@ -123,168 +125,172 @@ export function EditorInspectorNumberField(props: IEditorInspectorNumberFieldPro
 				</div>
 			)}
 
-			<input
-				type="text"
-				value={value}
-				onChange={(ev) => {
-					setValue(ev.currentTarget.value);
+			{props.readOnly ? (
+				<div className="text-white/50">{value}</div>
+			) : (
+				<input
+					type="text"
+					value={value}
+					onChange={(ev) => {
+						setValue(ev.currentTarget.value);
 
-					let float = parseFloat(ev.currentTarget.value);
+						let float = parseFloat(ev.currentTarget.value);
 
-					try {
-						float = mexp.eval(ev.currentTarget.value);
-					} catch (e) {
-						console.warn("Error parsing value", ev.currentTarget.value, e);
-					}
-
-					if (!isNaN(float)) {
-						float = getFinalValueOf(float);
-
-						if (props.min !== undefined && float < props.min) {
-							float = props.min;
-							setValue(getMinMaxValueOf(props.min).toFixed(digitCount));
+						try {
+							float = mexp.eval(ev.currentTarget.value);
+						} catch (e) {
+							console.warn("Error parsing value", ev.currentTarget.value, e);
 						}
 
-						if (props.max !== undefined && float > props.max) {
-							float = props.max;
-							setValue(getMinMaxValueOf(props.max).toFixed(digitCount));
-						}
+						if (!isNaN(float)) {
+							float = getFinalValueOf(float);
 
-						setInspectorEffectivePropertyValue(props.object, props.property, float);
-						props.onChange?.(float);
-					}
-				}}
-				style={{
-					cursor: "ew-resize",
-					background: hasMinMax
-						? `linear-gradient(to right, hsl(var(--muted-foreground) / 0.5) ${ratio}%, hsl(var(--muted-foreground) / 0.1) ${ratio}%, hsl(var(--muted-foreground) / 0.1) 100%)`
-						: undefined,
-				}}
-				className={`
+							if (props.min !== undefined && float < props.min) {
+								float = props.min;
+								setValue(getMinMaxValueOf(props.min).toFixed(digitCount));
+							}
+
+							if (props.max !== undefined && float > props.max) {
+								float = props.max;
+								setValue(getMinMaxValueOf(props.max).toFixed(digitCount));
+							}
+
+							setInspectorEffectivePropertyValue(props.object, props.property, float);
+							props.onChange?.(float);
+						}
+					}}
+					style={{
+						cursor: "ew-resize",
+						background: hasMinMax
+							? `linear-gradient(to right, hsl(var(--muted-foreground) / 0.5) ${ratio}%, hsl(var(--muted-foreground) / 0.1) ${ratio}%, hsl(var(--muted-foreground) / 0.1) 100%)`
+							: undefined,
+					}}
+					className={`
 					px-5 py-2 rounded-lg bg-muted-foreground/10 outline-none
 					${props.label ? "w-2/3" : "w-full"}
 				`}
-				onKeyUp={(ev) => ev.key === "Enter" && ev.currentTarget.blur()}
-				onBlur={(ev) => {
-					if (ev.currentTarget.value !== oldValue) {
-						let oldValueFloat = parseFloat(oldValue);
-						let newValueFloat = parseFloat(ev.currentTarget.value);
+					onKeyUp={(ev) => ev.key === "Enter" && ev.currentTarget.blur()}
+					onBlur={(ev) => {
+						if (ev.currentTarget.value !== oldValue) {
+							let oldValueFloat = parseFloat(oldValue);
+							let newValueFloat = parseFloat(ev.currentTarget.value);
 
-						if (!isNaN(oldValueFloat) && !isNaN(newValueFloat)) {
-							if (props.asDegrees) {
-								oldValueFloat = Tools.ToRadians(oldValueFloat);
-								newValueFloat = Tools.ToRadians(newValueFloat);
+							if (!isNaN(oldValueFloat) && !isNaN(newValueFloat)) {
+								if (props.asDegrees) {
+									oldValueFloat = Tools.ToRadians(oldValueFloat);
+									newValueFloat = Tools.ToRadians(newValueFloat);
+								}
+
+								if (!props.noUndoRedo) {
+									registerSimpleUndoRedo({
+										object: props.object,
+										property: props.property,
+
+										oldValue: oldValueFloat,
+										newValue: newValueFloat,
+									});
+								}
+
+								setOldValue(ev.currentTarget.value);
 							}
 
-							if (!props.noUndoRedo) {
-								registerSimpleUndoRedo({
-									object: props.object,
-									property: props.property,
+							props.onFinishChange?.(newValueFloat, oldValueFloat);
+						}
+					}}
+					onPointerDown={(ev) => {
+						document.body.style.cursor = "ew-resize";
 
-									oldValue: oldValueFloat,
-									newValue: newValueFloat,
-								});
-							}
-
-							setOldValue(ev.currentTarget.value);
+						let v = parseFloat(value);
+						if (isNaN(v)) {
+							v = 0;
 						}
 
-						props.onFinishChange?.(newValueFloat, oldValueFloat);
-					}
-				}}
-				onPointerDown={(ev) => {
-					document.body.style.cursor = "ew-resize";
+						let finalValue = v;
+						if (props.asDegrees) {
+							finalValue = Tools.ToRadians(finalValue);
+						}
 
-					let v = parseFloat(value);
-					if (isNaN(v)) {
-						v = 0;
-					}
+						if (props.min !== undefined && finalValue < props.min) {
+							v = props.min;
+						}
 
-					let finalValue = v;
-					if (props.asDegrees) {
-						finalValue = Tools.ToRadians(finalValue);
-					}
+						if (props.max !== undefined && finalValue > props.max) {
+							v = props.max;
+						}
 
-					if (props.min !== undefined && finalValue < props.min) {
-						v = props.min;
-					}
+						const oldV = v;
 
-					if (props.max !== undefined && finalValue > props.max) {
-						v = props.max;
-					}
+						ev.currentTarget.requestPointerLock();
 
-					const oldV = v;
+						let mouseUpListener: () => void;
+						let mouseMoveListener: (ev: MouseEvent) => void;
 
-					ev.currentTarget.requestPointerLock();
-
-					let mouseUpListener: () => void;
-					let mouseMoveListener: (ev: MouseEvent) => void;
-
-					document.body.addEventListener(
-						"mousemove",
-						(mouseMoveListener = (ev) => {
-							v += ev.movementX * step * (shiftDown ? 10 : 1);
-
-							let finalValue = v;
-							if (props.asDegrees) {
-								finalValue = Tools.ToRadians(finalValue);
-							}
-
-							if (props.min !== undefined && finalValue < props.min) {
-								finalValue = props.min;
-								v = getMinMaxValueOf(props.min);
-							}
-
-							if (props.max !== undefined && finalValue > props.max) {
-								finalValue = props.max;
-								v = getMinMaxValueOf(props.max);
-							}
-
-							setValue(v.toFixed(digitCount));
-
-							setInspectorEffectivePropertyValue(props.object, props.property, finalValue);
-							props.onChange?.(finalValue);
-						})
-					);
-
-					document.body.addEventListener(
-						"mouseup",
-						(mouseUpListener = () => {
-							document.exitPointerLock();
-
-							if (v !== oldV && !props.noUndoRedo) {
-								setValue(v.toFixed(digitCount));
+						document.body.addEventListener(
+							"mousemove",
+							(mouseMoveListener = (ev) => {
+								v += ev.movementX * step * (shiftDown ? 10 : 1);
 
 								let finalValue = v;
 								if (props.asDegrees) {
 									finalValue = Tools.ToRadians(finalValue);
 								}
 
-								if (!isNaN(v) && !isNaN(oldV)) {
-									const oldValue = props.asDegrees ? Tools.ToRadians(oldV) : oldV;
-
-									registerSimpleUndoRedo({
-										object: props.object,
-										property: props.property,
-
-										newValue: finalValue,
-										oldValue,
-									});
-
-									setOldValue(v.toFixed(digitCount));
-
-									props.onFinishChange?.(finalValue, oldValue);
+								if (props.min !== undefined && finalValue < props.min) {
+									finalValue = props.min;
+									v = getMinMaxValueOf(props.min);
 								}
-							}
 
-							document.body.style.cursor = "auto";
+								if (props.max !== undefined && finalValue > props.max) {
+									finalValue = props.max;
+									v = getMinMaxValueOf(props.max);
+								}
 
-							document.body.removeEventListener("mouseup", mouseUpListener);
-							document.body.removeEventListener("mousemove", mouseMoveListener);
-						})
-					);
-				}}
-			/>
+								setValue(v.toFixed(digitCount));
+
+								setInspectorEffectivePropertyValue(props.object, props.property, finalValue);
+								props.onChange?.(finalValue);
+							})
+						);
+
+						document.body.addEventListener(
+							"mouseup",
+							(mouseUpListener = () => {
+								document.exitPointerLock();
+
+								if (v !== oldV && !props.noUndoRedo) {
+									setValue(v.toFixed(digitCount));
+
+									let finalValue = v;
+									if (props.asDegrees) {
+										finalValue = Tools.ToRadians(finalValue);
+									}
+
+									if (!isNaN(v) && !isNaN(oldV)) {
+										const oldValue = props.asDegrees ? Tools.ToRadians(oldV) : oldV;
+
+										registerSimpleUndoRedo({
+											object: props.object,
+											property: props.property,
+
+											newValue: finalValue,
+											oldValue,
+										});
+
+										setOldValue(v.toFixed(digitCount));
+
+										props.onFinishChange?.(finalValue, oldValue);
+									}
+								}
+
+								document.body.style.cursor = "auto";
+
+								document.body.removeEventListener("mouseup", mouseUpListener);
+								document.body.removeEventListener("mousemove", mouseMoveListener);
+							})
+						);
+					}}
+				/>
+			)}
 		</div>
 	);
 }

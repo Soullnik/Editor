@@ -108,6 +108,12 @@ export const meshCommandItems = {
 		key: "add-skybox-mesh",
 		ipcRendererChannelKey: "skybox-mesh",
 	} as CommandItem,
+	sps: {
+		text: "SPS Mesh",
+		label: "Add a new SPS mesh to the scene",
+		key: "add-sps-mesh",
+		ipcRendererChannelKey: "sps-mesh",
+	} as CommandItem,
 	emptyMesh: {
 		text: "Empty Mesh",
 		label: "Add a new empty mesh to the scene",

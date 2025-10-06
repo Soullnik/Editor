@@ -1,8 +1,10 @@
-import { MeshBuilder, Mesh, Node } from "babylonjs";
+import { MeshBuilder, Mesh, Node, SolidParticleSystem, SolidParticle, Animation } from "babylonjs";
 
 import { Editor } from "../../editor/main";
 
 import { configureAddedMesh } from "./configure";
+import { ModelShape, BoundingInfo } from "babylonjs/index";
+import { Nullable } from "babylonjs/types";
 
 export function addBoxMesh(editor: Editor, parent?: Node) {
 	const box = MeshBuilder.CreateBox("New Box", { width: 100, height: 100, depth: 100 }, editor.layout.preview.scene);
@@ -139,4 +141,44 @@ export function addEmptyMesh(editor: Editor, parent?: Node) {
 	const emptyMesh = new Mesh("New Empty Mesh", editor.layout.preview.scene);
 
 	return configureAddedMesh(editor, emptyMesh, parent);
+}
+
+export class CustomSolidParticle extends SolidParticle {
+	animations: Nullable<Array<Animation>>;
+	getClassName(): string {
+		return "CustomSolidParticle";
+	}
+}
+
+export class CustomSolidParticleSystem extends SolidParticleSystem {
+	declare particles: CustomSolidParticle[];
+	protected _addParticle(
+		idx: number,
+		id: number,
+		idxpos: number,
+		idxind: number,
+		model: ModelShape,
+		shapeId: number,
+		idxInShape: number,
+		bInfo?: Nullable<BoundingInfo>,
+		storage?: Nullable<[]>
+	): SolidParticle {
+		const particle = super._addParticle(idx, id, idxpos, idxind, model, shapeId, idxInShape, bInfo, storage) as CustomSolidParticle;
+		particle.animations = [];
+		particle.getClassName = () => "CustomSolidParticle";
+		return particle;
+	}
+}
+
+export function addSPSMesh(editor: Editor, parent?: Node) {
+	const sps = new CustomSolidParticleSystem("New SPS", editor.layout.preview.scene, { enableDepthSort: true, expandable: true });
+	const spsMesh = sps.buildMesh();
+	spsMesh.metadata = {
+		sps: sps,
+	};
+	const particle = sps.getParticleById(0);
+	if (particle) {
+		particle.props = { isDefault: true };
+	}
+	return configureAddedMesh(editor, spsMesh, parent);
 }

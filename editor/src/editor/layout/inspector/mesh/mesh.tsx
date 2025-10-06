@@ -73,6 +73,7 @@ import { MeshDecalInspector } from "./decal";
 import { MeshGeometryInspector } from "./geometry";
 import { EditorMeshPhysicsInspector } from "./physics";
 import { EditorMeshCollisionInspector } from "./collision";
+import { MeshSPSInspector } from "./sps";
 
 export interface IEditorMeshInspectorState {
 	dragOver: boolean;
@@ -190,6 +191,7 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 					<>
 						<MeshGeometryInspector object={this.props.object} editor={this.props.editor} />
 						<MeshDecalInspector object={this.props.object} />
+						{this.props.object.metadata?.sps && <MeshSPSInspector object={this.props.object} />}
 						{this._getLODsComponent()}
 					</>
 				)}

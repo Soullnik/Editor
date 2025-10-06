@@ -32,7 +32,7 @@ export function isAnyParticleSystem(object: any): object is IParticleSystem {
 	switch (object.getClassName?.()) {
 		case "ParticleSystem":
 		case "GPUParticleSystem":
-		case "SolidParticleSystem":
+		case "CustomSolidParticle":
 			return true;
 	}
 
