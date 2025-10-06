@@ -292,7 +292,6 @@ export class EditorAnimationTimelinePanel extends Component<IEditorAnimationTime
 		spsManager?.stop();
 
 		if (this.props.animatable?.getClassName?.() === "CustomSolidParticle") {
-			// Для SPS частиц
 			this.props.animatable.animations.forEach((animation) => {
 				const keys = animation.getKeys();
 				const fromFrame = keys[0].frame;
