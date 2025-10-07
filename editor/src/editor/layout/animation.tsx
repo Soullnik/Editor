@@ -171,7 +171,7 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 
 	public setChildEditedObject(object: unknown): void {
 		if (!object) {
-			return this.setState({ animatable: null, rootAnimatable: null });
+			return this.setState({ animatable: null });
 		}
 
 		if (isNode(object) || isScene(object) || isAnyParticleSystem(object)) {
