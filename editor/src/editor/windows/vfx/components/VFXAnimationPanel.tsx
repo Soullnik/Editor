@@ -18,7 +18,7 @@ export class VFXAnimationPanel extends Component<IVFXAnimationPanelProps> {
 	public componentDidUpdate(prevProps: IVFXAnimationPanelProps): void {
 		if (prevProps.selectedComponent !== this.props.selectedComponent) {
 			this._animation.setEditedObject(this.props.selectedComponent);
-			this._animation.forceUpdate()
+			this._animation.forceUpdate();
 		}
 	}
 

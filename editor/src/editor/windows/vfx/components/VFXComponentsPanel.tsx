@@ -65,6 +65,7 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 					<div className="text-xs font-medium text-muted-foreground mb-2">Emitter</div>
 					<VFXEmitterSection
 						component={this._rootEmitterComponent}
+						selectedComponent={selectedComponent}
 						onSelect={(component) => this.props.onSelect(component)}
 						onUpdate={(newMesh) => this._updateEmitterMesh(newMesh)}
 						scene={this.props.scene}

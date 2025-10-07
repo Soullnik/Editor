@@ -62,7 +62,7 @@ export class VFXComponentList extends Component<IVFXComponentListProps> {
 				<div
 					className="flex-1 min-h-[300px] flex flex-col items-center justify-center text-muted-foreground"
 					onDragOver={(ev) => ev.preventDefault()}
-					onDrop={this.props.onDrop}
+					onDrop={(ev) => this.props.onDrop(ev)}
 				>
 					{Object.keys(this.props.components).length === 0 && (
 						<>

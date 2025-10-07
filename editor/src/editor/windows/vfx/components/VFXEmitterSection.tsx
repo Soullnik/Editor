@@ -4,10 +4,11 @@ import { GiSparkles } from "react-icons/gi";
 import { toast } from "sonner";
 import { MeshBuilder, Mesh, Scene } from "babylonjs";
 import { loadImportedSceneFile } from "../../../layout/preview/import/import";
-import { IVFXEmitterMesh } from "../types";
+import { IVFXEmitterMesh, VFXComponent } from "../types";
 
 export interface IVFXEmitterSectionProps {
 	component: IVFXEmitterMesh | null;
+	selectedComponent: VFXComponent | null;
 	onSelect: (component: IVFXEmitterMesh) => void;
 	onUpdate: (newMesh: Mesh) => void;
 	scene: Scene | null;
@@ -23,7 +24,9 @@ export class VFXEmitterSection extends Component<IVFXEmitterSectionProps> {
 			<ContextMenu>
 				<ContextMenuTrigger>
 					<div
-						className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+						className={`flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors
+						${this.props.selectedComponent?.id === this.props.component.id ? "bg-muted/50" : "bg-muted/30"}
+						`}
 						onDragOver={(ev) => ev.preventDefault()}
 						onDrop={(ev) => this._handleEmitterDrop(ev)}
 						onClick={() => this.props.component && this.props.onSelect(this.props.component)}

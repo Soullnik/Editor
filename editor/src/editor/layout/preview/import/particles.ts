@@ -27,7 +27,7 @@ export async function loadImportedParticleSystemFile(
 			gpuParticleSystem.sourceParticleSystemSetId = data.id;
 			gpuParticleSystem.start();
 			return gpuParticleSystem;
-		case ".ps":
+		case ".cpups":
 			const particleSystem = ParticleSystem.Parse(data, scene, "");
 			particleSystem.emitter = targetMesh;
 			particleSystem.sourceParticleSystemSetId = data.id;
