@@ -19,7 +19,6 @@ export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {
 			case "cpu_particle_system":
 				return <EditorParticleSystemInspector editor={this.props.editor} object={this.props.selectedComponent.babylonSystem} />;
 			case "solid_particle_system":
-				return <EditorMeshInspector editor={this.props.editor} object={this.props.selectedComponent.babylonSystem.mesh} />;
 			case "emitter_mesh":
 				return <EditorMeshInspector editor={this.props.editor} object={this.props.selectedComponent.babylonSystem} />;
 			default:

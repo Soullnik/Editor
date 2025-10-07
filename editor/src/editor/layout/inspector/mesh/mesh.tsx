@@ -114,6 +114,18 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 		});
 	}
 
+	public componentDidUpdate(prevProps: IEditorInspectorImplementationProps<AbstractMesh>): void {
+		if (prevProps.object !== this.props.object) {
+			let mesh: AbstractMesh;
+			if (isCustomSolidParticleSystem(this.props.object)) {
+				mesh = this.props.object.mesh;
+			} else {
+				mesh = this.props.object;
+			}
+			this.setState({ mesh: mesh });
+		}
+	}
+
 	public render(): ReactNode {
 		return (
 			<>
@@ -195,7 +207,7 @@ export class EditorMeshInspector extends Component<IEditorInspectorImplementatio
 					<>
 						<MeshGeometryInspector object={this.state.mesh} editor={this.props.editor} />
 						<MeshDecalInspector object={this.state.mesh} />
-						{isCustomSolidParticleSystem(this.state.mesh) && <MeshSPSInspector object={this.state.mesh} />}
+						{isCustomSolidParticleSystem(this.props.object) && <MeshSPSInspector object={this.props.object} />}
 						{this._getLODsComponent()}
 					</>
 				)}
