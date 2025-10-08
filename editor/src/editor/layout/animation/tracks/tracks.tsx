@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react";
 import { AiOutlinePlus } from "react-icons/ai";
 
-import { Animation } from "babylonjs";
+import { Animation, IAnimatable } from "babylonjs";
 import { getAnimationTypeForObject } from "babylonjs-editor-tools";
 
 import { showAlert } from "../../../../ui/dialog";
@@ -15,10 +15,9 @@ import { EditorAnimation } from "../../animation";
 
 import { showAddTrackPrompt } from "./add";
 import { EditorAnimationTrackItem } from "./item";
-import { ICustomAnimatable } from "../types";
 
 export interface IEditorAnimationTracksPanelProps {
-	animatable: ICustomAnimatable | null;
+	animatable: IAnimatable | null;
 	animationEditor: EditorAnimation;
 }
 
@@ -106,8 +105,7 @@ export class EditorAnimationTracksPanel extends Component<IEditorAnimationTracks
 			);
 		}
 
-		const animation = new Animation(property, property, 60, animationType, 0);
-
+		const animation = new Animation(property, property, 60, animationType, 0, false);
 		animation.setKeys([
 			{ frame: 0, value: value.clone?.() ?? value },
 			{ frame: 60, value: value.clone?.() ?? value },
