@@ -68,6 +68,12 @@ export class EditorInspectorTextureField extends Component<IEditorInspectorTextu
 		this._computeTemporaryPreview();
 	}
 
+	public componentDidUpdate(prevProps: IEditorInspectorTextureFieldProps): void {
+		if (prevProps.object[this.props.property] !== this.props.object[this.props.property]) {
+			this._computeTemporaryPreview();
+		}
+	}
+
 	public render(): ReactNode {
 		const texture = this.props.object[this.props.property] as Texture | CubeTexture | ColorGradingTexture;
 		const textureUrl = (isTexture(texture) || isCubeTexture(texture) || isColorGradingTexture(texture)) && texture.url;

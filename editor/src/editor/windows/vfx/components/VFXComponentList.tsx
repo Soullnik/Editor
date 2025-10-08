@@ -28,8 +28,8 @@ export class VFXComponentList extends Component<IVFXComponentListProps> {
 										<ContextMenuTrigger>
 											<div
 												className={`
-													flex items-center gap-2 p-2 cursor-pointer hover:bg-primary/10 transition-colors duration-200 rounded
-													${this.props.selectedComponent?.id === component.id ? "bg-primary/20" : ""}
+													flex items-center gap-2 p-2 cursor-pointer hover:bg-muted/50 transition-colors duration-200 rounded
+													${this.props.selectedComponent?.id === component.id ? "bg-muted/50" : "bg-muted/30"}
 												`}
 												onClick={() => this.props.onSelect(component)}
 											>
