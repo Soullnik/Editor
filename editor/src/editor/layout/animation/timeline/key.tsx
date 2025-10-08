@@ -1,7 +1,7 @@
 import { AiOutlineClose } from "react-icons/ai";
 import { Component, MouseEvent, ReactNode } from "react";
 
-import { IAnimationKey } from "babylonjs";
+import { IAnimatable, IAnimationKey } from "babylonjs";
 
 import { waitNextAnimationFrame } from "../../../../tools/tools";
 
@@ -9,11 +9,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../ui/shadcn/u
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "../../../../ui/shadcn/ui/context-menu";
 
 import { EditorAnimation } from "../../animation";
-import { ICustomAnimatable } from "../types";
 
 export interface IEditorAnimationTimelineKeyProps {
 	scale: number;
-	animatable: ICustomAnimatable;
+	animatable: IAnimatable;
 	animationKey: IAnimationKey;
 	animationEditor: EditorAnimation;
 

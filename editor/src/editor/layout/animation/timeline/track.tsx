@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react";
 import { AiOutlinePlus } from "react-icons/ai";
 
-import { Animation, IAnimationKey } from "babylonjs";
+import { Animation, IAnimatable, IAnimationKey } from "babylonjs";
 
 import { TooltipProvider } from "../../../../ui/shadcn/ui/tooltip";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "../../../../ui/shadcn/ui/context-menu";
@@ -12,13 +12,12 @@ import { getInspectorPropertyValue } from "../../../../tools/property";
 import { EditorAnimation } from "../../animation";
 
 import { EditorAnimationTimelineKey, IAnimationKeyConfigurationToMove } from "./key";
-import { ICustomAnimatable } from "../types";
 
 export interface IEditorAnimationTimelineItemProps {
 	scale: number;
 	currentTime: number;
 	animation: Animation;
-	animatable: ICustomAnimatable | null;
+	animatable: IAnimatable | null;
 	animationEditor: EditorAnimation;
 }
 
