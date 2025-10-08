@@ -9,7 +9,7 @@ import { waitNextAnimationFrame } from "../../../../tools/tools";
 import { showConfirm } from "../../../../ui/dialog";
 import { isMesh } from "../../../../tools/guards/nodes";
 import { loadImportedSceneFile } from "../../preview/import/import";
-import { CustomSolidParticleSystem } from "../../../../project/add/particles";
+import { CustomSolidParticleSystem } from "../../../windows/vfx/custom-sps";
 
 export interface IMeshSPSInspectorProps {
 	object: CustomSolidParticleSystem;

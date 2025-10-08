@@ -2,7 +2,6 @@ import { Component, ReactNode } from "react";
 import { EditorAnimation } from "../../../layout/animation";
 import { Editor } from "../../../main";
 import { VFXComponent } from "../types";
-import { CustomSolidParticleSystem } from "../custom-sps";
 
 export interface IVFXAnimationPanelProps {
 	editor: Editor;

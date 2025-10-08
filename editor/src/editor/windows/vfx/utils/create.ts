@@ -3,7 +3,7 @@ import { GPUParticleSystem, ParticleSystem, Scene, Mesh, ParticleSystemSet, Abst
 import { loadImportedParticleSystemFile } from "../../../layout/preview/import/particles";
 import { loadImportedSceneFile } from "../../../layout/preview/import/import";
 import { VFXComponent, IVFXSolidParticleSystem, IVFXGPUParticleSystem, IVFXCPUParticleSystem, IVFXComponent, IVFXNodeParticleSystem } from "../types";
-import { CustomSolidParticleSystem } from "../../../../project/add/particles";
+import { CustomSolidParticleSystem } from "../custom-sps";
 import { UniqueNumber } from "../../../../tools/tools";
 
 export function createBaseVFXComponent(absolutePath: string, componentName: string, type: VFXComponent["type"]): IVFXComponent {
