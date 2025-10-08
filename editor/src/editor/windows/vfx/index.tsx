@@ -254,7 +254,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	}
 
 	private _getSelectedSPS(): any {
-		if (!this.state.selectedComponent) {return null;}
+		if (!this.state.selectedComponent) {
+			return null;
+		}
 
 		// Find SPS component
 		if (this.state.selectedComponent.type === "solid_particle_system") {

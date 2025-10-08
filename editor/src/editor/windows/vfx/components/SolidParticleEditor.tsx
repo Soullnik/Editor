@@ -1,6 +1,6 @@
 import { Component, ReactNode } from "react";
 import { CustomSolidParticleSystem, CustomSolidParticle } from "../custom-sps";
-import { Animation, Vector3, Color3 } from "babylonjs";
+import { Animation } from "babylonjs";
 import { SolidParticleBlockFactory, SolidParticleBlockExecutor } from "../utils";
 
 export interface ISolidParticleEditorProps {
@@ -10,8 +10,8 @@ export interface ISolidParticleEditorProps {
 
 export interface ISolidParticleEditorState {
 	selectedParticle: CustomSolidParticle | null;
-	graphNodes: SolidParticleNode[];
-	connections: NodeConnection[];
+	graphNodes: ISolidParticleNode[];
+	connections: INodeConnection[];
 	selectedNode: string | null;
 	dragging: boolean;
 	dragOffset: { x: number; y: number };
@@ -19,19 +19,19 @@ export interface ISolidParticleEditorState {
 	pan: { x: number; y: number };
 }
 
-export interface SolidParticleNode {
+export interface ISolidParticleNode {
 	id: string;
 	type: "particle" | "animation" | "property" | "math" | "time" | "input" | "output";
 	position: { x: number; y: number };
 	title: string;
-	inputs: NodeInput[];
-	outputs: NodeOutput[];
+	inputs: INodeInput[];
+	outputs: INodeOutput[];
 	data: any;
 	width: number;
 	height: number;
 }
 
-export interface NodeInput {
+export interface INodeInput {
 	id: string;
 	name: string;
 	type: "vector3" | "color3" | "number" | "boolean" | "animation";
@@ -40,14 +40,14 @@ export interface NodeInput {
 	position: { x: number; y: number };
 }
 
-export interface NodeOutput {
+export interface INodeOutput {
 	id: string;
 	name: string;
 	type: "vector3" | "color3" | "number" | "boolean" | "animation";
 	position: { x: number; y: number };
 }
 
-export interface NodeConnection {
+export interface INodeConnection {
 	id: string;
 	fromNode: string;
 	fromOutput: string;
@@ -56,8 +56,8 @@ export interface NodeConnection {
 }
 
 export class SolidParticleEditor extends Component<ISolidParticleEditorProps, ISolidParticleEditorState> {
-	private canvasRef: HTMLCanvasElement | null = null;
-	private ctx: CanvasRenderingContext2D | null = null;
+	private _canvasRef: HTMLCanvasElement | null = null;
+	private _ctx: CanvasRenderingContext2D | null = null;
 
 	public constructor(props: ISolidParticleEditorProps) {
 		super(props);
@@ -142,9 +142,9 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 				<div className="flex-1 relative overflow-hidden">
 					<canvas
 						ref={(r) => {
-							this.canvasRef = r;
+							this._canvasRef = r;
 							if (r) {
-								this.ctx = r.getContext("2d");
+								this._ctx = r.getContext("2d");
 								this._setupCanvas();
 							}
 						}}
@@ -185,7 +185,7 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 		}
 
 		// Create initial graph nodes for each particle
-		const nodes: SolidParticleNode[] = [];
+		const nodes: ISolidParticleNode[] = [];
 
 		this.props.sps.particles.forEach((particle, index) => {
 			nodes.push(this._createParticleNode(particle, index, { x: 50, y: 50 + index * 150 }));
@@ -194,7 +194,7 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 		this.setState({ graphNodes: nodes });
 	}
 
-	private _createParticleNode(particle: CustomSolidParticle, index: number, position: { x: number; y: number }): SolidParticleNode {
+	private _createParticleNode(particle: CustomSolidParticle, index: number, position: { x: number; y: number }): ISolidParticleNode {
 		return {
 			id: `particle_${particle.id}`,
 			type: "particle",
@@ -214,9 +214,11 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 	}
 
 	private _setupCanvas(): void {
-		if (!this.canvasRef) {return;}
+		if (!this._canvasRef) {
+			return;
+		}
 
-		const canvas = this.canvasRef;
+		const canvas = this._canvasRef;
 		const rect = canvas.getBoundingClientRect();
 
 		canvas.width = rect.width * window.devicePixelRatio;
@@ -225,23 +227,25 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 		const ctx = canvas.getContext("2d");
 		if (ctx) {
 			ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-			this.ctx = ctx;
+			this._ctx = ctx;
 			this._drawGraph();
 		}
 	}
 
 	private _drawGraph(): void {
-		if (!this.ctx || !this.canvasRef) {return;}
+		if (!this._ctx || !this._canvasRef) {
+			return;
+		}
 
 		const { graphNodes, connections, zoom, pan } = this.state;
 
 		// Clear canvas
-		this.ctx.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+		this._ctx.clearRect(0, 0, this._canvasRef.width, this._canvasRef.height);
 
 		// Apply zoom and pan
-		this.ctx.save();
-		this.ctx.translate(pan.x, pan.y);
-		this.ctx.scale(zoom, zoom);
+		this._ctx.save();
+		this._ctx.translate(pan.x, pan.y);
+		this._ctx.scale(zoom, zoom);
 
 		// Draw grid
 		this._drawGrid();
@@ -252,53 +256,57 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 		// Draw nodes
 		graphNodes.forEach((node) => this._drawNode(node));
 
-		this.ctx.restore();
+		this._ctx.restore();
 	}
 
 	private _drawGrid(): void {
-		if (!this.ctx) {return;}
+		if (!this._ctx) {
+			return;
+		}
 
 		const gridSize = 20;
-		const width = this.canvasRef?.width || 0;
-		const height = this.canvasRef?.height || 0;
+		const width = this._canvasRef?.width || 0;
+		const height = this._canvasRef?.height || 0;
 
-		this.ctx.strokeStyle = "#333";
-		this.ctx.lineWidth = 0.5;
+		this._ctx.strokeStyle = "#333";
+		this._ctx.lineWidth = 0.5;
 
 		for (let x = 0; x < width; x += gridSize) {
-			this.ctx.beginPath();
-			this.ctx.moveTo(x, 0);
-			this.ctx.lineTo(x, height);
-			this.ctx.stroke();
+			this._ctx.beginPath();
+			this._ctx.moveTo(x, 0);
+			this._ctx.lineTo(x, height);
+			this._ctx.stroke();
 		}
 
 		for (let y = 0; y < height; y += gridSize) {
-			this.ctx.beginPath();
-			this.ctx.moveTo(0, y);
-			this.ctx.lineTo(width, y);
-			this.ctx.stroke();
+			this._ctx.beginPath();
+			this._ctx.moveTo(0, y);
+			this._ctx.lineTo(width, y);
+			this._ctx.stroke();
 		}
 	}
 
-	private _drawNode(node: SolidParticleNode): void {
-		if (!this.ctx) {return;}
+	private _drawNode(node: ISolidParticleNode): void {
+		if (!this._ctx) {
+			return;
+		}
 
 		const { x, y } = node.position;
 		const { width, height } = node;
 
 		// Node background
-		this.ctx.fillStyle = this._getNodeColor(node.type);
-		this.ctx.fillRect(x, y, width, height);
+		this._ctx.fillStyle = this._getNodeColor(node.type);
+		this._ctx.fillRect(x, y, width, height);
 
 		// Node border
-		this.ctx.strokeStyle = this.state.selectedNode === node.id ? "#007acc" : "#666";
-		this.ctx.lineWidth = this.state.selectedNode === node.id ? 2 : 1;
-		this.ctx.strokeRect(x, y, width, height);
+		this._ctx.strokeStyle = this.state.selectedNode === node.id ? "#007acc" : "#666";
+		this._ctx.lineWidth = this.state.selectedNode === node.id ? 2 : 1;
+		this._ctx.strokeRect(x, y, width, height);
 
 		// Node title
-		this.ctx.fillStyle = "#fff";
-		this.ctx.font = "14px Arial";
-		this.ctx.fillText(node.title, x + 10, y + 20);
+		this._ctx.fillStyle = "#fff";
+		this._ctx.font = "14px Arial";
+		this._ctx.fillText(node.title, x + 10, y + 20);
 
 		// Draw inputs
 		node.inputs.forEach((input) => {
@@ -311,49 +319,59 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 		});
 	}
 
-	private _drawInput(x: number, y: number, input: NodeInput): void {
-		if (!this.ctx) {return;}
+	private _drawInput(x: number, y: number, input: INodeInput): void {
+		if (!this._ctx) {
+			return;
+		}
 
 		// Input circle
-		this.ctx.fillStyle = input.connected ? "#4CAF50" : "#666";
-		this.ctx.beginPath();
-		this.ctx.arc(x, y, 6, 0, 2 * Math.PI);
-		this.ctx.fill();
+		this._ctx.fillStyle = input.connected ? "#4CAF50" : "#666";
+		this._ctx.beginPath();
+		this._ctx.arc(x, y, 6, 0, 2 * Math.PI);
+		this._ctx.fill();
 
 		// Input label
-		this.ctx.fillStyle = "#fff";
-		this.ctx.font = "12px Arial";
-		this.ctx.fillText(input.name, x + 15, y + 4);
+		this._ctx.fillStyle = "#fff";
+		this._ctx.font = "12px Arial";
+		this._ctx.fillText(input.name, x + 15, y + 4);
 	}
 
-	private _drawOutput(x: number, y: number, output: NodeOutput): void {
-		if (!this.ctx) {return;}
+	private _drawOutput(x: number, y: number, output: INodeOutput): void {
+		if (!this._ctx) {
+			return;
+		}
 
 		// Output circle
-		this.ctx.fillStyle = "#2196F3";
-		this.ctx.beginPath();
-		this.ctx.arc(x, y, 6, 0, 2 * Math.PI);
-		this.ctx.fill();
+		this._ctx.fillStyle = "#2196F3";
+		this._ctx.beginPath();
+		this._ctx.arc(x, y, 6, 0, 2 * Math.PI);
+		this._ctx.fill();
 
 		// Output label
-		this.ctx.fillStyle = "#fff";
-		this.ctx.font = "12px Arial";
-		this.ctx.fillText(output.name, x - 60, y + 4);
+		this._ctx.fillStyle = "#fff";
+		this._ctx.font = "12px Arial";
+		this._ctx.fillText(output.name, x - 60, y + 4);
 	}
 
-	private _drawConnection(connection: NodeConnection): void {
-		if (!this.ctx) {return;}
+	private _drawConnection(connection: INodeConnection): void {
+		if (!this._ctx) {
+			return;
+		}
 
 		// Find connection points
 		const fromNode = this.state.graphNodes.find((n) => n.id === connection.fromNode);
 		const toNode = this.state.graphNodes.find((n) => n.id === connection.toNode);
 
-		if (!fromNode || !toNode) {return;}
+		if (!fromNode || !toNode) {
+			return;
+		}
 
 		const fromOutput = fromNode.outputs.find((o) => o.id === connection.fromOutput);
 		const toInput = toNode.inputs.find((i) => i.id === connection.toInput);
 
-		if (!fromOutput || !toInput) {return;}
+		if (!fromOutput || !toInput) {
+			return;
+		}
 
 		const fromX = fromNode.position.x + fromOutput.position.x;
 		const fromY = fromNode.position.y + fromOutput.position.y;
@@ -362,12 +380,12 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 		const toY = toNode.position.y + toInput.position.y;
 
 		// Draw bezier curve
-		this.ctx.strokeStyle = "#4CAF50";
-		this.ctx.lineWidth = 2;
-		this.ctx.beginPath();
-		this.ctx.moveTo(fromX, fromY);
-		this.ctx.bezierCurveTo(fromX + 50, fromY, toX - 50, toY, toX, toY);
-		this.ctx.stroke();
+		this._ctx.strokeStyle = "#4CAF50";
+		this._ctx.lineWidth = 2;
+		this._ctx.beginPath();
+		this._ctx.moveTo(fromX, fromY);
+		this._ctx.bezierCurveTo(fromX + 50, fromY, toX - 50, toY, toX, toY);
+		this._ctx.stroke();
 	}
 
 	private _getNodeColor(type: string): string {
@@ -389,7 +407,7 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 
 	private _addAnimationNode(): void {
 		const block = SolidParticleBlockFactory.createPositionAnimationBlock();
-		const newNode: SolidParticleNode = {
+		const newNode: ISolidParticleNode = {
 			id: block.id,
 			type: "animation",
 			position: { x: 300, y: 200 },
@@ -414,7 +432,7 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 
 	private _addMathNode(): void {
 		const block = SolidParticleBlockFactory.createMathBlock("add");
-		const newNode: SolidParticleNode = {
+		const newNode: ISolidParticleNode = {
 			id: block.id,
 			type: "math",
 			position: { x: 300, y: 300 },
@@ -439,7 +457,7 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 
 	private _addTimeNode(): void {
 		const block = SolidParticleBlockFactory.createTimeBlock();
-		const newNode: SolidParticleNode = {
+		const newNode: ISolidParticleNode = {
 			id: block.id,
 			type: "time",
 			position: { x: 300, y: 400 },
@@ -473,7 +491,9 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 
 	private _renderNodeProperties(): ReactNode {
 		const selectedNode = this.state.graphNodes.find((n) => n.id === this.state.selectedNode);
-		if (!selectedNode) {return null;}
+		if (!selectedNode) {
+			return null;
+		}
 
 		return (
 			<div className="p-4">
@@ -538,8 +558,10 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 	}
 
 	private _handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>): void {
-		const rect = this.canvasRef?.getBoundingClientRect();
-		if (!rect) {return;}
+		const rect = this._canvasRef?.getBoundingClientRect();
+		if (!rect) {
+			return;
+		}
 
 		const x = (e.clientX - rect.left - this.state.pan.x) / this.state.zoom;
 		const y = (e.clientY - rect.top - this.state.pan.y) / this.state.zoom;
@@ -564,10 +586,14 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 	}
 
 	private _handleMouseMove(e: React.MouseEvent<HTMLCanvasElement>): void {
-		if (!this.state.dragging) {return;}
+		if (!this.state.dragging) {
+			return;
+		}
 
-		const rect = this.canvasRef?.getBoundingClientRect();
-		if (!rect) {return;}
+		const rect = this._canvasRef?.getBoundingClientRect();
+		if (!rect) {
+			return;
+		}
 
 		const x = (e.clientX - rect.left - this.state.pan.x) / this.state.zoom;
 		const y = (e.clientY - rect.top - this.state.pan.y) / this.state.zoom;
@@ -633,7 +659,7 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 		console.log("Compiled animations:", animations);
 	}
 
-	private _nodeToBlock(node: SolidParticleNode): any {
+	private _nodeToBlock(node: ISolidParticleNode): any {
 		return {
 			id: node.id,
 			name: node.title,
@@ -652,54 +678,6 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 			})),
 			data: node.data,
 		};
-	}
-
-	private _createPositionAnimation(duration: number): Animation {
-		const animation = new Animation(`position_${this.state.selectedParticle?.id}`, "position", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
-
-		const keys = [
-			{ frame: 0, value: new Vector3(0, 0, 0) },
-			{ frame: duration * 30, value: new Vector3(0, 5, 0) },
-		];
-
-		animation.setKeys(keys);
-		return animation;
-	}
-
-	private _createRotationAnimation(duration: number): Animation {
-		const animation = new Animation(`rotation_${this.state.selectedParticle?.id}`, "rotation", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
-
-		const keys = [
-			{ frame: 0, value: new Vector3(0, 0, 0) },
-			{ frame: duration * 30, value: new Vector3(0, Math.PI * 2, 0) },
-		];
-
-		animation.setKeys(keys);
-		return animation;
-	}
-
-	private _createScalingAnimation(duration: number): Animation {
-		const animation = new Animation(`scaling_${this.state.selectedParticle?.id}`, "scaling", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
-
-		const keys = [
-			{ frame: 0, value: new Vector3(1, 1, 1) },
-			{ frame: duration * 30, value: new Vector3(2, 2, 2) },
-		];
-
-		animation.setKeys(keys);
-		return animation;
-	}
-
-	private _createColorAnimation(duration: number): Animation {
-		const animation = new Animation(`color_${this.state.selectedParticle?.id}`, "color", 30, Animation.ANIMATIONTYPE_COLOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
-
-		const keys = [
-			{ frame: 0, value: new Color3(1, 1, 1) },
-			{ frame: duration * 30, value: new Color3(0, 0, 0) },
-		];
-
-		animation.setKeys(keys);
-		return animation;
 	}
 
 	private _exportGraph(): void {

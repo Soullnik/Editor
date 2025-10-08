@@ -43,6 +43,7 @@ export class CustomSolidParticleSystem extends SolidParticleSystem {
 		bInfo?: Nullable<BoundingInfo>,
 		storage?: Nullable<[]>
 	): SolidParticle {
+		 
 		const particle = super._addParticle(idx, id, idxpos, idxind, model, shapeId, idxInShape, bInfo, storage) as CustomSolidParticle;
 		particle.animations = [];
 		particle.getClassName = () => "CustomSolidParticle";

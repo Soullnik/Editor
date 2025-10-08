@@ -246,19 +246,19 @@ export class SolidParticleBlockFactory {
  * Block execution engine
  */
 export class SolidParticleBlockExecutor {
-	private blocks: Map<string, ISolidParticleBlock> = new Map();
-	private connections: Map<string, { fromBlock: string; fromOutput: string; toBlock: string; toInput: string }> = new Map();
-	private particle: CustomSolidParticle;
+	private _blocks: Map<string, ISolidParticleBlock> = new Map();
+	private _connections: Map<string, { fromBlock: string; fromOutput: string; toBlock: string; toInput: string }> = new Map();
+	private _particle: CustomSolidParticle;
 
 	constructor(particle: CustomSolidParticle) {
-		this.particle = particle;
+		this._particle = particle;
 	}
 
 	/**
 	 * Add a block to the executor
 	 */
 	public addBlock(block: ISolidParticleBlock): void {
-		this.blocks.set(block.id, block);
+		this._blocks.set(block.id, block);
 	}
 
 	/**
@@ -266,7 +266,7 @@ export class SolidParticleBlockExecutor {
 	 */
 	public addConnection(connection: { fromBlock: string; fromOutput: string; toBlock: string; toInput: string }): void {
 		const connectionId = `${connection.fromBlock}_${connection.fromOutput}_${connection.toBlock}_${connection.toInput}`;
-		this.connections.set(connectionId, connection);
+		this._connections.set(connectionId, connection);
 	}
 
 	/**
@@ -276,7 +276,7 @@ export class SolidParticleBlockExecutor {
 		const animations: Animation[] = [];
 
 		// Find all animation blocks
-		const animationBlocks = Array.from(this.blocks.values()).filter((block) => block.type === "animation");
+		const animationBlocks = Array.from(this._blocks.values()).filter((block) => block.type === "animation");
 
 		for (const block of animationBlocks) {
 			const animation = this._executeAnimationBlock(block);
@@ -306,7 +306,7 @@ export class SolidParticleBlockExecutor {
 	}
 
 	private _createPositionAnimation(block: ISolidParticleBlock, duration: number): Animation {
-		const animation = new Animation(`position_${this.particle.id}`, "position", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
+		const animation = new Animation(`position_${this._particle.id}`, "position", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
 
 		const startPos = this._getConnectedValue(block, "startPos") || new Vector3(0, 0, 0);
 		const endPos = this._getConnectedValue(block, "endPos") || new Vector3(0, 5, 0);
@@ -321,7 +321,7 @@ export class SolidParticleBlockExecutor {
 	}
 
 	private _createRotationAnimation(block: ISolidParticleBlock, duration: number): Animation {
-		const animation = new Animation(`rotation_${this.particle.id}`, "rotation", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
+		const animation = new Animation(`rotation_${this._particle.id}`, "rotation", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
 
 		const startRot = this._getConnectedValue(block, "startRot") || new Vector3(0, 0, 0);
 		const endRot = this._getConnectedValue(block, "endRot") || new Vector3(0, Math.PI * 2, 0);
@@ -336,7 +336,7 @@ export class SolidParticleBlockExecutor {
 	}
 
 	private _createScalingAnimation(block: ISolidParticleBlock, duration: number): Animation {
-		const animation = new Animation(`scaling_${this.particle.id}`, "scaling", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
+		const animation = new Animation(`scaling_${this._particle.id}`, "scaling", 30, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
 
 		const startScale = this._getConnectedValue(block, "startScale") || new Vector3(1, 1, 1);
 		const endScale = this._getConnectedValue(block, "endScale") || new Vector3(2, 2, 2);
@@ -351,7 +351,7 @@ export class SolidParticleBlockExecutor {
 	}
 
 	private _createColorAnimation(block: ISolidParticleBlock, duration: number): Animation {
-		const animation = new Animation(`color_${this.particle.id}`, "color", 30, Animation.ANIMATIONTYPE_COLOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
+		const animation = new Animation(`color_${this._particle.id}`, "color", 30, Animation.ANIMATIONTYPE_COLOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
 
 		const startColor = this._getConnectedValue(block, "startColor") || new Color3(1, 1, 1);
 		const endColor = this._getConnectedValue(block, "endColor") || new Color3(0, 0, 0);
@@ -367,7 +367,7 @@ export class SolidParticleBlockExecutor {
 
 	private _getConnectedValue(block: ISolidParticleBlock, inputId: string): any {
 		// Find connection to this input
-		const connection = Array.from(this.connections.values()).find((conn) => conn.toBlock === block.id && conn.toInput === inputId);
+		const connection = Array.from(this._connections.values()).find((conn) => conn.toBlock === block.id && conn.toInput === inputId);
 
 		if (!connection) {
 			// Return default value from block input
@@ -376,8 +376,10 @@ export class SolidParticleBlockExecutor {
 		}
 
 		// Find the source block
-		const sourceBlock = this.blocks.get(connection.fromBlock);
-		if (!sourceBlock) {return null;}
+		const sourceBlock = this._blocks.get(connection.fromBlock);
+		if (!sourceBlock) {
+			return null;
+		}
 
 		// Get value from source block
 		return this._evaluateBlock(sourceBlock, connection.fromOutput);
@@ -426,7 +428,7 @@ export class SolidParticleBlockExecutor {
 		}
 	}
 
-	private _evaluateTimeBlock(block: ISolidParticleBlock, outputId: string): number {
+	private _evaluateTimeBlock(_block: ISolidParticleBlock, outputId: string): number {
 		switch (outputId) {
 			case "time":
 				return Date.now() / 1000;
