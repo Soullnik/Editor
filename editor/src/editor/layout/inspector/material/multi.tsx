@@ -2,7 +2,7 @@ import { extname } from "path/posix";
 
 import { Component, DragEvent, ReactNode } from "react";
 
-import { Material, MultiMaterial, PBRMaterial, StandardMaterial } from "babylonjs";
+import { Material, MultiMaterial, PBRMaterial, StandardMaterial, NodeMaterial } from "babylonjs";
 import { SkyMaterial, GridMaterial, NormalMaterial, WaterMaterial, TriPlanarMaterial, LavaMaterial, CellMaterial, FireMaterial, GradientMaterial } from "babylonjs-materials";
 
 import { Table, TableBody, TableCaption, TableCell, TableRow } from "../../../../ui/shadcn/ui/table";
@@ -24,6 +24,7 @@ import { EditorNormalMaterialInspector } from "./normal";
 import { EditorGradientMaterialInspector } from "./gradient";
 import { EditorStandardMaterialInspector } from "./standard";
 import { EditorTriPlanarMaterialInspector } from "./tri-planar";
+import { EditorNodeMaterialInspector } from "./node";
 
 export interface IEditorPBRMaterialInspectorProps {
 	material: MultiMaterial;
@@ -56,7 +57,7 @@ export class EditorMultiMaterialInspector extends Component<IEditorPBRMaterialIn
 		return (
 			<Table>
 				<TableCaption>Select the material to edit.</TableCaption>
-				<TableBody>
+				<TableBody> 
 					{this.props.material.subMaterials.map((material, index) => (
 						<TableRow
 							onDrop={(ev) => {
@@ -125,6 +126,9 @@ export class EditorMultiMaterialInspector extends Component<IEditorPBRMaterialIn
 
 			case "StandardMaterial":
 				return <EditorStandardMaterialInspector key={this.state.material.id} material={this.state.material as StandardMaterial} />;
+
+			case "NodeMaterial":
+				return <EditorNodeMaterialInspector key={this.state.material.id} material={this.state.material as NodeMaterial} />;
 
 			case "SkyMaterial":
 				return <EditorSkyMaterialInspector key={this.state.material.id} material={this.state.material as SkyMaterial} />;

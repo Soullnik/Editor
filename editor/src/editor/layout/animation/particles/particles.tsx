@@ -3,7 +3,7 @@ import { EditorAnimation } from "../../animation";
 
 import { EditorAnimationParticleItem } from "./item";
 import { Mesh } from "babylonjs";
-import { CustomSolidParticle } from "../../../../project/add/mesh";
+import { CustomSolidParticle } from "../../../../project/add/particles";
 
 export interface IEditorAnimationParticlesPanelProps {
 	mesh: Mesh;
@@ -28,7 +28,7 @@ export class EditorAnimationParticlesPanel extends Component<IEditorAnimationPar
 		return (
 			<div className="flex flex-col w-96 h-full">
 				<div
-					onClick={() => this.props.animationEditor.setEditedObject(this.props.mesh)}
+					onClick={() => this.props.animationEditor.setChildEditedObject(this.props.mesh)}
 					className={`
 							flex justify-between items-center w-full h-10 p-2 ring-accent ring-1
 							${this.props.animationEditor.state.animatable === this.props.mesh ? "bg-secondary" : ""}

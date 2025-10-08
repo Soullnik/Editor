@@ -77,6 +77,22 @@ export class EditorParticleSystemInspector extends Component<IEditorInspectorImp
 		}
 	}
 
+	public componentDidUpdate(prevProps: IEditorInspectorImplementationProps<ParticleSystem>): void {
+		if (prevProps.object !== this.props.object) {
+			prevProps.object.stop();
+			prevProps.object.onStoppedObservable.remove(this._stoppedObserver);
+			this._stoppedObserver = null;
+			this._stoppedObserver = this.props.object.onStoppedObservable.add(() => {
+				this.setState({
+					started: false,
+				});
+			});
+			this.setState({
+				started: this.props.object.isAlive(),
+			});
+		}
+	}
+
 	public render(): ReactNode {
 		return (
 			<>
