@@ -1,10 +1,8 @@
-import { MeshBuilder, Mesh, Node, SolidParticleSystem, SolidParticle, Animation } from "babylonjs";
+import { MeshBuilder, Mesh, Node } from "babylonjs";
 
 import { Editor } from "../../editor/main";
 
 import { configureAddedMesh } from "./configure";
-import { ModelShape, BoundingInfo } from "babylonjs/index";
-import { Nullable } from "babylonjs/types";
 
 export function addBoxMesh(editor: Editor, parent?: Node) {
 	const box = MeshBuilder.CreateBox("New Box", { width: 100, height: 100, depth: 100 }, editor.layout.preview.scene);

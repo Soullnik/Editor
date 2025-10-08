@@ -1,6 +1,7 @@
-import { ParticleSystem, GPUParticleSystem, Tools, AbstractMesh, SolidParticle, Nullable, SolidParticleSystem, ModelShape, BoundingInfo, Animation } from "babylonjs";
+import { ParticleSystem, GPUParticleSystem, Tools, AbstractMesh } from "babylonjs";
 
 import { UniqueNumber } from "../../tools/tools";
+
 import { Editor } from "../../editor/main";
 
 export function addParticleSystem(editor: Editor, emitter: AbstractMesh) {
@@ -57,35 +58,4 @@ export function addGPUParticleSystem(editor: Editor, emitter: AbstractMesh) {
 
 	editor.layout.inspector.setEditedObject(particleSystem);
 	editor.layout.preview.gizmo.setAttachedNode(particleSystem.emitter);
-}
-
-export class CustomSolidParticle extends SolidParticle {
-	animations: Nullable<Array<Animation>>;
-	getClassName(): string {
-		return "CustomSolidParticle";
-	}
-}
-
-export class CustomSolidParticleSystem extends SolidParticleSystem {
-	declare particles: CustomSolidParticle[];
-	animations: Nullable<Array<Animation>>;
-	protected _addParticle(
-		idx: number,
-		id: number,
-		idxpos: number,
-		idxind: number,
-		model: ModelShape,
-		shapeId: number,
-		idxInShape: number,
-		bInfo?: Nullable<BoundingInfo>,
-		storage?: Nullable<[]>
-	): SolidParticle {
-		const particle = super._addParticle(idx, id, idxpos, idxind, model, shapeId, idxInShape, bInfo, storage) as CustomSolidParticle;
-		particle.animations = [];
-		particle.getClassName = () => "CustomSolidParticle";
-		return particle;
-	}
-	getClassName(): string {
-		return "CustomSolidParticleSystem";
-	}
 }
