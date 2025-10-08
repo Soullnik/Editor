@@ -1,1 +1,1 @@
-export { SolidParticleBlockFactory, SolidParticleBlockExecutor } from "./SolidParticleBlocks";
+export { SolidParticleBlockFactory, SolidParticleBlockExecutor } from "../solid-particle-editor/SolidParticleBlocks";

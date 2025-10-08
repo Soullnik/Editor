@@ -3,7 +3,7 @@
  */
 
 import { ParticleSystem, GPUParticleSystem, ParticleSystemSet, Mesh } from "babylonjs";
-import { CustomSolidParticleSystem } from "./custom-sps";
+import { CustomSolidParticleSystem } from "./solid-particle-editor/custom-sps";
 
 // Base component interface
 export interface IVFXComponent {

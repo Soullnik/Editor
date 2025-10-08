@@ -21,7 +21,8 @@ import { projectConfiguration } from "../../../project/configuration";
 import { FaPlay, FaStop } from "react-icons/fa";
 import { GridMaterial } from "babylonjs-materials";
 
-import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel, VFXAnimationPanel, SolidParticleEditor } from "./components";
+import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel, VFXAnimationPanel } from "./components";
+import { SolidParticleEditor } from "./solid-particle-editor";
 
 import layoutModel from "./layout.json";
 import { isDarwin } from "../../../tools/os";

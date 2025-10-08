@@ -1,5 +1,5 @@
 import { Vector3, Color3, Animation } from "babylonjs";
-import { CustomSolidParticle } from "../custom-sps";
+import { CustomSolidParticle } from "./custom-sps";
 
 export interface ISolidParticleBlock {
 	id: string;

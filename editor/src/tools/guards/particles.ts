@@ -1,5 +1,5 @@
 import { ParticleSystem, GPUParticleSystem, IParticleSystem } from "babylonjs";
-import { CustomSolidParticleSystem } from "../../editor/windows/vfx/custom-sps";
+import { CustomSolidParticleSystem } from "../../editor/windows/vfx/solid-particle-editor/custom-sps";
 
 /**
  * Returns wether or not the given object is a ParticleSystem.
