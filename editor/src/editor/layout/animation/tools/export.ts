@@ -2,13 +2,13 @@ import { writeJSON } from "fs-extra";
 
 import { toast } from "sonner";
 
-import { ICustomAnimatable } from "../types";
+import { IAnimatable } from "babylonjs";
 
 import { saveSingleFileDialog } from "../../../../tools/dialog";
 
 import { showAlert } from "../../../../ui/dialog";
 
-export async function exportAnimationsAs(animatable: ICustomAnimatable | null) {
+export async function exportAnimationsAs(animatable: IAnimatable | null) {
 	const data = animatable?.animations?.map((animation) => {
 		return animation.serialize();
 	});

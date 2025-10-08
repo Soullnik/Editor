@@ -1,7 +1,7 @@
 import { IoPlay, IoStop } from "react-icons/io5";
 import { Component, ReactNode } from "react";
 
-import { ICustomAnimatable } from "./types";
+import { IAnimatable } from "babylonjs";
 
 import { Button } from "../../../ui/shadcn/ui/button";
 import { Slider } from "../../../ui/shadcn/ui/slider";
@@ -14,7 +14,7 @@ import { importAnimationsFrom } from "./tools/import";
 
 export interface IEditorAnimationToolbarProps {
 	playing: boolean;
-	animatable: ICustomAnimatable | null;
+	animatable: IAnimatable | null;
 	animationEditor: EditorAnimation;
 }
 
