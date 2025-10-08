@@ -75,7 +75,7 @@ import { EditorMeshPhysicsInspector } from "./physics";
 import { EditorMeshCollisionInspector } from "./collision";
 import { MeshSPSInspector } from "./sps";
 import { isCustomSolidParticleSystem } from "../../../../tools/guards/particles";
-import { CustomSolidParticleSystem } from "../../../../project/add/particles";
+import { CustomSolidParticleSystem } from "../../../windows/vfx/custom-sps";
 
 export interface IEditorMeshInspectorState {
 	mesh: AbstractMesh;
