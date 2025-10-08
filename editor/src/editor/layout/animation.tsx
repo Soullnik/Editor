@@ -5,8 +5,7 @@ import { Animation, IAnimatable } from "babylonjs";
 import { isNode } from "../../tools/guards/nodes";
 import { isScene } from "../../tools/guards/scene";
 import { isDomElementFocusable } from "../../tools/dom";
-import { isAnyParticleSystem, isCustomSolidParticleSystem } from "../../tools/guards/particles";
-import { SPSAnimationManager } from "../../tools/animation/sps";
+import { isAnyParticleSystem } from "../../tools/guards/particles";
 
 import { Editor } from "../main";
 
@@ -14,8 +13,6 @@ import { EditorAnimationToolbar } from "./animation/toolbar";
 import { EditorAnimationTracksPanel } from "./animation/tracks/tracks";
 import { EditorAnimationInspector } from "./animation/inspector/inspector";
 import { EditorAnimationTimelinePanel } from "./animation/timeline/timeline";
-import { EditorAnimationParticlesPanel } from "./animation/particles/particles";
-import { ICustomAnimatable } from "./animation/types";
 
 export interface IEditorAnimationProps {
 	/**
@@ -28,7 +25,6 @@ export interface IEditorAnimationState {
 	playing: boolean;
 	focused: boolean;
 	animatable: IAnimatable | null;
-	rootAnimatable: ICustomAnimatable | null;
 	selectedAnimation: Animation | null;
 }
 
@@ -46,14 +42,8 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 	 */
 	public timelines!: EditorAnimationTimelinePanel;
 
-	/**
-	 * Defines the reference to the particles panel component used to display the particles.
-	 */
-	public particles!: EditorAnimationParticlesPanel;
-
 	private _playing: boolean = false;
 	private _currentTimeBeforePlay: number | null = null;
-	private _spsAnimationManager: SPSAnimationManager | null = null;
 
 	private _onKeyUpListener: (event: KeyboardEvent) => void;
 
@@ -64,7 +54,6 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 			playing: false,
 			focused: false,
 			animatable: null,
-			rootAnimatable: null,
 			selectedAnimation: null,
 		};
 	}
@@ -79,12 +68,6 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 				<EditorAnimationToolbar animationEditor={this} playing={this.state.playing} animatable={this.state.animatable} />
 
 				<div className="flex w-full h-10">
-					{isCustomSolidParticleSystem(this.state.rootAnimatable) && (
-						<>
-							<div className="flex justify-center items-center font-semibold w-96 h-full bg-secondary">Particles</div>
-							<div className="w-1 h-full bg-primary-foreground" />
-						</>
-					)}
 					<div className="flex justify-center items-center font-semibold w-96 h-full bg-secondary">Tracks</div>
 
 					<div className="w-1 h-full bg-primary-foreground" />
@@ -97,18 +80,6 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 					onMouseLeave={() => this.setState({ focused: false })}
 					className="relative flex w-full h-full overflow-x-hidden overflow-y-auto"
 				>
-					{isCustomSolidParticleSystem(this.state.rootAnimatable) && (
-						<>
-							<EditorAnimationParticlesPanel
-								animationEditor={this}
-								ref={(r) => (this.particles = r!)}
-								mesh={this.state.rootAnimatable.mesh}
-								particles={this.state.rootAnimatable.particles}
-							/>
-							<div className="w-1 h-full bg-primary-foreground" />
-						</>
-					)}
-
 					<EditorAnimationTracksPanel animationEditor={this} ref={(r) => (this.tracks = r!)} animatable={this.state.animatable} />
 
 					<div className="w-1 h-full bg-primary-foreground" />
@@ -122,8 +93,6 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 	}
 
 	public componentDidMount(): void {
-		this._initializeSPSAnimationManager();
-
 		window.addEventListener(
 			"keyup",
 			(this._onKeyUpListener = (ev) => {
@@ -144,11 +113,6 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 
 	public componentWillUnmount(): void {
 		window.removeEventListener("keyup", this._onKeyUpListener);
-
-		// Cleanup SPS animation manager
-		if (this._spsAnimationManager) {
-			this._spsAnimationManager.dispose();
-		}
 	}
 
 	/**
@@ -156,20 +120,6 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 	 * @param object defines the reference to the object that has been selected somewhere in the graph or the preview.
 	 */
 	public setEditedObject(object: unknown): void {
-		if (!object) {
-			return this.setState({ animatable: null, rootAnimatable: null });
-		}
-
-		if (isNode(object) || isScene(object) || isAnyParticleSystem(object)) {
-			if (!object.animations) {
-				object.animations = [];
-			}
-
-			this.setState({ animatable: object, rootAnimatable: object });
-		}
-	}
-
-	public setChildEditedObject(object: unknown): void {
 		if (!object) {
 			return this.setState({ animatable: null });
 		}
@@ -217,22 +167,5 @@ export class EditorAnimation extends Component<IEditorAnimationProps, IEditorAni
 			this.timelines.setCurrentTime(this._currentTimeBeforePlay);
 			this._currentTimeBeforePlay = null;
 		}
-	}
-
-	private _initializeSPSAnimationManager(): void {
-		if (this.props.editor.layout.preview.scene) {
-			this._spsAnimationManager = new SPSAnimationManager(this.props.editor.layout.preview.scene);
-		}
-	}
-
-	private _ensureSPSAnimationManager(): void {
-		if (!this._spsAnimationManager && this.props.editor.layout.preview.scene) {
-			this._spsAnimationManager = new SPSAnimationManager(this.props.editor.layout.preview.scene);
-		}
-	}
-
-	public getSPSAnimationManager(): SPSAnimationManager | null {
-		this._ensureSPSAnimationManager();
-		return this._spsAnimationManager;
 	}
 }
