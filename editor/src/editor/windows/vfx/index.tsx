@@ -21,7 +21,7 @@ import { projectConfiguration } from "../../../project/configuration";
 import { FaPlay, FaStop } from "react-icons/fa";
 import { GridMaterial } from "babylonjs-materials";
 
-import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel, VFXAnimationPanel } from "./components";
+import { VFXComponentsPanel, VFXPreviewPanel, VFXInspectorPanel, VFXAnimationPanel, SolidParticleEditor } from "./components";
 
 import layoutModel from "./layout.json";
 import { isDarwin } from "../../../tools/os";
@@ -53,7 +53,9 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		},
 		layout: {
 			preview: {
-				scene: null as Scene | null,
+				forceUpdate: () => {
+					this._preview.forceUpdate();
+				},
 			},
 			inspector: {
 				forceUpdate: () => {
@@ -66,6 +68,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 	public _preview: VFXPreviewPanel;
 	public _inspector: VFXInspectorPanel;
 	public _animation: VFXAnimationPanel;
+	public _particleEditor: SolidParticleEditor;
 
 	private _getComponents(): Record<string, React.ReactNode> {
 		return {
@@ -92,6 +95,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			),
 			inspector: <VFXInspectorPanel selectedComponent={this.state.selectedComponent} editor={this._mockEditor} ref={(r) => (this._inspector = r!)} />,
 			animation: <VFXAnimationPanel selectedComponent={this.state.selectedComponent} editor={this._mockEditor} ref={(r) => (this._animation = r!)} />,
+			"particle-editor": <SolidParticleEditor sps={this._getSelectedSPS()} ref={(r) => (this._particleEditor = r!)} />,
 		};
 	}
 
@@ -249,6 +253,17 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		return component;
 	}
 
+	private _getSelectedSPS(): any {
+		if (!this.state.selectedComponent) {return null;}
+
+		// Find SPS component
+		if (this.state.selectedComponent.type === "solid_particle_system") {
+			return this.state.selectedComponent.babylonSystem;
+		}
+
+		return null;
+	}
+
 	private _saveLayout(model: Model): void {
 		const layoutData = model.toJson() as IJsonModel & {
 			version: string;
@@ -351,7 +366,22 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		if (!this.state.vfxData) {
 			return;
 		}
-
+		this.state.vfxData.components.forEach((component) => {
+			switch (component.type) {
+				case "gpu_particle_system":
+					component.babylonSystem.start();
+					break;
+				case "cpu_particle_system":
+					component.babylonSystem.start();
+					break;
+				case "solid_particle_system":
+					component.babylonSystem.start();
+					break;
+				case "node_particle_system":
+					component.babylonSystem.start();
+					break;
+			}
+		});
 		this.setState({ playing: true });
 		toast.success("VFX playback started");
 	}

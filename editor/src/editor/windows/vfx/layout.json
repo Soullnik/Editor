@@ -74,6 +74,14 @@
 								"component": "animation",
 								"enableClose": false,
 								"enableRenderOnDemand": false
+							},
+							{
+								"type": "tab",
+								"id": "particle-editor",
+								"name": "Particle Editor",
+								"component": "particle-editor",
+								"enableClose": false,
+								"enableRenderOnDemand": false
 							}
 						]
 					}
