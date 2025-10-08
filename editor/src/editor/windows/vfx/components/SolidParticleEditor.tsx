@@ -1,11 +1,10 @@
 import { Component, ReactNode } from "react";
 import { CustomSolidParticleSystem, CustomSolidParticle } from "../custom-sps";
-import { Animation } from "babylonjs";
 import { SolidParticleBlockFactory, SolidParticleBlockExecutor } from "../utils";
+import { VFXComponent } from "../types";
 
 export interface ISolidParticleEditorProps {
-	sps: CustomSolidParticleSystem | null;
-	onAnimationUpdate?: (particle: CustomSolidParticle, animations: Animation[]) => void;
+	selectedComponent: VFXComponent | null;
 }
 
 export interface ISolidParticleEditorState {
@@ -80,22 +79,43 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 	}
 
 	public componentDidUpdate(prevProps: ISolidParticleEditorProps): void {
-		if (prevProps.sps !== this.props.sps) {
+		if (prevProps.selectedComponent !== this.props.selectedComponent) {
 			this._initializeGraph();
 		}
 	}
 
 	public render(): ReactNode {
-		const { sps } = this.props;
+		const { selectedComponent } = this.props;
 		const { selectedParticle } = this.state;
-
+		
+		// Check if selected component is a solid particle system
+		const sps = selectedComponent?.type === "solid_particle_system" 
+			? selectedComponent.babylonSystem as CustomSolidParticleSystem 
+			: null;
+		
+		// Show "No object selected" if not a solid particle system
+		if (!sps) {
+			return (
+				<div className="flex flex-col w-full h-full bg-background">
+					<div className="flex items-center justify-center h-full">
+						<div className="text-center">
+							<h3 className="text-lg font-semibold text-muted-foreground mb-2">No Object Selected</h3>
+							<p className="text-sm text-muted-foreground">
+								Please select a Solid Particle System to edit particles
+							</p>
+						</div>
+					</div>
+				</div>
+			);
+		}
+		
 		return (
 			<div className="flex flex-col w-full h-full bg-background">
 				{/* Header */}
 				<div className="flex items-center justify-between p-4 border-b border-border">
 					<div className="flex items-center gap-4">
 						<h3 className="text-lg font-semibold">Solid Particle Editor</h3>
-						{sps && <div className="text-sm text-muted-foreground">{sps.nbParticles} particles</div>}
+						<div className="text-sm text-muted-foreground">{sps.nbParticles} particles</div>
 					</div>
 
 					<div className="flex gap-2">
@@ -179,7 +199,14 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 	}
 
 	private _initializeGraph(): void {
-		if (!this.props.sps) {
+		const { selectedComponent } = this.props;
+		
+		// Check if selected component is a solid particle system
+		const sps = selectedComponent?.type === "solid_particle_system" 
+			? selectedComponent.babylonSystem as CustomSolidParticleSystem 
+			: null;
+			
+		if (!sps) {
 			this.setState({ graphNodes: [], connections: [] });
 			return;
 		}
@@ -187,7 +214,7 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 		// Create initial graph nodes for each particle
 		const nodes: ISolidParticleNode[] = [];
 
-		this.props.sps.particles.forEach((particle, index) => {
+		sps.particles.forEach((particle, index) => {
 			nodes.push(this._createParticleNode(particle, index, { x: 50, y: 50 + index * 150 }));
 		});
 
@@ -607,7 +634,7 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 		this._drawGraph();
 	}
 
-	private _handleMouseUp(e: React.MouseEvent<HTMLCanvasElement>): void {
+	private _handleMouseUp(_e: React.MouseEvent<HTMLCanvasElement>): void {
 		this.setState({ dragging: false });
 	}
 
@@ -650,11 +677,6 @@ export class SolidParticleEditor extends Component<ISolidParticleEditorProps, IS
 
 		// Apply animations to particle
 		this.state.selectedParticle.animations = animations;
-
-		// Notify parent component
-		if (this.props.onAnimationUpdate) {
-			this.props.onAnimationUpdate(this.state.selectedParticle, animations);
-		}
 
 		console.log("Compiled animations:", animations);
 	}

@@ -95,7 +95,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 			),
 			inspector: <VFXInspectorPanel selectedComponent={this.state.selectedComponent} editor={this._mockEditor} ref={(r) => (this._inspector = r!)} />,
 			animation: <VFXAnimationPanel selectedComponent={this.state.selectedComponent} editor={this._mockEditor} ref={(r) => (this._animation = r!)} />,
-			"particle-editor": <SolidParticleEditor sps={this._getSelectedSPS()} ref={(r) => (this._particleEditor = r!)} />,
+			"particle-editor": <SolidParticleEditor selectedComponent={this.state.selectedComponent} ref={(r) => (this._particleEditor = r!)} />,
 		};
 	}
 
@@ -251,19 +251,6 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		}
 
 		return component;
-	}
-
-	private _getSelectedSPS(): any {
-		if (!this.state.selectedComponent) {
-			return null;
-		}
-
-		// Find SPS component
-		if (this.state.selectedComponent.type === "solid_particle_system") {
-			return this.state.selectedComponent.babylonSystem;
-		}
-
-		return null;
 	}
 
 	private _saveLayout(model: Model): void {
