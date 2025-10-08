@@ -2,7 +2,7 @@ import { Component, ReactNode } from "react";
 import { Input } from "../../../../ui/shadcn/ui/input";
 import { toast } from "sonner";
 import { Mesh, Scene } from "babylonjs";
-import { VFXComponent, IVFXFile, IVFXComponent, IVFXEmitterMesh } from "../types";
+import { VFXComponent, IVFXFile, IVFXEmitterMesh } from "../types";
 import { VFXEmitterSection } from "./VFXEmitterSection";
 import { VFXComponentList } from "./VFXComponentList";
 import { extname } from "path";
@@ -13,6 +13,8 @@ import {
 	createParticleSystemFromNPSS,
 	createSolidParticleSystemFromMesh,
 } from "../utils/create";
+import { showConfirm } from "../../../../ui/dialog";
+import { EditorInspectorNumberField } from "../../../layout/inspector/fields/number";
 
 export interface IVFXComponentsPanelState {
 	search: string;
@@ -138,7 +140,10 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 				let component: VFXComponent | null = null;
 				switch (ext) {
 					case ".glb":
-						component = await createSolidParticleSystemFromMesh(absolutePath, this.props.scene, this._rootEmitterComponent.babylonSystem);
+						const count = await this._showAddParticleDialog();
+						if (count > 0) {
+							component = await createSolidParticleSystemFromMesh(absolutePath, this.props.scene, this._rootEmitterComponent.babylonSystem, count);
+						}
 						break;
 					case ".gpups":
 						component = await createParticleSystemFromGPUPS(absolutePath, this.props.scene, this._rootEmitterComponent.babylonSystem);
@@ -179,5 +184,29 @@ export class VFXComponentsPanel extends Component<IVFXComponentsPanelProps, IVFX
 		});
 
 		return groupedComponents;
+	}
+
+	private async _showAddParticleDialog(): Promise<number> {
+		const state = {
+			count: 1,
+		};
+		const confirm = await showConfirm(
+			"Add Particles",
+			<div className="flex flex-col gap-4 p-4">
+				<div className="text-sm text-muted-foreground">Add Solid Particle System using mesh</div>
+				<div className="flex flex-col gap-2">
+					<EditorInspectorNumberField step={1} object={state} property="count" label="Particle Count" />
+				</div>
+			</div>,
+			{
+				confirmText: "Add",
+				cancelText: "Cancel",
+			}
+		);
+
+		if (!confirm) {
+			return 0;
+		}
+		return state.count;
 	}
 }

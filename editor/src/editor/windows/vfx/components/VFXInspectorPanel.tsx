@@ -8,7 +8,6 @@ import { Editor } from "../../../main";
 export interface IVFXInspectorPanelProps {
 	editor: Editor;
 	selectedComponent: VFXComponent | null;
-	onComponentPropertyUpdate: (component: VFXComponent) => void;
 }
 
 export class VFXInspectorPanel extends Component<IVFXInspectorPanelProps> {

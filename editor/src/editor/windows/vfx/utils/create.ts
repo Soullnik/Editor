@@ -79,7 +79,7 @@ export async function createParticleSystemFromCPUPS(absolutePath: string, scene:
 	}
 }
 
-export async function createSolidParticleSystemFromMesh(absolutePath: string, scene: Scene, targetMesh: AbstractMesh): Promise<IVFXSolidParticleSystem | null> {
+export async function createSolidParticleSystemFromMesh(absolutePath: string, scene: Scene, targetMesh: AbstractMesh, count: number): Promise<IVFXSolidParticleSystem | null> {
 	const fileName = absolutePath.split("/").pop() || "mesh";
 	const componentName = fileName.replace(".glb", "");
 
@@ -91,7 +91,7 @@ export async function createSolidParticleSystemFromMesh(absolutePath: string, sc
 			const rootMesh: Mesh = result.meshes[0] as Mesh;
 			const templateMesh: Mesh = result.meshes[1] as Mesh;
 			const sps = new CustomSolidParticleSystem(componentName, scene, { useModelMaterial: true, expandable: true });
-			sps.addShape(templateMesh, 1);
+			sps.addShape(templateMesh, count);
 			const mesh = sps.buildMesh();
 			mesh.receiveShadows = false;
 			mesh.id = Tools.RandomId();

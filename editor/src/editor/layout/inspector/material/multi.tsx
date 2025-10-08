@@ -57,7 +57,7 @@ export class EditorMultiMaterialInspector extends Component<IEditorPBRMaterialIn
 		return (
 			<Table>
 				<TableCaption>Select the material to edit.</TableCaption>
-				<TableBody> 
+				<TableBody>
 					{this.props.material.subMaterials.map((material, index) => (
 						<TableRow
 							onDrop={(ev) => {

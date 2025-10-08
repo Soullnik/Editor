@@ -90,14 +90,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 					ref={(r) => (this._preview = r!)}
 				/>
 			),
-			inspector: (
-				<VFXInspectorPanel
-					selectedComponent={this.state.selectedComponent}
-					editor={this._mockEditor}
-					onComponentPropertyUpdate={(component) => this.setSelectedComponent(component)}
-					ref={(r) => (this._inspector = r!)}
-				/>
-			),
+			inspector: <VFXInspectorPanel selectedComponent={this.state.selectedComponent} editor={this._mockEditor} ref={(r) => (this._inspector = r!)} />,
 			animation: <VFXAnimationPanel selectedComponent={this.state.selectedComponent} editor={this._mockEditor} ref={(r) => (this._animation = r!)} />,
 		};
 	}
@@ -311,6 +304,7 @@ export default class VFXEditorWindow extends Component<IVFXEditorWindowProps, IV
 		});
 
 		this._mockEditor.layout.preview.scene = scene;
+		this._mockEditor.layout.preview.engine = engine;
 
 		this.setState({ engine, scene, camera });
 	}
