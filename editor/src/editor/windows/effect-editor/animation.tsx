@@ -1,5 +1,5 @@
-import { Component, createRef, ReactNode } from "react";
-import { ParticleSystem as QuarksParticleSystem, QuarksUtil } from "babylon.quarks";
+import { Component, createRef, PointerEvent, ReactNode } from "react";
+import { ParticleEmitter, ParticleSystem as QuarksParticleSystem, QuarksUtil } from "babylon.quarks";
 import { IEffectEditor } from ".";
 import { QuarksEffectDocument } from "./quarks-bridge";
 import { Button } from "../../../ui/shadcn/ui/button";
@@ -114,13 +114,13 @@ export class EffectEditorAnimation extends Component<IEffectEditorAnimationProps
 						<span>Zoom:</span>
 						<button
 							className="px-1.5 py-0.5 border border-border rounded text-xs hover:bg-muted"
-							onClick={() => this.setState((s) => ({ pixelsPerSecond: Math.max(20, s.pixelsPerSecond - 20) }))}
+							onClick={() => this.setState((s: IEffectEditorAnimationState) => ({ pixelsPerSecond: Math.max(20, s.pixelsPerSecond - 20) }))}
 						>
 							−
 						</button>
 						<button
 							className="px-1.5 py-0.5 border border-border rounded text-xs hover:bg-muted"
-							onClick={() => this.setState((s) => ({ pixelsPerSecond: Math.min(300, s.pixelsPerSecond + 20) }))}
+							onClick={() => this.setState((s: IEffectEditorAnimationState) => ({ pixelsPerSecond: Math.min(300, s.pixelsPerSecond + 20) }))}
 						>
 							+
 						</button>
@@ -140,7 +140,7 @@ export class EffectEditorAnimation extends Component<IEffectEditorAnimationProps
 				) : (
 					<div
 						className="flex flex-col flex-1 min-h-0 overflow-auto"
-						ref={(el) => {
+						ref={(el: HTMLDivElement | null) => {
 							if (el) {
 								this._containerWidth = el.clientWidth - TRACK_LABEL_WIDTH;
 							}
@@ -155,8 +155,8 @@ export class EffectEditorAnimation extends Component<IEffectEditorAnimationProps
 								ref={this._rulerRef}
 								className="relative overflow-hidden cursor-pointer"
 								style={{ width: timelineWidth - TRACK_LABEL_WIDTH, height: RULER_HEIGHT }}
-								onPointerDown={(e) => this._handleRulerPointerDown(e)}
-								onPointerMove={(e) => this._handleRulerPointerMove(e)}
+								onPointerDown={(e: PointerEvent<HTMLDivElement>) => this._handleRulerPointerDown(e)}
+								onPointerMove={(e: PointerEvent<HTMLDivElement>) => this._handleRulerPointerMove(e)}
 								onPointerUp={() => this._handleRulerPointerUp()}
 								onPointerLeave={() => this._handleRulerPointerUp()}
 							>
@@ -177,7 +177,7 @@ export class EffectEditorAnimation extends Component<IEffectEditorAnimationProps
 								style={{ left: playheadX }}
 							/>
 
-							{tracks.map((track, index) => (
+							{tracks.map((track: IAnimationTrack, index: number) => (
 								<div
 									key={`${track.effectId}-${track.particleName}-${index}`}
 									className="flex shrink-0 border-b border-border"
@@ -354,7 +354,7 @@ export class EffectEditorAnimation extends Component<IEffectEditorAnimationProps
 		const delta = (now - this._lastFrameMs) / 1000;
 		this._lastFrameMs = now;
 
-		this.setState((s) => {
+		this.setState((s: IEffectEditorAnimationState) => {
 			let next = s.currentTime + delta;
 			if (next >= s.totalDuration) {
 				next = s.totalDuration;
@@ -404,7 +404,7 @@ export class EffectEditorAnimation extends Component<IEffectEditorAnimationProps
 	}
 
 	private _collectTracksFromEffect(effect: QuarksEffectDocument, out: IAnimationTrack[]): void {
-		QuarksUtil.runOnAllParticleEmitters(effect.root, (emitter) => {
+		QuarksUtil.runOnAllParticleEmitters(effect.root, (emitter: ParticleEmitter) => {
 			const system = emitter.system as QuarksParticleSystem;
 			out.push({
 				effectId: effect.id,

@@ -18,7 +18,9 @@
 		"start": "electron .",
 		"test": "vitest run",
 		"watch-test": "vitest --watch",
-		"coverage": "vitest run --coverage"
+		"coverage": "vitest run --coverage",
+		"test:e2e": "playwright test --config playwright.config.ts",
+		"test:e2e:report": "playwright show-report playwright-report"
 	},
 	"license": "(Apache-2.0)",
 	"devDependencies": {

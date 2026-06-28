@@ -105,7 +105,7 @@ export function EffectEditorParticleInitializationProperties(props: IEffectEdito
 			/>
 			<EditorInspectorBlockField>
 				<div className="px-2">Start Life</div>
-				<EffectValueEditor value={getStartLife()} onChange={setStartLife} availableTypes={["ConstantValue", "IntervalValue", "PiecewiseBezier"]} min={0} step={0.1} />
+				<EffectValueEditor value={getStartLife()} onChange={(v) => setStartLife(v as Value)} availableTypes={["ConstantValue", "IntervalValue", "PiecewiseBezier"]} min={0} step={0.1} />
 			</EditorInspectorBlockField>
 			<EditorInspectorBlockField>
 				<div className="px-2">Start Size</div>
@@ -119,15 +119,15 @@ export function EffectEditorParticleInitializationProperties(props: IEffectEdito
 			</EditorInspectorBlockField>
 			<EditorInspectorBlockField>
 				<div className="px-2">Scale X</div>
-				<EffectValueEditor value={getScaleX()} onChange={setScaleX} availableTypes={["ConstantValue", "IntervalValue"]} min={0} step={0.01} />
+				<EffectValueEditor value={getScaleX()} onChange={(v) => setScaleX(v as Value)} availableTypes={["ConstantValue", "IntervalValue"]} min={0} step={0.01} />
 			</EditorInspectorBlockField>
 			<EditorInspectorBlockField>
 				<div className="px-2">Scale Y</div>
-				<EffectValueEditor value={getScaleY()} onChange={setScaleY} availableTypes={["ConstantValue", "IntervalValue"]} min={0} step={0.01} />
+				<EffectValueEditor value={getScaleY()} onChange={(v) => setScaleY(v as Value)} availableTypes={["ConstantValue", "IntervalValue"]} min={0} step={0.01} />
 			</EditorInspectorBlockField>
 			<EditorInspectorBlockField>
 				<div className="px-2">Start Speed</div>
-				<EffectValueEditor value={getStartSpeed()} onChange={setStartSpeed} availableTypes={["ConstantValue", "IntervalValue", "PiecewiseBezier"]} min={0} step={0.1} />
+				<EffectValueEditor value={getStartSpeed()} onChange={(v) => setStartSpeed(v as Value)} availableTypes={["ConstantValue", "IntervalValue", "PiecewiseBezier"]} min={0} step={0.1} />
 			</EditorInspectorBlockField>
 			<EditorInspectorBlockField>
 				<div className="px-2">Start Color</div>
