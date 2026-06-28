@@ -352,6 +352,84 @@ export class EffectEditorGraph extends Component<IEffectEditorGraphProps, IEffec
 		this._rebuildTree();
 	}
 
+	/** Plays all loaded effects. */
+	public playAll(): void {
+		for (const effect of this._effects.values()) {
+			effect.resetNaturalIdleTracking(effect.root);
+			effect.play();
+			this._setNodePlaybackState(effect.toNodeTree(), "playing");
+		}
+		this._rebuildTree();
+		this._notifyUiStateChanged();
+	}
+
+	/** Stops all loaded effects. */
+	public stopAll(): void {
+		for (const effect of this._effects.values()) {
+			effect.resetNaturalIdleTracking(effect.root);
+			effect.stop();
+			this._setNodePlaybackState(effect.toNodeTree(), "stopped");
+		}
+		this._rebuildTree();
+		this._notifyUiStateChanged();
+	}
+
+	/** Restarts all loaded effects. */
+	public restartAll(): void {
+		for (const effect of this._effects.values()) {
+			effect.resetNaturalIdleTracking(effect.root);
+			effect.restart();
+			this._setNodePlaybackState(effect.toNodeTree(), "playing");
+		}
+		this._rebuildTree();
+		this._notifyUiStateChanged();
+	}
+
+	/** Collects unique textures and materials used across all loaded particle systems. */
+	public getResources(): Array<{ id: string; name: string; type: "texture" | "material"; resourceData?: { path?: string; uuid?: string; className?: string } }> {
+		const resources: Array<{ id: string; name: string; type: "texture" | "material"; resourceData?: { path?: string; uuid?: string; className?: string } }> = [];
+		const seenIds = new Set<string>();
+
+		for (const effect of this._effects.values()) {
+			QuarksUtil.runOnAllParticleEmitters(effect.root, (emitter) => {
+				const system = emitter.system as ParticleSystem;
+
+				// Texture
+				const texture = (system as any).texture as { name?: string; uid?: number } | undefined;
+				if (texture) {
+					const texId = `tex-${texture.name || texture.uid}`;
+					if (!seenIds.has(texId)) {
+						seenIds.add(texId);
+						resources.push({
+							id: texId,
+							name: texture.name || `Texture ${seenIds.size}`,
+							type: "texture",
+							resourceData: { path: texture.name, uuid: texId },
+						});
+					}
+				}
+
+				// Material on batch mesh
+				const batchMesh = (system as any).mesh as { material?: { name?: string; uniqueId: number; getClassName?(): string } } | undefined;
+				const mat = batchMesh?.material ?? (system as any).material as { name?: string; uniqueId: number; getClassName?(): string } | undefined;
+				if (mat) {
+					const matId = `mat-${mat.uniqueId}`;
+					if (!seenIds.has(matId)) {
+						seenIds.add(matId);
+						resources.push({
+							id: matId,
+							name: mat.name || `Material ${seenIds.size}`,
+							type: "material",
+							resourceData: { uuid: matId, className: mat.getClassName?.() },
+						});
+					}
+				}
+			});
+		}
+
+		return resources;
+	}
+
 	public componentWillUnmount(): void {
 		this._disposeAllEffects();
 	}
@@ -663,6 +741,7 @@ export class EffectEditorGraph extends Component<IEffectEditorGraphProps, IEffec
 	private _notifyUiStateChanged(): void {
 		this.props.editor.preview?.forceUpdate();
 		this.props.editor.layout?.forceUpdate();
+		this.props.editor.animation?.refreshTracks();
 	}
 
 	/** Applies playback state recursively to node and descendants. */

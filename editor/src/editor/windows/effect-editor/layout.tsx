@@ -211,7 +211,7 @@ export class EffectEditorLayout extends Component<IEffectEditorLayoutProps, IEff
 					// }}
 				/>
 			),
-			resources: <EffectEditorResources ref={(r) => (this.props.editor.resources = r!)} resources={this.state.resources} />,
+			resources: <EffectEditorResources ref={(r) => (this.props.editor.resources = r!)} resources={this.props.editor.graph?.getResources() ?? []} />,
 			animation: <EffectEditorAnimation ref={(r) => (this.props.editor.animation = r!)} filePath={this.props.filePath} editor={this.props.editor} />,
 			"properties-object": (
 				<EffectEditorPropertiesTab

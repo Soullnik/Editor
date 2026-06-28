@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 
 import { EditorInspectorBlockField } from "../../../layout/inspector/fields/block";
+import { EditorInspectorNumberField } from "../../../layout/inspector/fields/number";
 import { type Color, type Rotation, type Value } from "../types";
 import type { IQuarksNode } from "../quarks-bridge";
 import { EffectValueEditor, type IVec3Function } from "../editors/value";
@@ -94,6 +95,14 @@ export function EffectEditorParticleInitializationProperties(props: IEffectEdito
 
 	return (
 		<>
+			<EditorInspectorNumberField
+				object={system}
+				property="maxParticle"
+				label="Max Particles"
+				min={1}
+				step={1}
+				onChange={onChange}
+			/>
 			<EditorInspectorBlockField>
 				<div className="px-2">Start Life</div>
 				<EffectValueEditor value={getStartLife()} onChange={setStartLife} availableTypes={["ConstantValue", "IntervalValue", "PiecewiseBezier"]} min={0} step={0.1} />

@@ -15,6 +15,9 @@ import {
 
 import { openSingleFileDialog, saveSingleFileDialog } from "../../../tools/dialog";
 import { ToolbarComponent } from "../../../ui/toolbar";
+import { Button } from "../../../ui/shadcn/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../ui/shadcn/ui/tooltip";
+import { IoPlay, IoStop, IoRefresh } from "react-icons/io5";
 
 import IEffectEditor from "./index";
 
@@ -76,6 +79,35 @@ export class EffectEditorToolbar extends Component<IEffectEditorToolbarProps, IE
 							<div className="text-sm font-thin">(...{this.props.editor.state.filePath.substring(this.props.editor.state.filePath.length - 30)})</div>
 						)}
 					</div>
+				</div>
+
+				<div className="ml-auto pr-3 flex items-center gap-1">
+					<TooltipProvider>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => this._handlePlayAll()}>
+									<IoPlay className="w-4 h-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Play All</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => this._handleStopAll()}>
+									<IoStop className="w-4 h-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Stop All</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => this._handleRestartAll()}>
+									<IoRefresh className="w-4 h-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Restart All</TooltipContent>
+						</Tooltip>
+					</TooltipProvider>
 				</div>
 			</ToolbarComponent>
 		);
@@ -147,5 +179,17 @@ export class EffectEditorToolbar extends Component<IEffectEditorToolbarProps, IE
 		}
 
 		this.props.editor.importQuarksFile(file);
+	}
+
+	private _handlePlayAll(): void {
+		this.props.editor.editor.graph?.playAll();
+	}
+
+	private _handleStopAll(): void {
+		this.props.editor.editor.graph?.stopAll();
+	}
+
+	private _handleRestartAll(): void {
+		this.props.editor.editor.graph?.restartAll();
 	}
 }
